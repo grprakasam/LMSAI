@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ephicacy R Tutor- AI Powered</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h1>Ephicacy R Tutor- AI Powered*</h1>
+        
+        <form id="tutorForm" class="tutor-form">
+            <div class="form-group">
+                <label for="topic" class="tooltip">
+                    Your Topic to be answered
+                    <span class="tooltiptext">Enter any R programming topic like data structures, ggplot2, dplyr, statistical analysis, etc.</span>
+                </label>
+                <input type="text" id="topic" name="topic" placeholder="e.g., R Data structures, ggplot2 visualization, dplyr operations..." required>
+                <span class="note">*Popular topics: Data Frames, Lists, Vectors, ggplot2, dplyr, tidyr, statistical modeling</span>
+                <div class="topic-suggestions">
+                    <button type="button" class="suggestion-btn" data-topic="R Data Structures">Data Structures</button>
+                    <button type="button" class="suggestion-btn" data-topic="ggplot2 Data Visualization">ggplot2 Visualization</button>
+                    <button type="button" class="suggestion-btn" data-topic="dplyr Data Manipulation">dplyr Operations</button>
+                    <button type="button" class="suggestion-btn" data-topic="Statistical Analysis in R">Statistical Analysis</button>
+                    <button type="button" class="suggestion-btn" data-topic="R Shiny Web Applications">Shiny Apps</button>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="expertise" class="tooltip">
+                    Your expertise in this
+                    <span class="tooltiptext">Beginner: New to R | Intermediate: Some R experience | Expert: Advanced R user</span>
+                </label>
+                <select id="expertise" name="expertise" required>
+                    <option value="">Select your R expertise level</option>
+                    <option value="beginner">🌱 Beginner - New to R programming</option>
+                    <option value="intermediate">🌿 Intermediate - Some R experience</option>
+                    <option value="expert">🌳 Expert - Advanced R developer</option>
+                </select>
+                <span class="note">Choose based on your R programming experience and familiarity with the topic</span>
+            </div>
+            
+            <div class="form-group">
+                <label for="duration" class="tooltip">
+                    Duration required (in Minutes)
+                    <span class="tooltiptext">Recommended: 3-5 mins for concepts, 7-10 mins for complex topics</span>
+                </label>
+                <div class="duration-container">
+                    <input type="range" id="durationRange" min="1" max="10" value="5" class="duration-slider">
+                    <input type="number" id="duration" name="duration" value="5" min="1" max="10" required readonly>
+                    <div class="duration-labels">
+                        <span>Quick (1-3 min)</span>
+                        <span>Standard (4-6 min)</span>
+                        <span>Detailed (7-10 min)</span>
+                    </div>
+                </div>
+            </div>
+            
+            <button type="submit" class="submit-btn">
+                <i class="fas fa-magic"></i> Generate R Tutorial
+            </button>
+        </form>
+        
+        <div id="audioSection" class="audio-section" style="display: none;">
+            <div class="audio-content-box">
+                <div class="audio-header">
+                    <i class="fas fa-headphones"></i> Generated R Tutorial Content
+                </div>
+                <div id="audioContent" class="audio-content"></div>
+                <div class="audio-controls">
+                    <button id="playBtn" class="audio-btn">
+                        <i class="fas fa-play"></i> Play Tutorial
+                    </button>
+                    <button id="downloadBtn" class="audio-btn">
+                        <i class="fas fa-download"></i> Download Audio
+                    </button>
+                    <button id="shareBtn" class="audio-btn">
+                        <i class="fas fa-share"></i> Share
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>🔬 Analyzing your R topic and generating personalized tutorial content...</p>
+        </div>
+    </div>
+
+    <script>
+        // Topic suggestions functionality
+        document.querySelectorAll('.suggestion-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.getElementById('topic').value = this.dataset.topic;
+                // Add visual feedback
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = 'scale(1)';
+                }, 150);
+            });
+        });
+
+        // Duration slider functionality
+        const durationRange = document.getElementById('durationRange');
+        const durationInput = document.getElementById('duration');
+        
+        durationRange.addEventListener('input', function() {
+            durationInput.value = this.value;
+            
+            // Update slider color based on value
+            const percentage = ((this.value - this.min) / (this.max - this.min)) * 100;
+            this.style.background = `linear-gradient(to right, #2196F3 0%, #2196F3 ${percentage}%, #e3f2fd ${percentage}%, #e3f2fd 100%)`;
+        });
+
+        // Form submission with enhanced feedback
+        document.getElementById('tutorForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const loadingDiv = document.getElementById('loading');
+            const audioSection = document.getElementById('audioSection');
+            const submitBtn = document.querySelector('.submit-btn');
+            
+            // Disable submit button and show loading
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            loadingDiv.style.display = 'block';
+            audioSection.style.display = 'none';
+            
+            try {
+                const response = await fetch('/submit', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Hide loading
+                    loadingDiv.style.display = 'none';
+                    
+                    // Show audio section with enhanced content
+                    document.getElementById('audioContent').innerHTML = `
+                        <div class="result-summary">
+                            <h3><i class="fab fa-r-project"></i> R Tutorial Generated Successfully!</h3>
+                        </div>
+                        <div class="result-details">
+                            <p><strong><i class="fas fa-book"></i> Topic:</strong> <span class="r-highlight">${result.topic}</span></p>
+                            <p><strong><i class="fas fa-user-graduate"></i> Expertise Level:</strong> ${result.expertise.charAt(0).toUpperCase() + result.expertise.slice(1)}</p>
+                            <p><strong><i class="fas fa-clock"></i> Duration:</strong> ${result.duration} minutes</p>
+                            <div class="r-code">
+                                <strong>Sample R Code Preview:</strong><br>
+                                # ${result.topic} - ${result.expertise} level tutorial<br>
+                                # Generated content would include relevant R examples<br>
+                                library(tidyverse) # Common R packages<br>
+                                # Tutorial content here...
+                            </div>
+                            <p><strong><i class="fas fa-microphone"></i> Audio Content:</strong> ${result.audio_content}</p>
+                        </div>
+                    `;
+                    audioSection.style.display = 'block';
+                    
+                    // Scroll to results
+                    audioSection.scrollIntoView({ behavior: 'smooth' });
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                loadingDiv.style.display = 'none';
+                alert('An error occurred while generating content. Please try again.');
+            } finally {
+                // Re-enable submit button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-magic"></i> Generate R Tutorial';
+            }
+        });
+        
+        // Enhanced audio controls
+        document.getElementById('playBtn').addEventListener('click', function() {
+            this.innerHTML = '<i class="fas fa-pause"></i> Pause Tutorial';
+            // Simulate audio playback
+            setTimeout(() => {
+                this.innerHTML = '<i class="fas fa-play"></i> Play Tutorial';
+            }, 3000);
+        });
+        
+        document.getElementById('downloadBtn').addEventListener('click', function() {
+            // Simulate download
+            this.innerHTML = '<i class="fas fa-check"></i> Downloaded!';
+            setTimeout(() => {
+                this.innerHTML = '<i class="fas fa-download"></i> Download Audio';
+            }, 2000);
+        });
+
+        document.getElementById('shareBtn').addEventListener('click', function() {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'R Tutorial - Ephicacy R Tutor',
+                    text: 'Check out this AI-generated R programming tutorial!',
+                    url: window.location.href
+                });
+            } else {
+                // Fallback for browsers that don't support Web Share API
+                navigator.clipboard.writeText(window.location.href);
+                this.innerHTML = '<i class="fas fa-check"></i> Link Copied!';
+                setTimeout(() => {
+                    this.innerHTML = '<i class="fas fa-share"></i> Share';
+                }, 2000);
+            }
+        });
+
+        // Add some interactive animations on page load
+        window.addEventListener('load', function() {
+            document.querySelector('.container').style.animation = 'fadeInUp 0.8s ease-out';
+        });
+
+        // Add CSS animation keyframes
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            
+            .topic-suggestions {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                margin-top: 10px;
+            }
+            
+            .suggestion-btn {
+                background: linear-gradient(45deg, #e3f2fd, #bbdefb);
+                border: 1px solid #2196F3;
+                color: #1976D2;
+                padding: 6px 12px;
+                border-radius: 15px;
+                font-size: 12px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+            
+            .suggestion-btn:hover {
+                background: linear-gradient(45deg, #2196F3, #1976D2);
+                color: white;
+                transform: translateY(-2px);
+            }
+            
+            .duration-container {
+                position: relative;
+            }
+            
+            .duration-slider {
+                width: 100%;
+                height: 8px;
+                border-radius: 5px;
+                background: linear-gradient(to right, #2196F3 0%, #2196F3 50%, #e3f2fd 50%, #e3f2fd 100%);
+                outline: none;
+                margin-bottom: 10px;
+            }
+            
+            .duration-slider::-webkit-slider-thumb {
+                appearance: none;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: #2196F3;
+                cursor: pointer;
+                box-shadow: 0 2px 6px rgba(33, 150, 243, 0.3);
+            }
+            
+            .duration-labels {
+                display: flex;
+                justify-content: space-between;
+                font-size: 11px;
+                color: #666;
+                margin-top: 5px;
+            }
+            
+            .result-summary h3 {
+                color: #4CAF50;
+                margin-bottom: 15px;
+                text-align: center;
+            }
+            
+            .result-details {
+                text-align: left;
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

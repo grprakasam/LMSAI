@@ -1,0 +1,474 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 700px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 40px;
+    background: linear-gradient(45deg, #276DC3, #1E88E5, #42A5F5);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 32px;
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+h1::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 3px;
+    background: linear-gradient(45deg, #276DC3, #1E88E5);
+    border-radius: 2px;
+}
+
+.tutor-form {
+    margin-bottom: 40px;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+    margin-bottom: 25px;
+    position: relative;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+label::before {
+    content: '📊';
+    font-size: 18px;
+}
+
+label[for="expertise"]::before {
+    content: '🎯';
+}
+
+label[for="duration"]::before {
+    content: '⏱️';
+}
+
+input[type="text"],
+input[type="number"],
+select {
+    width: 100%;
+    padding: 15px 20px;
+    border: 2px solid #e3f2fd;
+    border-radius: 12px;
+    font-size: 16px;
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+    transition: all 0.3s ease;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus {
+    outline: none;
+    border-color: #2196F3;
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+    transform: translateY(-2px);
+}
+
+input[type="text"]:hover,
+input[type="number"]:hover,
+select:hover {
+    border-color: #bbdefb;
+    transform: translateY(-1px);
+}
+
+.note {
+    display: block;
+    font-size: 13px;
+    color: #7b1fa2;
+    margin-top: 8px;
+    font-style: italic;
+    background: rgba(123, 31, 162, 0.1);
+    padding: 5px 10px;
+    border-radius: 6px;
+    border-left: 3px solid #7b1fa2;
+}
+
+.submit-btn {
+    background: linear-gradient(45deg, #2196F3, #21CBF3);
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 25px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    position: relative;
+    overflow: hidden;
+}
+
+.submit-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.submit-btn:hover::before {
+    left: 100%;
+}
+
+.submit-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(33, 150, 243, 0.4);
+}
+
+.submit-btn:active {
+    transform: translateY(-1px);
+}
+
+.audio-section {
+    margin-top: 40px;
+    animation: slideInUp 0.6s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.audio-content-box {
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+    border: none;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(33, 150, 243, 0.2);
+}
+
+.audio-header {
+    background: linear-gradient(45deg, #4CAF50, #45a049);
+    color: white;
+    padding: 20px;
+    font-weight: 600;
+    text-align: center;
+    font-size: 18px;
+    position: relative;
+    overflow: hidden;
+}
+
+.audio-header::before {
+    content: '🎵';
+    position: absolute;
+    left: 20px;
+    font-size: 24px;
+}
+
+.audio-header::after {
+    content: '🎵';
+    position: absolute;
+    right: 20px;
+    font-size: 24px;
+}
+
+.audio-content {
+    padding: 30px;
+    background: rgba(255, 255, 255, 0.9);
+    min-height: 150px;
+}
+
+.audio-content p {
+    margin-bottom: 15px;
+    padding: 10px 15px;
+    background: rgba(33, 150, 243, 0.05);
+    border-radius: 8px;
+    border-left: 4px solid #2196F3;
+    transition: all 0.3s ease;
+}
+
+.audio-content p:hover {
+    background: rgba(33, 150, 243, 0.1);
+    transform: translateX(5px);
+}
+
+.audio-content strong {
+    color: #1976D2;
+    font-weight: 600;
+}
+
+.audio-controls {
+    padding: 25px;
+    background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+    text-align: center;
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.audio-btn {
+    background: linear-gradient(45deg, #FF6B6B, #FF8E53);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: relative;
+    overflow: hidden;
+}
+
+.audio-btn:nth-child(2) {
+    background: linear-gradient(45deg, #4ECDC4, #44A08D);
+    box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
+}
+
+.audio-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.audio-btn:hover::before {
+    left: 100%;
+}
+
+.audio-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+}
+
+.audio-btn:nth-child(2):hover {
+    box-shadow: 0 8px 25px rgba(78, 205, 196, 0.4);
+}
+
+.loading {
+    text-align: center;
+    padding: 50px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.spinner {
+    border: 4px solid rgba(33, 150, 243, 0.1);
+    border-top: 4px solid #2196F3;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 25px;
+    position: relative;
+}
+
+.spinner::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 30px;
+    height: 30px;
+    border: 2px solid rgba(76, 175, 80, 0.3);
+    border-top: 2px solid #4CAF50;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite reverse;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading p {
+    color: #2c3e50;
+    font-size: 18px;
+    font-weight: 500;
+    background: linear-gradient(45deg, #2196F3, #4CAF50);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* R-specific styling */
+.r-code {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 15px;
+    border-radius: 8px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    margin: 10px 0;
+    border-left: 4px solid #276DC3;
+}
+
+.r-highlight {
+    background: linear-gradient(45deg, rgba(39, 109, 195, 0.1), rgba(30, 136, 229, 0.1));
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    color: #276DC3;
+}
+
+/* Interactive elements */
+.form-group {
+    position: relative;
+}
+
+.form-group::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(45deg, #2196F3, #4CAF50);
+    transition: width 0.3s ease;
+}
+
+.form-group:focus-within::after {
+    width: 100%;
+}
+
+/* Tooltip for R developers */
+.tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 200px;
+    background: linear-gradient(45deg, #2c3e50, #34495e);
+    color: white;
+    text-align: center;
+    border-radius: 8px;
+    padding: 10px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -100px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 12px;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    
+    .container {
+        margin: 0;
+        padding: 25px;
+        border-radius: 15px;
+    }
+    
+    h1 {
+        font-size: 24px;
+        margin-bottom: 30px;
+    }
+    
+    .tutor-form {
+        padding: 20px;
+    }
+    
+    .audio-controls {
+        padding: 20px;
+        flex-direction: column;
+    }
+    
+    .audio-btn {
+        width: 100%;
+        margin: 5px 0;
+    }
+    
+    label {
+        font-size: 14px;
+    }
+    
+    input[type="text"],
+    input[type="number"],
+    select {
+        padding: 12px 15px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 20px;
+    }
+    
+    h1 {
+        font-size: 20px;
+    }
+    
+    .submit-btn {
+        width: 100%;
+        padding: 12px;
+    }
+}
