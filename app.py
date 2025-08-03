@@ -514,4 +514,56 @@ def usage_stats():
     
     # Monthly usage
     monthly_tutorials = UsageLog.query.filter(
-        UsageLog.user_id == current_user
+        UsageLog.user_id == current_user.id,
+        UsageLog.action == 'tutorial_created',
+        UsageLog.created_at >= start_of_month
+    ).count()
+    
+    # Recent tutorials
+    recent_tutorials = Tutorial.query.filter_by(user_id=current_user.id)\
+        .order_by(Tutorial.created_at.desc()).limit(5).all()
+    
+    return jsonify({
+        'monthly_usage': monthly_tutorials,
+        'monthly_limit': PLANS[current_user.plan]['tutorials_per_month'],
+        'plan': current_user.plan,
+        'recent_tutorials': [
+            {
+                'topic': t.topic,
+                'expertise': t.expertise,
+                'created_at': t.created_at.isoformat(),
+                'is_premium': t.is_premium
+            } for t in recent_tutorials
+        ]
+    })
+
+@app.route('/health')
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.utcnow().isoformat(),
+        'database': 'connected',
+        'ai_services': {
+            'deepseek': bool(DEEPSEEK_API_KEY),
+            'openai': bool(OPENAI_API_KEY)
+        }
+    })
+
+# Initialize database
+@app.before_first_request
+def create_tables():
+    db.create_all()
+    
+    # Create sample free content if no users exist
+    if User.query.count() == 0:
+        print("Initializing database with sample data...")
+
+if __name__ == '__main__':
+    print("🚀 Starting R Tutor SaaS MVP...")
+    print("💰 Monetization: Freemium model with usage limits")
+    print("🔧 Set environment variables:")
+    print("   - DEEPSEEK_API_KEY for premium content")
+    print("   - DATABASE_URL for production database")
+    print("   - SECRET_KEY for session security")
+    
+    app.run(debug=True, host='0.0.0.0', port=5000)
