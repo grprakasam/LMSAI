@@ -3,6 +3,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import json
+import re
 
 from models import db, User, Tutorial, UsageLog
 from aiservices import ai_generator
@@ -70,19 +71,71 @@ def view_tutorial(tutorial_id):
 
 # ==================== AUTHENTICATION ROUTES ====================
 
+def is_valid_email_format(email):
+    """
+    Very permissive email validation - allows most formats
+    Only checks for basic @ symbol and domain structure
+    """
+    if not email or len(email.strip()) == 0:
+        return False
+    
+    email = email.strip().lower()
+    
+    # Very basic check - just needs @ and at least one dot after @
+    if '@' not in email:
+        return False
+    
+    parts = email.split('@')
+    if len(parts) != 2:
+        return False
+    
+    local_part, domain_part = parts
+    
+    # Local part should not be empty
+    if len(local_part) == 0:
+        return False
+    
+    # Domain should have at least one dot and not be empty
+    if len(domain_part) == 0 or '.' not in domain_part:
+        return False
+    
+    return True
+
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     """User registration"""
     if request.method == 'POST':
-        email = request.form.get('email', '').lower().strip()
+        email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
         name = request.form.get('name', '').strip()
         
-        # Bypass registration - any password "s" works
-        if password == "s":
-            # Create a dummy user if one doesn't exist for this email
-            user = User.query.filter_by(email=email).first()
-            if not user:
+        print(f"Register attempt - Email: '{email}', Password: '{password}'")  # Debug log
+        
+        # Check email format (very permissive)
+        if not is_valid_email_format(email):
+            error_msg = 'Please enter a valid email format (e.g., user@domain.com)'
+            if request.headers.get('Content-Type') == 'application/json':
+                return jsonify({'success': False, 'error': error_msg})
+            flash(error_msg, 'error')
+            return render_template('auth.html', mode='register')
+        
+        # Check password
+        if password != "s":
+            error_msg = 'Password must be "s" for demo access'
+            if request.headers.get('Content-Type') == 'application/json':
+                return jsonify({'success': False, 'error': error_msg})
+            flash(error_msg, 'error')
+            return render_template('auth.html', mode='register')
+        
+        try:
+            # Check if user already exists
+            existing_user = User.query.filter_by(email=email).first()
+            if existing_user:
+                # User exists, just log them in
+                login_user(existing_user)
+                print(f"Existing user logged in: {email}")  # Debug log
+            else:
+                # Create new user
                 user = User(
                     email=email,
                     password_hash=generate_password_hash(password),
@@ -90,29 +143,55 @@ def register():
                 )
                 db.session.add(user)
                 db.session.commit()
+                login_user(user)
+                print(f"New user created and logged in: {email}")  # Debug log
             
-            login_user(user)
+            if request.headers.get('Content-Type') == 'application/json':
+                return jsonify({'success': True, 'redirect': url_for('main.index')})
             return redirect(url_for('main.index'))
-        
-        flash('Invalid credentials', 'error')
-        return redirect(url_for('auth.register'))
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Registration error: {e}")  # Debug log
+            error_msg = 'Registration failed. Please try again.'
+            if request.headers.get('Content-Type') == 'application/json':
+                return jsonify({'success': False, 'error': error_msg})
+            flash(error_msg, 'error')
     
     return render_template('auth.html', mode='register')
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
-@rate_limit(requests_per_minute=10)  # Prevent brute force attacks
+@rate_limit(requests_per_minute=20)  # Allow more attempts for demo
 def login():
     """User login"""
     if request.method == 'POST':
-        email = request.form.get('email', '').lower().strip()
+        email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
         remember_me = request.form.get('remember_me', False)
         
-        # Bypass login - any email with password "s" works
-        if password == "s":
+        print(f"Login attempt - Email: '{email}', Password: '{password}'")  # Debug log
+        
+        # Check email format (very permissive)
+        if not is_valid_email_format(email):
+            error_msg = 'Please enter a valid email format (e.g., user@domain.com)'
+            if request.headers.get('Content-Type') == 'application/json':
+                return jsonify({'success': False, 'error': error_msg})
+            flash(error_msg, 'error')
+            return render_template('auth.html', mode='login')
+        
+        # Check password
+        if password != "s":
+            error_msg = 'Password must be "s" for demo access'
+            if request.headers.get('Content-Type') == 'application/json':
+                return jsonify({'success': False, 'error': error_msg})
+            flash(error_msg, 'error')
+            return render_template('auth.html', mode='login')
+        
+        try:
             # Find or create user
             user = User.query.filter_by(email=email).first()
             if not user:
+                # Create new user automatically
                 user = User(
                     email=email,
                     password_hash=generate_password_hash(password),
@@ -120,17 +199,27 @@ def login():
                 )
                 db.session.add(user)
                 db.session.commit()
+                print(f"Auto-created new user: {email}")  # Debug log
             
             login_user(user, remember=bool(remember_me))
+            print(f"User logged in successfully: {email}")  # Debug log
             
             # Redirect to intended page or dashboard
             next_page = request.args.get('next')
             if not next_page or not next_page.startswith('/'):
                 next_page = url_for('main.index')
             
-            return jsonify({'success': True, 'redirect': next_page})
-        
-        return jsonify({'success': False, 'error': 'Invalid credentials'})
+            if request.headers.get('Content-Type') == 'application/json':
+                return jsonify({'success': True, 'redirect': next_page})
+            return redirect(next_page)
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Login error: {e}")  # Debug log
+            error_msg = 'Login failed. Please try again.'
+            if request.headers.get('Content-Type') == 'application/json':
+                return jsonify({'success': False, 'error': error_msg})
+            flash(error_msg, 'error')
     
     return render_template('auth.html', mode='login')
 
@@ -138,11 +227,14 @@ def login():
 @login_required
 def logout():
     """User logout"""
-    UsageLog.log_action(
-        user_id=current_user.id,
-        action='user_logout',
-        ip_address=request.remote_addr
-    )
+    try:
+        UsageLog.log_action(
+            user_id=current_user.id,
+            action='user_logout',
+            ip_address=request.remote_addr
+        )
+    except Exception as e:
+        print(f"Logout logging error: {e}")  # Debug log
     
     logout_user()
     flash('You have been logged out successfully.', 'info')
@@ -238,6 +330,7 @@ def generate_tutorial():
         
     except Exception as e:
         db.session.rollback()
+        print(f"Tutorial generation error: {e}")  # Debug log
         return jsonify({
             'success': False,
             'error': 'Tutorial generation failed. Please try again.',
@@ -535,7 +628,7 @@ def contact():
         email = request.form.get('email', '').strip()
         message = sanitize_input(request.form.get('message', ''), 1000)
         
-        if not validate_email(email):
+        if not is_valid_email_format(email):
             flash('Invalid email address', 'error')
             return render_template('contact.html')
         

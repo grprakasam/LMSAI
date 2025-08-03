@@ -1,422 +1,1129 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enter - R Tutor Pro</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime, timedelta
+import os
+import uuid
+import requests
+import json
+import tempfile
+import base64
+from functools import wraps
+import re
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-        }
+app = Flask(__name__)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///r_tutor_saas.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-        .auth-container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 3rem;
-            width: 100%;
-            max-width: 450px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
+# Initialize extensions
+db = SQLAlchemy(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
 
-        .logo {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
+# Configuration
+DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY', '')
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 
-        .logo h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            background: linear-gradient(45deg, #2196F3, #4CAF50);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 0.5rem;
-        }
+# Subscription Plans
+PLANS = {
+    'free': {
+        'tutorials_per_month': 3, 
+        'price': 0, 
+        'features': ['Basic R topics', 'Standard voice', 'Community support', 'Web access only']
+    },
+    'pro': {
+        'tutorials_per_month': 50, 
+        'price': 9, 
+        'features': ['All R topics', 'Premium AI content', 'Audio generation', 'Code execution', 'Export options', 'Priority support']
+    },
+    'team': {
+        'tutorials_per_month': 200, 
+        'price': 29, 
+        'features': ['Team management', 'Usage analytics', 'Priority support', 'Custom topics', 'API access', 'Dedicated support']
+    }
+}
 
-        .logo p {
-            color: #666;
-            font-size: 0.9rem;
-        }
+# Database Models
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    plan = db.Column(db.String(20), default='free')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_active = db.Column(db.Boolean, default=True)
+    email_verified = db.Column(db.Boolean, default=True)  # Auto-verified for demo
+    stripe_customer_id = db.Column(db.String(100))
+    
+    # Relationships
+    tutorials = db.relationship('Tutorial', backref='user', lazy=True)
+    usage_logs = db.relationship('UsageLog', backref='user', lazy=True)
+    
+    def get_monthly_usage(self, year=None, month=None):
+        """Get tutorial usage for a specific month"""
+        if year is None or month is None:
+            now = datetime.now()
+            year, month = now.year, now.month
+        
+        start_date = datetime(year, month, 1)
+        if month == 12:
+            end_date = datetime(year + 1, 1, 1)
+        else:
+            end_date = datetime(year, month + 1, 1)
+        
+        return UsageLog.query.filter(
+            UsageLog.user_id == self.id,
+            UsageLog.action == 'tutorial_created',
+            UsageLog.created_at >= start_date,
+            UsageLog.created_at < end_date
+        ).count()
+    
+    def can_create_tutorial(self):
+        """Check if user can create more tutorials this month"""
+        monthly_usage = self.get_monthly_usage()
+        monthly_limit = PLANS[self.plan]['tutorials_per_month']
+        return monthly_usage < monthly_limit
+    
+    def get_plan_info(self):
+        """Get current plan information"""
+        return PLANS.get(self.plan, PLANS['free'])
 
-        .auth-tabs {
-            display: flex;
-            margin-bottom: 2rem;
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 0.25rem;
-        }
+class Tutorial(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    topic = db.Column(db.String(200), nullable=False)
+    expertise = db.Column(db.String(50), nullable=False)
+    duration = db.Column(db.Integer, nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    audio_url = db.Column(db.String(500))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_premium = db.Column(db.Boolean, default=False)
+    view_count = db.Column(db.Integer, default=0)
+    
+    def increment_view(self):
+        """Increment view count"""
+        self.view_count += 1
+        db.session.commit()
 
-        .auth-tab {
-            flex: 1;
-            padding: 0.75rem;
-            background: none;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            color: #666;
-            transition: all 0.3s ease;
-        }
+class UsageLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    action = db.Column(db.String(100), nullable=False)  # 'tutorial_created', 'audio_generated', etc.
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    metadata = db.Column(db.Text)  # JSON string for additional data
+    ip_address = db.Column(db.String(45))
+    user_agent = db.Column(db.String(500))
 
-        .auth-tab.active {
-            background: white;
-            color: #2196F3;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
-        .auth-form {
-            display: none;
-        }
-
-        .auth-form.active {
-            display: block;
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: #2c3e50;
-            font-size: 0.9rem;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 0.875rem 1rem;
-            border: 2px solid #e3f2fd;
-            border-radius: 12px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            background: white;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: #2196F3;
-            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
-            transform: translateY(-1px);
-        }
-
-        .form-control::placeholder {
-            color: #aaa;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 1rem;
-            border: none;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-
-        .btn-primary {
-            background: linear-gradient(45deg, #2196F3, #21CBF3);
-            color: white;
-            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-
-        .form-footer {
-            text-align: center;
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid #eee;
-        }
-
-        .form-footer p {
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .form-footer a {
-            color: #2196F3;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .form-footer a:hover {
-            text-decoration: underline;
-        }
-
-        .alert {
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
-        }
-
-        .alert-error {
-            background: #ffebee;
-            color: #c62828;
-            border: 1px solid #ffcdd2;
-        }
-
-        .alert-success {
-            background: #e8f5e8;
-            color: #2e7d32;
-            border: 1px solid #c8e6c9;
-        }
-
-        .password-strength {
-            margin-top: 0.5rem;
-            height: 4px;
-            background: #eee;
-            border-radius: 2px;
-            overflow: hidden;
-        }
-
-        .password-strength-bar {
-            height: 100%;
-            width: 0%;
-            transition: all 0.3s ease;
-            border-radius: 2px;
-        }
-
-        .strength-weak { background: #f44336; }
-        .strength-medium { background: #ff9800; }
-        .strength-strong { background: #4caf50; }
-
-        .social-login {
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid #eee;
-        }
-
-        .social-btn {
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #eee;
-            border-radius: 8px;
-            background: white;
-            color: #666;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 0.5rem;
-        }
-
-        .social-btn:hover {
-            border-color: #ddd;
-            transform: translateY(-1px);
-        }
-
-        .features-preview {
-            background: rgba(33, 150, 243, 0.05);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-top: 1.5rem;
-        }
-
-        .features-preview h4 {
-            color: #2196F3;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
-            font-weight: 600;
-        }
-
-        .features-list {
-            list-style: none;
-        }
-
-        .features-list li {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
-            font-size: 0.85rem;
-            color: #666;
-        }
-
-        .features-list li::before {
-            content: '✓';
-            color: #4CAF50;
-            font-weight: bold;
-        }
-
-        @media (max-width: 768px) {
-            body {
-                padding: 1rem;
+# Enhanced R Content with Premium Features
+R_TOPICS_CONTENT = {
+    'free_topics': {
+        'data structures': {
+            'beginner': {
+                'concepts': ['vectors', 'lists', 'data frames', 'matrices'],
+                'code_examples': [
+                    '# Creating vectors\nnumeric_vector <- c(1, 2, 3, 4, 5)\ncharacter_vector <- c("R", "is", "awesome")',
+                    '# Creating data frames\ndf <- data.frame(\n  name = c("Alice", "Bob", "Charlie"),\n  age = c(25, 30, 35)\n)'
+                ],
+                'packages': ['base', 'utils'],
+                'learning_objectives': ['Understanding R data types', 'Creating basic structures', 'Data manipulation basics']
+            },
+            'intermediate': {
+                'concepts': ['advanced indexing', 'data manipulation', 'merging datasets'],
+                'code_examples': [
+                    '# Advanced indexing\ndf[df$age > 25 & df$city == "NYC", ]',
+                    '# Merging datasets\nmerged_df <- merge(df1, df2, by = "id")'
+                ],
+                'packages': ['base', 'dplyr'],
+                'learning_objectives': ['Advanced data operations', 'Complex indexing', 'Dataset joining']
             }
-            
-            .auth-container {
-                padding: 2rem;
+        },
+        'basic plotting': {
+            'beginner': {
+                'concepts': ['plot function', 'basic charts', 'customization'],
+                'code_examples': [
+                    'plot(x, y, main="My Plot", xlab="X axis", ylab="Y axis")',
+                    'hist(data$variable, breaks=20, col="blue")'
+                ],
+                'packages': ['graphics', 'grDevices'],
+                'learning_objectives': ['Creating basic plots', 'Plot customization', 'Different chart types']
+            }
+        },
+        'statistics basics': {
+            'beginner': {
+                'concepts': ['descriptive statistics', 'correlation', 'basic tests'],
+                'code_examples': [
+                    'summary(data)\nmean(data$column)\nsd(data$column)',
+                    'cor(data$x, data$y)\nt.test(data$group1, data$group2)'
+                ],
+                'packages': ['stats', 'base'],
+                'learning_objectives': ['Basic statistical analysis', 'Understanding distributions', 'Hypothesis testing basics']
             }
         }
-    </style>
-</head>
-<body>
-    <div class="auth-container">
-        <div class="logo">
-            <h1><i class="fab fa-r-project"></i> R Tutor Pro</h1>
-            <p>AI-Powered R Learning Platform</p>
-        </div>
-
-        <!-- Alert Messages -->
-        <div id="alertContainer"></div>
-
-        <!-- Sign Up section removed -->
-
-        <!-- Login Form -->
-        <form id="loginForm" class="auth-form active">
-            <div class="form-group">
-                <label for="loginEmail">Login Name (can be anything)</label>
-                <input type="email" id="loginEmail" name="email" class="form-control" 
-                       placeholder="Enter any name" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="loginPassword">Password</label>
-                <input type="password" id="loginPassword" name="password" class="form-control" 
-                       value="s" placeholder="Password is 's'" required>
-                <small style="color: #666; font-size: 0.8rem;">The password is "s"</small>
-            </div>
-            
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-sign-in-alt"></i>
-                Enter
-            </button>
-        </form>
-
-        <!-- Features Preview -->
-        <div class="features-preview">
-            <h4>🚀 What you'll get with R Tutor Pro:</h4>
-            <ul class="features-list">
-                <li>AI-powered personalized R tutorials</li>
-                <li>Content adapted to your skill level</li>
-                <li>Premium R topics and advanced concepts</li>
-                <li>Audio tutorials for learning on-the-go</li>
-                <li>Track your learning progress</li>
-            </ul>
-        </div>
-
-        <!-- Social Login (Future Feature) -->
-        <!-- 
-        <div class="social-login" style="display: none;">
-            <button class="social-btn">
-                <i class="fab fa-google"></i> Continue with Google
-            </button>
-            <button class="social-btn">
-                <i class="fab fa-github"></i> Continue with GitHub
-            </button>
-        </div>
-        -->
-    </div>
-
-    <script>
-        // Tab switching removed as Sign Up is removed
-
-        // Password strength indicator removed as Sign Up is removed
-
-        // Show alert message
-        function showAlert(message, type = 'error') {
-            const alertContainer = document.getElementById('alertContainer');
-            alertContainer.innerHTML = `
-                <div class="alert alert-${type}">
-                    ${message}
-                </div>
-            `;
-            
-            // Auto-hide success messages
-            if (type === 'success') {
-                setTimeout(() => {
-                    alertContainer.innerHTML = '';
-                }, 5000);
+    },
+    'premium_topics': {
+        'advanced ggplot2': {
+            'intermediate': {
+                'concepts': ['grammar of graphics', 'layered approach', 'themes'],
+                'code_examples': [
+                    'ggplot(data, aes(x=var1, y=var2)) +\n  geom_point(aes(color=factor(group))) +\n  theme_minimal()'
+                ],
+                'packages': ['ggplot2', 'scales', 'RColorBrewer'],
+                'learning_objectives': ['Advanced visualization', 'Custom themes', 'Publication-ready plots']
+            },
+            'expert': {
+                'concepts': ['custom themes', 'complex layouts', 'animations'],
+                'code_examples': [
+                    'ggplot(data) + \n  geom_point() + \n  facet_wrap(~category) +\n  theme_custom()'
+                ],
+                'packages': ['ggplot2', 'gganimate', 'patchwork', 'gridExtra'],
+                'learning_objectives': ['Custom themes', 'Animated plots', 'Complex layouts']
+            }
+        },
+        'machine learning': {
+            'intermediate': {
+                'concepts': ['supervised learning', 'model evaluation', 'cross-validation'],
+                'code_examples': [
+                    'library(caret)\nmodel <- train(target ~ ., data=train_data, method="rf")\npredictions <- predict(model, test_data)'
+                ],
+                'packages': ['caret', 'randomForest', 'e1071'],
+                'learning_objectives': ['ML workflow', 'Model evaluation', 'Cross-validation']
+            },
+            'expert': {
+                'concepts': ['ensemble methods', 'hyperparameter tuning', 'feature engineering'],
+                'code_examples': [
+                    'library(tidymodels)\nrf_spec <- rand_forest(trees = 1000) %>%\n  set_engine("ranger")'
+                ],
+                'packages': ['tidymodels', 'ranger', 'xgboost', 'glmnet'],
+                'learning_objectives': ['Advanced ML algorithms', 'Hyperparameter tuning', 'ML pipelines']
+            }
+        },
+        'shiny dashboards': {
+            'intermediate': {
+                'concepts': ['reactive programming', 'UI layouts', 'server logic'],
+                'code_examples': [
+                    'ui <- fluidPage(\n  titlePanel("Dashboard"),\n  sidebarLayout(...)\n)\nserver <- function(input, output) {...}'
+                ],
+                'packages': ['shiny', 'shinydashboard', 'DT'],
+                'learning_objectives': ['Interactive web apps', 'Reactive programming', 'Dashboard creation']
+            },
+            'expert': {
+                'concepts': ['custom inputs', 'modules', 'deployment'],
+                'code_examples': [
+                    'moduleUI <- function(id) {\n  ns <- NS(id)\n  tagList(...)\n}'
+                ],
+                'packages': ['shiny', 'shinydashboard', 'shinyWidgets', 'plotly'],
+                'learning_objectives': ['Modular Shiny apps', 'Advanced UI', 'Production deployment']
             }
         }
+    }
+}
 
-        // Form submissions
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+class AITutorialGenerator:
+    def __init__(self):
+        self.deepseek_url = "https://api.deepseek.com/v1/chat/completions"
+        self.openai_url = "https://api.openai.com/v1/chat/completions"
+    
+    def generate_tutorial_content(self, topic, expertise, duration, user_plan='free'):
+        """Generate tutorial content based on user's subscription plan"""
+        
+        # Determine content access based on plan
+        if user_plan == 'free':
+            content_pool = R_TOPICS_CONTENT['free_topics']
+            max_duration = min(duration, 5)  # Limit free users to 5 minutes
+        else:
+            content_pool = {**R_TOPICS_CONTENT['free_topics'], **R_TOPICS_CONTENT['premium_topics']}
+            max_duration = duration
+        
+        # Get topic content
+        topic_data = self._get_topic_data(topic, expertise, content_pool)
+        
+        # Generate script using AI for premium users
+        if user_plan != 'free' and (DEEPSEEK_API_KEY or OPENAI_API_KEY):
+            script = self._generate_ai_script(topic, expertise, max_duration, topic_data)
+        else:
+            script = self._generate_basic_script(topic, expertise, max_duration, topic_data)
+        
+        return {
+            'content': script,
+            'concepts': topic_data['concepts'],
+            'packages': topic_data['packages'],
+            'objectives': topic_data['learning_objectives'],
+            'is_premium': user_plan != 'free',
+            'estimated_reading_time': self._estimate_reading_time(script),
+            'difficulty_score': self._calculate_difficulty_score(expertise, topic)
+        }
+    
+    def _generate_ai_script(self, topic, expertise, duration, topic_data):
+        """Generate high-quality content using AI (Premium feature)"""
+        prompt = f"""Create a comprehensive {duration}-minute R programming tutorial on "{topic}" for {expertise} level.
+
+Structure:
+1. Welcome and overview (30 seconds)
+2. Core concepts explanation (60% of time)
+3. Practical examples with code (30% of time)  
+4. Summary and next steps (10% of time)
+
+Include:
+- Clear explanations for {expertise} level
+- Practical R code examples
+- Best practices and common pitfalls
+- Relevant packages: {', '.join(topic_data['packages'])}
+- Real-world applications
+
+Make it conversational and engaging. Include natural pauses [PAUSE] and emphasis [EMPHASIS] markers."""
+
+        try:
+            if DEEPSEEK_API_KEY:
+                response = self._call_deepseek_api(prompt)
+                if response:
+                    return response
+            elif OPENAI_API_KEY:
+                response = self._call_openai_api(prompt)
+                if response:
+                    return response
+        except Exception as e:
+            print(f"AI generation failed: {e}")
+        
+        return self._generate_basic_script(topic, expertise, duration, topic_data)
+    
+    def _call_deepseek_api(self, prompt):
+        """Call DeepSeek API for premium content generation"""
+        headers = {
+            'Authorization': f'Bearer {DEEPSEEK_API_KEY}',
+            'Content-Type': 'application/json'
+        }
+        
+        data = {
+            'model': 'deepseek-chat',
+            'messages': [
+                {'role': 'system', 'content': 'You are an expert R programming instructor with 10+ years of experience.'},
+                {'role': 'user', 'content': prompt}
+            ],
+            'max_tokens': 2000,
+            'temperature': 0.7
+        }
+        
+        try:
+            response = requests.post(self.deepseek_url, headers=headers, json=data, timeout=30)
+            if response.status_code == 200:
+                return response.json()['choices'][0]['message']['content']
+        except Exception as e:
+            print(f"DeepSeek API error: {e}")
+        
+        return None
+    
+    def _call_openai_api(self, prompt):
+        """Call OpenAI API for premium content generation"""
+        headers = {
+            'Authorization': f'Bearer {OPENAI_API_KEY}',
+            'Content-Type': 'application/json'
+        }
+        
+        data = {
+            'model': 'gpt-3.5-turbo',
+            'messages': [
+                {'role': 'system', 'content': 'You are an expert R programming instructor with 10+ years of experience.'},
+                {'role': 'user', 'content': prompt}
+            ],
+            'max_tokens': 2000,
+            'temperature': 0.7
+        }
+        
+        try:
+            response = requests.post(self.openai_url, headers=headers, json=data, timeout=30)
+            if response.status_code == 200:
+                return response.json()['choices'][0]['message']['content']
+        except Exception as e:
+            print(f"OpenAI API error: {e}")
+        
+        return None
+    
+    def _generate_basic_script(self, topic, expertise, duration, topic_data):
+        """Generate basic content for free users"""
+        return f"""Welcome to this {duration}-minute R tutorial on {topic}!
+
+[PAUSE] Today we'll cover {', '.join(topic_data['concepts'][:3])}.
+
+## Key Concepts
+
+- **{topic_data['concepts'][0] if topic_data['concepts'] else 'Basic concepts'}**: Understanding the fundamentals
+- **Practical applications**: Real-world usage in R programming
+- **Best practices**: Tips for effective R coding
+
+[PAUSE] Here's a practical code example:
+
+```r
+{topic_data['code_examples'][0] if topic_data['code_examples'] else '# R code example\n# Basic R programming concepts'}
+```
+
+## Learning Objectives
+
+{chr(10).join(f"- {obj}" for obj in topic_data['learning_objectives'][:3])}
+
+[EMPHASIS] Remember to practice these concepts regularly and experiment with variations.
+
+**R Packages Used**: {', '.join(topic_data['packages'])}
+
+## Summary
+
+This tutorial covered the essential aspects of {topic} for {expertise} level R programmers. Continue practicing and exploring these concepts to strengthen your R programming skills.
+
+[PAUSE] Thank you for using R Tutor Pro! Upgrade to Pro for advanced topics, longer tutorials, and AI-generated content."""
+
+    def _get_topic_data(self, topic, expertise, content_pool):
+        """Get topic-specific data from content pool"""
+        # Search for matching topic (case-insensitive, partial match)
+        for topic_key, topic_content in content_pool.items():
+            if topic_key.lower() in topic.lower() or any(word.lower() in topic.lower() for word in topic_key.split()):
+                if expertise in topic_content:
+                    return topic_content[expertise]
+                # Fallback to available expertise level
+                elif topic_content:
+                    return list(topic_content.values())[0]
+        
+        # Default fallback based on expertise level
+        default_concepts = {
+            'beginner': ['fundamental concepts', 'basic syntax', 'practical examples'],
+            'intermediate': ['advanced techniques', 'best practices', 'real-world applications'],
+            'expert': ['advanced concepts', 'optimization', 'complex implementations']
+        }
+        
+        return {
+            'concepts': default_concepts.get(expertise, ['fundamental concepts', 'practical applications']),
+            'code_examples': [f'# {topic} example\n# {expertise} level R code\n# Practice these concepts'],
+            'packages': ['base', 'utils'],
+            'learning_objectives': [
+                f'Understanding {topic} fundamentals',
+                f'Implementing {topic} in R',
+                f'Applying {topic} to real projects'
+            ]
+        }
+    
+    def _estimate_reading_time(self, content):
+        """Estimate reading time in minutes"""
+        words_per_minute = 200
+        word_count = len(content.split())
+        return max(1, word_count // words_per_minute)
+    
+    def _calculate_difficulty_score(self, expertise, topic):
+        """Calculate difficulty score (1-10)"""
+        base_score = {'beginner': 3, 'intermediate': 6, 'expert': 9}[expertise]
+        # Adjust based on topic complexity
+        if any(word in topic.lower() for word in ['advanced', 'machine learning', 'neural', 'bayesian']):
+            base_score += 2
+        elif any(word in topic.lower() for word in ['basic', 'intro', 'fundamentals']):
+            base_score -= 1
+        return min(10, max(1, base_score))
+
+# Utility functions
+def is_valid_email_format(email):
+    """
+    Very permissive email validation for demo purposes
+    Only checks for basic @ symbol and domain structure
+    """
+    if not email or len(email.strip()) == 0:
+        return False
+    
+    email = email.strip().lower()
+    
+    # Very basic check - just needs @ and at least one dot after @
+    if '@' not in email:
+        return False
+    
+    parts = email.split('@')
+    if len(parts) != 2:
+        return False
+    
+    local_part, domain_part = parts
+    
+    # Local part should not be empty
+    if len(local_part) == 0:
+        return False
+    
+    # Domain should have at least one dot and not be empty
+    if len(domain_part) == 0 or '.' not in domain_part:
+        return False
+    
+    return True
+
+def track_usage(action):
+    """Decorator to track user actions"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if current_user.is_authenticated:
+                try:
+                    log = UsageLog(
+                        user_id=current_user.id,
+                        action=action,
+                        metadata=json.dumps({
+                            'endpoint': request.endpoint,
+                            'user_plan': current_user.plan,
+                            'timestamp': datetime.utcnow().isoformat()
+                        }),
+                        ip_address=request.remote_addr,
+                        user_agent=request.headers.get('User-Agent', '')[:500]
+                    )
+                    db.session.add(log)
+                    db.session.commit()
+                except Exception as e:
+                    print(f"Usage tracking error: {e}")
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+def check_usage_limits():
+    """Check if user has exceeded their plan limits"""
+    if not current_user.is_authenticated:
+        return True
+    
+    # Get current month usage
+    start_of_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    usage_count = UsageLog.query.filter(
+        UsageLog.user_id == current_user.id,
+        UsageLog.action == 'tutorial_created',
+        UsageLog.created_at >= start_of_month
+    ).count()
+    
+    plan_limit = PLANS[current_user.plan]['tutorials_per_month']
+    return usage_count >= plan_limit
+
+# Initialize AI generator
+ai_generator = AITutorialGenerator()
+
+# Routes
+@app.route('/')
+def index():
+    """Main route - landing page or dashboard"""
+    if current_user.is_authenticated:
+        # Get user stats for dashboard
+        total_tutorials = Tutorial.query.filter_by(user_id=current_user.id).count()
+        monthly_usage = current_user.get_monthly_usage()
+        
+        user_stats = {
+            'total_tutorials': total_tutorials,
+            'monthly_usage': monthly_usage,
+            'monthly_limit': PLANS[current_user.plan]['tutorials_per_month'],
+            'plan': current_user.plan,
+            'can_create_tutorial': current_user.can_create_tutorial()
+        }
+        return render_template('dashboard.html', stats=user_stats, plans=PLANS)
+    
+    return render_template('landing.html', plans=PLANS)
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    """User registration with demo authentication"""
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        name = request.form.get('name', '').strip()
+        
+        print(f"Register attempt - Email: '{email}', Password: '{password}'")  # Debug log
+        
+        # Check email format (very permissive)
+        if not is_valid_email_format(email):
+            error_msg = 'Please enter a valid email format (e.g., user@domain.com)'
+            return jsonify({'success': False, 'error': error_msg})
+        
+        # Demo authentication: password must be "s"
+        if password != "s":
+            error_msg = 'Password must be "s" for demo access'
+            return jsonify({'success': False, 'error': error_msg})
+        
+        try:
+            # Check if user already exists
+            existing_user = User.query.filter_by(email=email).first()
+            if existing_user:
+                # User exists, just log them in
+                login_user(existing_user)
+                print(f"Existing user logged in: {email}")
+            else:
+                # Create new user
+                user = User(
+                    email=email,
+                    password_hash=generate_password_hash(password),
+                    name=name if name else email.split('@')[0],
+                    plan='free',
+                    is_active=True,
+                    email_verified=True
+                )
+                db.session.add(user)
+                db.session.commit()
+                login_user(user)
+                print(f"New user created and logged in: {email}")
             
-            const formData = new FormData(this);
-            const submitBtn = this.querySelector('button[type="submit"]');
+            return jsonify({'success': True, 'redirect': url_for('index')})
             
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing In...';
+        except Exception as e:
+            db.session.rollback()
+            print(f"Registration error: {e}")
+            return jsonify({'success': False, 'error': 'Registration failed. Please try again.'})
+    
+    return render_template('auth.html', mode='register')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """User login with demo authentication"""
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        remember_me = request.form.get('remember_me', False)
+        
+        print(f"Login attempt - Email: '{email}', Password: '{password}'")  # Debug log
+        
+        # Check email format (very permissive)
+        if not is_valid_email_format(email):
+            error_msg = 'Please enter a valid email format (e.g., user@domain.com)'
+            return jsonify({'success': False, 'error': error_msg})
+        
+        # Demo authentication: password must be "s"
+        if password != "s":
+            error_msg = 'Password must be "s" for demo access'
+            return jsonify({'success': False, 'error': error_msg})
+        
+        try:
+            # Find or create user
+            user = User.query.filter_by(email=email).first()
+            if not user:
+                # Create new user automatically
+                user = User(
+                    email=email,
+                    password_hash=generate_password_hash(password),
+                    name=email.split('@')[0],
+                    plan='free',
+                    is_active=True,
+                    email_verified=True
+                )
+                db.session.add(user)
+                db.session.commit()
+                print(f"Auto-created new user: {email}")
             
-            try {
-                const response = await fetch('/login', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showAlert('Login successful! Redirecting...', 'success');
-                    setTimeout(() => {
-                        window.location.href = result.redirect;
-                    }, 1000);
-                } else {
-                    showAlert(result.error || 'Login failed');
-                }
-            } catch (error) {
-                showAlert('Network error. Please try again.');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In to R Tutor Pro';
+            login_user(user, remember=bool(remember_me))
+            print(f"User logged in successfully: {email}")
+            
+            # Redirect to intended page or dashboard
+            next_page = request.args.get('next')
+            if not next_page or not next_page.startswith('/'):
+                next_page = url_for('index')
+            
+            return jsonify({'success': True, 'redirect': next_page})
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Login error: {e}")
+            return jsonify({'success': False, 'error': 'Login failed. Please try again.'})
+    
+    return render_template('auth.html', mode='login')
+
+@app.route('/logout')
+@login_required
+def logout():
+    """User logout"""
+    try:
+        # Track logout
+        log = UsageLog(
+            user_id=current_user.id,
+            action='user_logout',
+            metadata=json.dumps({'timestamp': datetime.utcnow().isoformat()}),
+            ip_address=request.remote_addr
+        )
+        db.session.add(log)
+        db.session.commit()
+    except Exception as e:
+        print(f"Logout logging error: {e}")
+    
+    logout_user()
+    return redirect(url_for('index'))
+
+@app.route('/generate-tutorial', methods=['POST'])
+@login_required
+@track_usage('tutorial_created')
+def generate_tutorial():
+    """Generate a new R tutorial"""
+    # Check usage limits
+    if check_usage_limits():
+        return jsonify({
+            'success': False,
+            'error': 'Monthly limit reached. Please upgrade your plan.',
+            'upgrade_required': True,
+            'current_plan': current_user.plan
+        }), 403
+    
+    try:
+        topic = request.form.get('topic', '').strip()
+        expertise = request.form.get('expertise', '').strip()
+        duration = int(request.form.get('duration', 5))
+        
+        # Validate input
+        if not topic or len(topic) < 3:
+            return jsonify({'success': False, 'error': 'Topic must be at least 3 characters long'})
+        
+        if expertise not in ['beginner', 'intermediate', 'expert']:
+            return jsonify({'success': False, 'error': 'Invalid expertise level'})
+        
+        if duration < 1 or duration > 60:
+            return jsonify({'success': False, 'error': 'Duration must be between 1 and 60 minutes'})
+        
+        # Check plan limitations
+        if current_user.plan == 'free' and duration > 5:
+            duration = 5  # Limit free users to 5 minutes
+        
+        # Generate tutorial content
+        tutorial_data = ai_generator.generate_tutorial_content(
+            topic, expertise, duration, current_user.plan
+        )
+        
+        # Save tutorial to database
+        tutorial = Tutorial(
+            user_id=current_user.id,
+            topic=topic,
+            expertise=expertise,
+            duration=duration,
+            content=tutorial_data['content'],
+            is_premium=tutorial_data['is_premium']
+        )
+        
+        db.session.add(tutorial)
+        db.session.commit()
+        
+        # Get updated usage count
+        monthly_usage = current_user.get_monthly_usage()
+        monthly_limit = PLANS[current_user.plan]['tutorials_per_month']
+        
+        response_data = {
+            'success': True,
+            'tutorial_id': tutorial.id,
+            'content': tutorial_data['content'],
+            'concepts': tutorial_data['concepts'],
+            'packages': tutorial_data['packages'],
+            'objectives': tutorial_data['objectives'],
+            'is_premium': tutorial_data['is_premium'],
+            'topic': topic,
+            'expertise': expertise,
+            'duration': duration,
+            'estimated_reading_time': tutorial_data.get('estimated_reading_time', 5),
+            'difficulty_score': tutorial_data.get('difficulty_score', 5),
+            'monthly_usage_after': monthly_usage,
+            'monthly_limit': monthly_limit
+        }
+        
+        # Add upgrade prompt for free users approaching limit
+        if current_user.plan == 'free' and monthly_usage >= monthly_limit - 1:
+            response_data['upgrade_prompt'] = {
+                'message': 'You\'re almost at your monthly limit! Upgrade to Pro for unlimited tutorials.',
+                'cta': 'Upgrade Now'
             }
-        });
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error generating tutorial: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Tutorial generation failed. Please try again.',
+            'error_details': str(e) if current_user.plan != 'free' else None
+        }), 500
 
-        // Register form submission removed as Sign Up is removed
+@app.route('/tutorial/<int:tutorial_id>')
+@login_required
+def view_tutorial(tutorial_id):
+    """View a specific tutorial"""
+    tutorial = Tutorial.query.get_or_404(tutorial_id)
+    
+    # Check if user owns this tutorial
+    if tutorial.user_id != current_user.id:
+        return jsonify({'error': 'Access denied'}), 403
+    
+    # Track tutorial view
+    tutorial.increment_view()
+    
+    return render_template('tutorial.html', tutorial=tutorial)
 
-        // Enhanced form validation
-        document.querySelectorAll('.form-control').forEach(input => {
-            input.addEventListener('blur', function() {
-                if (this.required && !this.value.trim()) {
-                    this.style.borderColor = '#f44336';
-                } else if (this.type === 'email' && this.value && !this.value.includes('@')) {
-                    this.style.borderColor = '#f44336';
-                } else {
-                    this.style.borderColor = '#e3f2fd';
-                }
-            });
+@app.route('/upgrade/<plan>')
+@login_required
+def upgrade_plan(plan):
+    """Upgrade user plan (simplified for demo)"""
+    if plan not in PLANS:
+        return jsonify({'success': False, 'error': 'Invalid plan'}), 400
+    
+    # In production, this would integrate with Stripe for payment processing
+    # For demo, we'll just update the plan directly
+    old_plan = current_user.plan
+    current_user.plan = plan
+    current_user.updated_at = datetime.utcnow()
+    
+    try:
+        db.session.commit()
+        
+        # Track upgrade
+        log = UsageLog(
+            user_id=current_user.id,
+            action='plan_upgraded',
+            metadata=json.dumps({
+                'old_plan': old_plan,
+                'new_plan': plan,
+                'upgrade_timestamp': datetime.utcnow().isoformat()
+            }),
+            ip_address=request.remote_addr
+        )
+        db.session.add(log)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Successfully upgraded to {plan.title()} plan!',
+            'new_plan': plan,
+            'redirect': url_for('index')
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Upgrade error: {e}")
+        return jsonify({'success': False, 'error': 'Upgrade failed. Please try again.'}), 500
+
+@app.route('/pricing')
+def pricing():
+    """Pricing page"""
+    return render_template('pricing.html', plans=PLANS)
+
+@app.route('/billing')
+@login_required
+def billing():
+    """Billing and subscription management"""
+    # Calculate user analytics
+    total_tutorials = Tutorial.query.filter_by(user_id=current_user.id).count()
+    monthly_usage = current_user.get_monthly_usage()
+    
+    # Get recent tutorials for analytics
+    recent_tutorials = Tutorial.query.filter_by(user_id=current_user.id)\
+        .order_by(Tutorial.created_at.desc()).limit(10).all()
+    
+    # Calculate some basic analytics
+    if recent_tutorials:
+        avg_duration = sum(t.duration for t in recent_tutorials) / len(recent_tutorials)
+        expertise_counts = {}
+        for tutorial in recent_tutorials:
+            expertise_counts[tutorial.expertise] = expertise_counts.get(tutorial.expertise, 0) + 1
+        most_popular_expertise = max(expertise_counts, key=expertise_counts.get) if expertise_counts else 'beginner'
+    else:
+        avg_duration = 0
+        most_popular_expertise = 'beginner'
+        expertise_counts = {}
+    
+    analytics = {
+        'total_tutorials': total_tutorials,
+        'monthly_usage': monthly_usage,
+        'average_duration': round(avg_duration, 1),
+        'expertise_distribution': expertise_counts,
+        'most_popular_expertise': most_popular_expertise,
+        'unique_topics': len(set(t.topic for t in recent_tutorials))
+    }
+    
+    return render_template('billing.html', 
+                         user=current_user, 
+                         plans=PLANS,
+                         analytics=analytics)
+
+# API Routes
+@app.route('/api/usage-stats')
+@login_required
+def usage_stats():
+    """API endpoint for usage analytics"""
+    monthly_usage = current_user.get_monthly_usage()
+    plan_info = current_user.get_plan_info()
+    
+    # Get recent tutorials
+    recent_tutorials = Tutorial.query.filter_by(user_id=current_user.id)\
+        .order_by(Tutorial.created_at.desc()).limit(5).all()
+    
+    return jsonify({
+        'monthly_usage': monthly_usage,
+        'monthly_limit': plan_info['tutorials_per_month'],
+        'plan': current_user.plan,
+        'plan_info': plan_info,
+        'recent_tutorials': [
+            {
+                'id': t.id,
+                'topic': t.topic,
+                'expertise': t.expertise,
+                'created_at': t.created_at.isoformat(),
+                'is_premium': t.is_premium,
+                'view_count': t.view_count
+            } for t in recent_tutorials
+        ],
+        'can_create_tutorial': current_user.can_create_tutorial()
+    })
+
+@app.route('/api/tutorials')
+@login_required
+def list_tutorials():
+    """List user's tutorials with pagination"""
+    page = request.args.get('page', 1, type=int)
+    per_page = min(request.args.get('per_page', 10, type=int), 50)
+    
+    tutorials_query = Tutorial.query.filter_by(user_id=current_user.id)\
+        .order_by(Tutorial.created_at.desc())
+    
+    # Simple pagination without SQLAlchemy paginate for compatibility
+    total = tutorials_query.count()
+    tutorials = tutorials_query.offset((page - 1) * per_page).limit(per_page).all()
+    
+    has_next = (page * per_page) < total
+    has_prev = page > 1
+    pages = (total + per_page - 1) // per_page
+    
+    return jsonify({
+        'tutorials': [
+            {
+                'id': t.id,
+                'topic': t.topic,
+                'expertise': t.expertise,
+                'duration': t.duration,
+                'created_at': t.created_at.isoformat(),
+                'is_premium': t.is_premium,
+                'view_count': t.view_count
+            } for t in tutorials
+        ],
+        'pagination': {
+            'page': page,
+            'per_page': per_page,
+            'total': total,
+            'pages': pages,
+            'has_next': has_next,
+            'has_prev': has_prev
+        }
+    })
+
+@app.route('/api/tutorial/<int:tutorial_id>', methods=['DELETE'])
+@login_required
+def delete_tutorial(tutorial_id):
+    """Delete a tutorial"""
+    tutorial = Tutorial.query.get_or_404(tutorial_id)
+    
+    # Check ownership
+    if tutorial.user_id != current_user.id:
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        db.session.delete(tutorial)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Tutorial deleted successfully'})
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Delete error: {e}")
+        return jsonify({'success': False, 'error': 'Delete failed'}), 500
+
+@app.route('/export-data')
+@login_required
+def export_user_data():
+    """Export user data (GDPR compliance)"""
+    # Get all user data
+    tutorials = Tutorial.query.filter_by(user_id=current_user.id).all()
+    usage_logs = UsageLog.query.filter_by(user_id=current_user.id).all()
+    
+    user_data = {
+        'user_info': {
+            'id': current_user.id,
+            'email': current_user.email,
+            'name': current_user.name,
+            'plan': current_user.plan,
+            'created_at': current_user.created_at.isoformat(),
+            'is_active': current_user.is_active
+        },
+        'tutorials': [
+            {
+                'id': t.id,
+                'topic': t.topic,
+                'expertise': t.expertise,
+                'duration': t.duration,
+                'created_at': t.created_at.isoformat(),
+                'is_premium': t.is_premium,
+                'view_count': t.view_count
+            } for t in tutorials
+        ],
+        'usage_logs': [
+            {
+                'id': log.id,
+                'action': log.action,
+                'created_at': log.created_at.isoformat(),
+                'metadata': log.metadata
+            } for log in usage_logs
+        ]
+    }
+    
+    return jsonify({
+        'success': True,
+        'data': user_data,
+        'export_date': datetime.now().isoformat(),
+        'note': 'This export contains all your data stored in R Tutor Pro.'
+    })
+
+# System Routes
+@app.route('/health')
+def health_check():
+    """System health check"""
+    try:
+        # Test database connection
+        db.session.execute('SELECT 1')
+        db_status = 'healthy'
+    except Exception as e:
+        print(f"Database health check failed: {e}")
+        db_status = 'unhealthy'
+    
+    return jsonify({
+        'status': 'healthy' if db_status == 'healthy' else 'warning',
+        'timestamp': datetime.utcnow().isoformat(),
+        'database': db_status,
+        'ai_services': {
+            'deepseek': bool(DEEPSEEK_API_KEY),
+            'openai': bool(OPENAI_API_KEY)
+        },
+        'features': {
+            'authentication': True,
+            'tutorial_generation': True,
+            'usage_tracking': True,
+            'subscription_management': True
+        }
+    })
+
+@app.route('/version')
+def version_info():
+    """API version information"""
+    return jsonify({
+        'version': '1.0.0',
+        'api_version': 'v1',
+        'app_name': 'R Tutor Pro',
+        'features': {
+            'ai_generation': True,
+            'audio_generation': False,  # Coming soon
+            'team_management': False,   # Coming soon
+            'api_access': True
+        },
+        'subscription_plans': list(PLANS.keys()),
+        'demo_mode': True
+    })
+
+# Error Handlers
+@app.errorhandler(404)
+def not_found(error):
+    """Handle 404 errors"""
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Resource not found'}), 404
+    return render_template('error.html', error_code=404, error_message='Page not found'), 404
+
+@app.errorhandler(403)
+def forbidden(error):
+    """Handle 403 errors"""
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Access denied'}), 403
+    return render_template('error.html', error_code=403, error_message='Access denied'), 403
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Handle 500 errors"""
+    db.session.rollback()
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Internal server error'}), 500
+    return render_template('error.html', error_code=500, error_message='Internal server error'), 500
+
+# Contact and Legal Pages
+@app.route('/contact', methods=['GET', 'POST'])
+def contact():
+    """Contact form"""
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip()
+        message = request.form.get('message', '').strip()
+        
+        if not is_valid_email_format(email):
+            return jsonify({'success': False, 'error': 'Invalid email address'})
+        
+        # In production, send email or save to database
+        # For demo, just return success
+        return jsonify({
+            'success': True,
+            'message': 'Thank you for your message! We\'ll get back to you soon.'
+        })
+    
+    return render_template('contact.html')
+
+@app.route('/privacy')
+def privacy_policy():
+    """Privacy policy page"""
+    return render_template('privacy.html')
+
+@app.route('/terms')
+def terms_of_service():
+    """Terms of service page"""
+    return render_template('terms.html')
+
+# Initialize database
+@app.before_first_request
+def create_tables():
+    """Initialize database tables and sample data"""
+    try:
+        db.create_all()
+        print("✅ Database tables created successfully")
+        
+        # Create sample data if no users exist
+        if User.query.count() == 0:
+            print("🗄️ Initializing database with sample data...")
             
-            input.addEventListener('input', function() {
-                this.style.borderColor = '#e3f2fd';
-            });
-        });
+            # Create sample users
+            demo_user = User(
+                email='demo@rtutorpro.com',
+                password_hash=generate_password_hash('s'),
+                name='Demo User',
+                plan='free'
+            )
+            
+            pro_user = User(
+                email='pro@rtutorpro.com',
+                password_hash=generate_password_hash('s'),
+                name='Pro User',
+                plan='pro'
+            )
+            
+            db.session.add(demo_user)
+            db.session.add(pro_user)
+            db.session.commit()
+            
+            print("✅ Sample users created:")
+            print("   demo@rtutorpro.com (Free plan)")
+            print("   pro@rtutorpro.com (Pro plan)")
+            
+    except Exception as e:
+        print(f"❌ Database initialization error: {e}")
 
-        // Initialize based on URL or mode - Sign Up removed
-        document.addEventListener('DOMContentLoaded', function() {
-            // Default to login, no other mode
-        });
-    </script>
-</body>
-</html>
+if __name__ == '__main__':
+    print("🚀 Starting R Tutor Pro SaaS...")
+    print("=" * 50)
+    print("💰 Monetization: Freemium model with usage limits")
+    print("🔐 Authentication: Any email + password 's' for demo")
+    print("🤖 AI Content: Premium users get AI-generated tutorials")
+    print("📊 Analytics: Usage tracking and subscription management")
+    print("=" * 50)
+    print("🔧 Environment Variables:")
+    print(f"   DEEPSEEK_API_KEY: {'✅ Set' if DEEPSEEK_API_KEY else '❌ Not set (basic content only)'}")
+    print(f"   OPENAI_API_KEY: {'✅ Set' if OPENAI_API_KEY else '❌ Not set (basic content only)'}")
+    print(f"   DATABASE_URL: {'✅ Set' if os.environ.get('DATABASE_URL') else '❌ Using SQLite'}")
+    print(f"   SECRET_KEY: {'✅ Set' if os.environ.get('SECRET_KEY') else '❌ Using default (insecure)'}")
+    print("=" * 50)
+    print("🌐 Access the app at: http://localhost:5000")
+    print("📖 Login with any email + password 's'")
+    print("=" * 50)
+    
+    app.run(debug=True, host='0.0.0.0', port=5000)

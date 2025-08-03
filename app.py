@@ -10,6 +10,7 @@ import json
 import tempfile
 import base64
 from functools import wraps
+import re
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -274,6 +275,36 @@ def check_usage_limits():
     plan_limit = PLANS[current_user.plan]['tutorials_per_month']
     return usage_count >= plan_limit
 
+def is_valid_email_format(email):
+    """
+    Very permissive email validation for demo purposes
+    Only checks for basic @ symbol and domain structure
+    """
+    if not email or len(email.strip()) == 0:
+        return False
+    
+    email = email.strip().lower()
+    
+    # Very basic check - just needs @ and at least one dot after @
+    if '@' not in email:
+        return False
+    
+    parts = email.split('@')
+    if len(parts) != 2:
+        return False
+    
+    local_part, domain_part = parts
+    
+    # Local part should not be empty
+    if len(local_part) == 0:
+        return False
+    
+    # Domain should have at least one dot and not be empty
+    if len(domain_part) == 0 or '.' not in domain_part:
+        return False
+    
+    return True
+
 # Initialize AI generator
 ai_generator = AITutorialGenerator()
 
@@ -303,15 +334,31 @@ def index():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        email = request.form['email'].lower().strip()
-        password = request.form['password']
-        name = request.form['name'].strip()
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        name = request.form.get('name', '').strip()
         
-        # Bypass registration - any password "s" works
-        if password == "s":
-            # Create a dummy user if one doesn't exist for this email
-            user = User.query.filter_by(email=email).first()
-            if not user:
+        print(f"Register attempt - Email: '{email}', Password: '{password}'")  # Debug log
+        
+        # Check email format (very permissive)
+        if not is_valid_email_format(email):
+            error_msg = 'Please enter a valid email format (e.g., user@domain.com)'
+            return jsonify({'success': False, 'error': error_msg})
+        
+        # Demo authentication: password must be "s"
+        if password != "s":
+            error_msg = 'Password must be "s" for demo access'
+            return jsonify({'success': False, 'error': error_msg})
+        
+        try:
+            # Check if user already exists
+            existing_user = User.query.filter_by(email=email).first()
+            if existing_user:
+                # User exists, just log them in
+                login_user(existing_user)
+                print(f"Existing user logged in: {email}")
+            else:
+                # Create new user
                 user = User(
                     email=email,
                     password_hash=generate_password_hash(password),
@@ -319,25 +366,42 @@ def register():
                 )
                 db.session.add(user)
                 db.session.commit()
+                login_user(user)
+                print(f"New user created and logged in: {email}")
             
-            login_user(user)
-            return redirect(url_for('index'))
-        
-        return jsonify({'success': False, 'error': 'Invalid credentials'})
+            return jsonify({'success': True, 'redirect': url_for('index')})
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Registration error: {e}")
+            return jsonify({'success': False, 'error': 'Registration failed. Please try again.'})
     
     return render_template('auth.html', mode='register')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['email'].lower().strip()
-        password = request.form['password']
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        remember_me = request.form.get('remember_me', False)
         
-        # Bypass login - any email with password "s" works
-        if password == "s":
+        print(f"Login attempt - Email: '{email}', Password: '{password}'")  # Debug log
+        
+        # Check email format (very permissive)
+        if not is_valid_email_format(email):
+            error_msg = 'Please enter a valid email format (e.g., user@domain.com)'
+            return jsonify({'success': False, 'error': error_msg})
+        
+        # Demo authentication: password must be "s"
+        if password != "s":
+            error_msg = 'Password must be "s" for demo access'
+            return jsonify({'success': False, 'error': error_msg})
+        
+        try:
             # Find or create user
             user = User.query.filter_by(email=email).first()
             if not user:
+                # Create new user automatically
                 user = User(
                     email=email,
                     password_hash=generate_password_hash(password),
@@ -345,11 +409,22 @@ def login():
                 )
                 db.session.add(user)
                 db.session.commit()
+                print(f"Auto-created new user: {email}")
             
-            login_user(user)
-            return jsonify({'success': True, 'redirect': url_for('index')})
-        
-        return jsonify({'success': False, 'error': 'Invalid credentials'})
+            login_user(user, remember=bool(remember_me))
+            print(f"User logged in successfully: {email}")
+            
+            # Redirect to intended page or dashboard
+            next_page = request.args.get('next')
+            if not next_page or not next_page.startswith('/'):
+                next_page = url_for('index')
+            
+            return jsonify({'success': True, 'redirect': next_page})
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Login error: {e}")
+            return jsonify({'success': False, 'error': 'Login failed. Please try again.'})
     
     return render_template('auth.html', mode='login')
 
@@ -439,56 +514,4 @@ def usage_stats():
     
     # Monthly usage
     monthly_tutorials = UsageLog.query.filter(
-        UsageLog.user_id == current_user.id,
-        UsageLog.action == 'tutorial_created',
-        UsageLog.created_at >= start_of_month
-    ).count()
-    
-    # Recent tutorials
-    recent_tutorials = Tutorial.query.filter_by(user_id=current_user.id)\
-        .order_by(Tutorial.created_at.desc()).limit(5).all()
-    
-    return jsonify({
-        'monthly_usage': monthly_tutorials,
-        'monthly_limit': PLANS[current_user.plan]['tutorials_per_month'],
-        'plan': current_user.plan,
-        'recent_tutorials': [
-            {
-                'topic': t.topic,
-                'expertise': t.expertise,
-                'created_at': t.created_at.isoformat(),
-                'is_premium': t.is_premium
-            } for t in recent_tutorials
-        ]
-    })
-
-@app.route('/health')
-def health_check():
-    return jsonify({
-        'status': 'healthy',
-        'timestamp': datetime.utcnow().isoformat(),
-        'database': 'connected',
-        'ai_services': {
-            'deepseek': bool(DEEPSEEK_API_KEY),
-            'openai': bool(OPENAI_API_KEY)
-        }
-    })
-
-# Initialize database
-@app.before_first_request
-def create_tables():
-    db.create_all()
-    
-    # Create sample free content if no users exist
-    if User.query.count() == 0:
-        print("Initializing database with sample data...")
-
-if __name__ == '__main__':
-    print("🚀 Starting R Tutor SaaS MVP...")
-    print("💰 Monetization: Freemium model with usage limits")
-    print("🔧 Set environment variables:")
-    print("   - DEEPSEEK_API_KEY for premium content")
-    print("   - DATABASE_URL for production database")
-    print("   - SECRET_KEY for session security")
-    
-    app.run(debug=True, host='0.0.0.0', port=5000)
+        UsageLog.user_id == current_user

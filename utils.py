@@ -8,6 +8,7 @@ from flask import request, jsonify, current_app
 from flask_login import current_user
 from models import UsageLog, db
 import logging
+import re
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -192,10 +193,46 @@ def hash_api_key(api_key: str):
     return hashlib.sha256(api_key.encode()).hexdigest()
 
 def validate_email(email: str):
-    """Basic email validation"""
-    import re
-    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    return re.match(pattern, email) is not None
+    """
+    Very permissive email validation for demo purposes
+    Only checks for basic @ symbol and domain structure
+    """
+    if not email or len(email.strip()) == 0:
+        return False
+    
+    email = email.strip().lower()
+    
+    # Very basic check - just needs @ and at least one dot after @
+    if '@' not in email:
+        return False
+    
+    parts = email.split('@')
+    if len(parts) != 2:
+        return False
+    
+    local_part, domain_part = parts
+    
+    # Local part should not be empty
+    if len(local_part) == 0:
+        return False
+    
+    # Domain should have at least one dot and not be empty
+    if len(domain_part) == 0 or '.' not in domain_part:
+        return False
+    
+    # Allow common formats including:
+    # - Standard emails: user@domain.com
+    # - Subdomains: user@mail.domain.com
+    # - Multiple dots: user@domain.co.uk
+    # - Numbers and special chars: user123@test-domain.org
+    return True
+
+def is_valid_email_format(email: str):
+    """
+    Alternative email validation function with same logic as validate_email
+    for consistency across the application
+    """
+    return validate_email(email)
 
 def sanitize_input(text: str, max_length: int = 1000):
     """Sanitize user input"""
@@ -314,9 +351,33 @@ def export_user_data(user_id: int):
     usage_logs = UsageLog.query.filter_by(user_id=user_id).all()
     
     export_data = {
-        'user_info': user.to_dict(),
-        'tutorials': [tutorial.to_dict() for tutorial in tutorials],
-        'usage_logs': [log.to_dict() for log in usage_logs]
+        'user_info': {
+            'id': user.id,
+            'email': user.email,
+            'name': user.name,
+            'plan': user.plan,
+            'created_at': user.created_at.isoformat(),
+            'is_active': user.is_active
+        },
+        'tutorials': [
+            {
+                'id': t.id,
+                'topic': t.topic,
+                'expertise': t.expertise,
+                'duration': t.duration,
+                'created_at': t.created_at.isoformat(),
+                'is_premium': t.is_premium,
+                'view_count': getattr(t, 'view_count', 0)
+            } for t in tutorials
+        ],
+        'usage_logs': [
+            {
+                'id': log.id,
+                'action': log.action,
+                'created_at': log.created_at.isoformat(),
+                'metadata': log.metadata
+            } for log in usage_logs
+        ]
     }
     
     return export_data
@@ -337,10 +398,20 @@ def validate_tutorial_input(topic: str, expertise: str, duration: int):
         return False, "Topic must be at least 3 characters long"
     
     if expertise not in ['beginner', 'intermediate', 'expert']:
-        return False, "Invalid expertise level"
+        return False, "Invalid expertise level. Must be 'beginner', 'intermediate', or 'expert'"
     
     if not isinstance(duration, int) or duration < 1 or duration > 60:
         return False, "Duration must be between 1 and 60 minutes"
+    
+    # Additional validation for topic content
+    if len(topic.strip()) > 200:
+        return False, "Topic must be less than 200 characters"
+    
+    # Check for suspicious content
+    suspicious_patterns = ['<script', 'javascript:', 'data:', 'vbscript:']
+    topic_lower = topic.lower()
+    if any(pattern in topic_lower for pattern in suspicious_patterns):
+        return False, "Topic contains invalid characters"
     
     return True, None
 
@@ -366,7 +437,8 @@ def check_system_health():
     
     # Check database connection
     try:
-        db.session.query('1').from_statement(db.text('SELECT 1')).all()
+        from sqlalchemy import text
+        db.session.execute(text('SELECT 1'))
         health_status['checks']['database'] = 'healthy'
     except Exception as e:
         health_status['checks']['database'] = 'unhealthy'
@@ -375,8 +447,10 @@ def check_system_health():
     
     # Check AI services
     try:
-        from aiservices import ai_generator
-        if ai_generator.deepseek_key or ai_generator.openai_key:
+        deepseek_key = os.environ.get('DEEPSEEK_API_KEY', '')
+        openai_key = os.environ.get('OPENAI_API_KEY', '')
+        
+        if deepseek_key or openai_key:
             health_status['checks']['ai_services'] = 'healthy'
         else:
             health_status['checks']['ai_services'] = 'warning'
@@ -390,10 +464,10 @@ def check_system_health():
     # Check file system (basic check)
     try:
         # Try to create and delete a temporary file
-        temp_file = os.path.join(current_app.instance_path, 'health_check.tmp')
-        with open(temp_file, 'w') as f:
-            f.write('health check')
-        os.remove(temp_file)
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=True) as tmp_file:
+            tmp_file.write(b'health check')
+            tmp_file.flush()
         health_status['checks']['file_system'] = 'healthy'
     except Exception as e:
         health_status['checks']['file_system'] = 'unhealthy'
@@ -401,3 +475,122 @@ def check_system_health():
         logger.error(f"File system health check failed: {e}")
     
     return health_status
+
+def generate_tutorial_summary(content: str, max_length: int = 200):
+    """
+    Generate a summary of tutorial content
+    
+    Args:
+        content: Tutorial content
+        max_length: Maximum summary length
+        
+    Returns:
+        String summary
+    """
+    if not content:
+        return ""
+    
+    # Remove markdown and special characters
+    import re
+    cleaned_content = re.sub(r'[#*`\[\]]', '', content)
+    cleaned_content = re.sub(r'\[PAUSE\]|\[EMPHASIS\]', '', cleaned_content)
+    
+    # Take first few sentences
+    sentences = cleaned_content.split('. ')
+    summary = ""
+    
+    for sentence in sentences:
+        if len(summary + sentence) > max_length:
+            break
+        summary += sentence + ". "
+    
+    return summary.strip()
+
+def validate_plan_upgrade(current_plan: str, target_plan: str):
+    """
+    Validate if plan upgrade is allowed
+    
+    Args:
+        current_plan: Current subscription plan
+        target_plan: Target subscription plan
+        
+    Returns:
+        tuple: (is_valid, error_message)
+    """
+    from config import PLANS
+    
+    if target_plan not in PLANS:
+        return False, "Invalid target plan"
+    
+    if current_plan not in PLANS:
+        return False, "Invalid current plan"
+    
+    plan_hierarchy = {'free': 0, 'pro': 1, 'team': 2}
+    current_level = plan_hierarchy.get(current_plan, 0)
+    target_level = plan_hierarchy.get(target_plan, 0)
+    
+    # Allow any plan change for demo purposes
+    return True, None
+
+def log_security_event(event_type: str, details: dict = None):
+    """
+    Log security-related events
+    
+    Args:
+        event_type: Type of security event
+        details: Additional event details
+    """
+    try:
+        security_log = {
+            'event_type': event_type,
+            'timestamp': datetime.utcnow().isoformat(),
+            'ip_address': get_client_ip(),
+            'user_agent': request.headers.get('User-Agent', ''),
+            'user_id': current_user.id if current_user.is_authenticated else None,
+            'details': details or {}
+        }
+        
+        logger.warning(f"Security event: {json.dumps(security_log)}")
+        
+    except Exception as e:
+        logger.error(f"Failed to log security event: {e}")
+
+def create_demo_user(email: str, name: str = None):
+    """
+    Create a demo user with safe defaults
+    
+    Args:
+        email: User email
+        name: User name (optional)
+        
+    Returns:
+        User object or None if creation fails
+    """
+    try:
+        from models import User
+        from werkzeug.security import generate_password_hash
+        
+        # Validate email format first
+        if not validate_email(email):
+            return None
+        
+        user = User(
+            email=email.lower().strip(),
+            password_hash=generate_password_hash('s'),
+            name=name or email.split('@')[0],
+            plan='free',
+            is_active=True,
+            email_verified=True,  # Auto-verify for demo
+            created_at=datetime.utcnow()
+        )
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        logger.info(f"Demo user created: {email}")
+        return user
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Failed to create demo user {email}: {e}")
+        return None
