@@ -1,4 +1,4 @@
-# models.py - Minor updates to support free access for all users
+# models.py - Updated to support OpenRouter integration
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime
@@ -21,20 +21,21 @@ class User(UserMixin, db.Model):
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     email_verified = db.Column(db.Boolean, default=True, nullable=False)  # Auto-verify for demo
     
+    # User preferences for OpenRouter
+    preferred_text_model = db.Column(db.String(100), default='anthropic/claude-3.5-sonnet')
+    preferred_audio_model = db.Column(db.String(100), default='openai/tts-1')
+    preferred_voice = db.Column(db.String(50), default='alloy')
+    preferred_expertise = db.Column(db.String(20), default='beginner')
+    preferred_duration = db.Column(db.Integer, default=5)
+    
     # Stripe integration (kept for future use)
     stripe_customer_id = db.Column(db.String(100), unique=True)
     stripe_subscription_id = db.Column(db.String(100), unique=True)
     subscription_status = db.Column(db.String(50), default='active')  # Always active
     
-    # User preferences
-    preferred_expertise = db.Column(db.String(20), default='beginner')
-    preferred_duration = db.Column(db.Integer, default=5)
-    timezone = db.Column(db.String(50), default='UTC')
-    
     # Relationships
     tutorials = db.relationship('Tutorial', backref='user', lazy='dynamic', cascade='all, delete-orphan')
     usage_logs = db.relationship('UsageLog', backref='user', lazy='dynamic', cascade='all, delete-orphan')
-    team_memberships = db.relationship('TeamMember', backref='user', lazy='dynamic')
     
     def __repr__(self):
         return f'<User {self.email}>'
@@ -84,11 +85,16 @@ class User(UserMixin, db.Model):
             'created_at': self.created_at.isoformat(),
             'is_active': self.is_active,
             'monthly_usage': self.get_monthly_usage(),
-            'has_full_access': True
+            'has_full_access': True,
+            'preferred_models': {
+                'text': self.preferred_text_model,
+                'audio': self.preferred_audio_model,
+                'voice': self.preferred_voice
+            }
         }
 
 class Tutorial(db.Model):
-    """Tutorial model for storing generated content"""
+    """Tutorial model for storing generated content with OpenRouter integration"""
     __tablename__ = 'tutorials'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -106,9 +112,16 @@ class Tutorial(db.Model):
     packages = db.Column(db.Text)  # JSON array of R packages
     learning_objectives = db.Column(db.Text)  # JSON array of objectives
     
+    # OpenRouter integration fields
+    text_model = db.Column(db.String(100))  # Model used for text generation
+    audio_model = db.Column(db.String(100))  # Model used for audio generation
+    audio_voice = db.Column(db.String(50))  # Voice used for audio
+    generated_via = db.Column(db.String(50), default='openrouter')  # Generation method
+    
     # Media files
     audio_url = db.Column(db.String(500))
     audio_duration = db.Column(db.Integer)  # in seconds
+    audio_format = db.Column(db.String(10), default='mp3')
     pdf_url = db.Column(db.String(500))
     
     # Analytics
@@ -148,7 +161,7 @@ class Tutorial(db.Model):
     
     def increment_view(self):
         """Increment view count"""
-        self.view_count += 1
+        self.view_count = (self.view_count or 0) + 1
         db.session.commit()
     
     def to_dict(self):
@@ -165,8 +178,16 @@ class Tutorial(db.Model):
             'packages': self.get_packages(),
             'learning_objectives': self.get_learning_objectives(),
             'audio_url': self.audio_url,
+            'audio_duration': self.audio_duration,
+            'audio_voice': self.audio_voice,
             'view_count': self.view_count,
-            'status': self.status
+            'status': self.status,
+            'models_used': {
+                'text': self.text_model,
+                'audio': self.audio_model,
+                'voice': self.audio_voice
+            },
+            'generated_via': self.generated_via
         }
 
 class UsageLog(db.Model):
@@ -186,6 +207,11 @@ class UsageLog(db.Model):
     # Resource tracking
     resource_type = db.Column(db.String(50))  # tutorial, audio, pdf, etc.
     resource_id = db.Column(db.Integer)
+    
+    # OpenRouter specific tracking
+    model_used = db.Column(db.String(100))  # Model used for the action
+    tokens_used = db.Column(db.Integer)  # Tokens consumed
+    cost_estimate = db.Column(db.Float)  # Estimated cost in USD
     
     def __repr__(self):
         return f'<UsageLog {self.action} by {self.user.email}>'
@@ -207,99 +233,22 @@ class UsageLog(db.Model):
             ip_address=kwargs.get('ip_address'),
             user_agent=kwargs.get('user_agent'),
             resource_type=kwargs.get('resource_type'),
-            resource_id=kwargs.get('resource_id')
+            resource_id=kwargs.get('resource_id'),
+            model_used=kwargs.get('model_used'),
+            tokens_used=kwargs.get('tokens_used'),
+            cost_estimate=kwargs.get('cost_estimate')
         )
         
         # Set metadata
         metadata = {k: v for k, v in kwargs.items() 
-                   if k not in ['ip_address', 'user_agent', 'resource_type', 'resource_id']}
+                   if k not in ['ip_address', 'user_agent', 'resource_type', 'resource_id', 
+                               'model_used', 'tokens_used', 'cost_estimate']}
         if metadata:
             log.set_metadata(metadata)
         
         db.session.add(log)
         db.session.commit()
         return log
-
-class Team(db.Model):
-    """Team model for organizational accounts (future feature)"""
-    __tablename__ = 'teams'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Team settings - all teams get full access
-    plan = db.Column(db.String(20), default='team', nullable=False)
-    max_members = db.Column(db.Integer, default=999)  # Unlimited members
-    is_active = db.Column(db.Boolean, default=True, nullable=False)
-    
-    # Billing (kept for future use)
-    stripe_subscription_id = db.Column(db.String(100), unique=True)
-    billing_email = db.Column(db.String(120))
-    
-    # Relationships
-    members = db.relationship('TeamMember', backref='team', lazy='dynamic', cascade='all, delete-orphan')
-    
-    def __repr__(self):
-        return f'<Team {self.name}>'
-    
-    def get_active_members(self):
-        """Get active team members"""
-        return self.members.filter_by(is_active=True).all()
-    
-    def get_member_count(self):
-        """Get number of active members"""
-        return self.members.filter_by(is_active=True).count()
-    
-    def can_add_member(self):
-        """Check if team can add more members - always True"""
-        return True  # Unlimited members
-    
-    def get_monthly_usage(self, year=None, month=None):
-        """Get total team usage for a month"""
-        member_ids = [m.user_id for m in self.get_active_members()]
-        if not member_ids:
-            return 0
-        
-        if year is None or month is None:
-            now = datetime.now()
-            year, month = now.year, now.month
-        
-        start_date = datetime(year, month, 1)
-        if month == 12:
-            end_date = datetime(year + 1, 1, 1)
-        else:
-            end_date = datetime(year, month + 1, 1)
-        
-        return UsageLog.query.filter(
-            UsageLog.user_id.in_(member_ids),
-            UsageLog.action == 'tutorial_created',
-            UsageLog.created_at >= start_date,
-            UsageLog.created_at < end_date
-        ).count()
-
-class TeamMember(db.Model):
-    """Team membership model"""
-    __tablename__ = 'team_members'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    team_id = db.Column(db.Integer, db.ForeignKey('teams.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    role = db.Column(db.String(20), default='member', nullable=False)  # admin, member
-    joined_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    is_active = db.Column(db.Boolean, default=True, nullable=False)
-    
-    # Unique constraint
-    __table_args__ = (db.UniqueConstraint('team_id', 'user_id', name='unique_team_member'),)
-    
-    def __repr__(self):
-        return f'<TeamMember {self.user.email} in {self.team.name}>'
-    
-    def is_admin(self):
-        """Check if member is admin"""
-        return self.role == 'admin'
 
 class APIKey(db.Model):
     """API keys for users (all users can have API access now)"""
@@ -330,6 +279,7 @@ class APIKey(db.Model):
             'update_tutorial',
             'delete_tutorial',
             'regenerate_tutorial',
+            'generate_audio',
             'export_data',
             'analytics'
         ]
@@ -368,7 +318,7 @@ def init_db(app):
         except Exception as e:
             print(f"⚠️ Index creation skipped: {e}")
         
-        print("✅ Database initialized successfully - Full access enabled for all users")
+        print("✅ Database initialized successfully - OpenRouter integration enabled")
 
 # Helper function to upgrade existing users to full access
 def upgrade_all_users_to_full_access():
@@ -380,11 +330,19 @@ def upgrade_all_users_to_full_access():
             user.subscription_status = 'active'
             user.is_active = True
             user.email_verified = True
+            # Set default OpenRouter preferences if not set
+            if not user.preferred_text_model:
+                user.preferred_text_model = 'anthropic/claude-3.5-sonnet'
+            if not user.preferred_audio_model:
+                user.preferred_audio_model = 'openai/tts-1'
+            if not user.preferred_voice:
+                user.preferred_voice = 'alloy'
         
         # Update all tutorials to be premium
         tutorials = Tutorial.query.all()
         for tutorial in tutorials:
             tutorial.is_premium = True
+            tutorial.generated_via = 'openrouter'
         
         db.session.commit()
         print(f"✅ Upgraded {len(users)} users and {len(tutorials)} tutorials to full access")
@@ -406,14 +364,20 @@ def create_sample_data():
         demo_user = User(
             email='demo@rtutorpro.com',
             name='Demo User',
-            plan='free'  # Free plan with full access
+            plan='free',  # Free plan with full access
+            preferred_text_model='anthropic/claude-3.5-sonnet',
+            preferred_audio_model='openai/tts-1',
+            preferred_voice='alloy'
         )
         demo_user.set_password('s')
         
         advanced_user = User(
             email='advanced@rtutorpro.com',
             name='Advanced User',
-            plan='free'  # Free plan with full access
+            plan='free',  # Free plan with full access
+            preferred_text_model='openai/gpt-4-turbo',
+            preferred_audio_model='openai/tts-1-hd',
+            preferred_voice='nova'
         )
         advanced_user.set_password('s')
         
@@ -424,22 +388,26 @@ def create_sample_data():
         # Create sample tutorials
         sample_tutorials = [
             {
-                'topic': 'ggplot2 Data Visualization',
+                'topic': 'ggplot2 Data Visualization with OpenRouter AI',
                 'expertise': 'intermediate',
                 'duration': 15,
-                'content': '# Advanced ggplot2 Tutorial\n\nLearn to create stunning visualizations...',
-                'concepts': ['grammar of graphics', 'layers', 'aesthetics'],
+                'content': '# Advanced ggplot2 Tutorial\n\nLearn to create stunning visualizations with AI assistance...',
+                'concepts': ['grammar of graphics', 'layers', 'aesthetics', 'AI-generated examples'],
                 'packages': ['ggplot2', 'dplyr'],
-                'objectives': ['Master ggplot2 syntax', 'Create professional plots']
+                'objectives': ['Master ggplot2 syntax', 'Create professional plots', 'Use AI for visualization ideas'],
+                'text_model': 'anthropic/claude-3.5-sonnet',
+                'generated_via': 'openrouter'
             },
             {
-                'topic': 'Machine Learning with tidymodels',
+                'topic': 'Machine Learning with tidymodels - AI Enhanced',
                 'expertise': 'expert',
                 'duration': 30,
-                'content': '# Machine Learning in R\n\nBuild predictive models with tidymodels...',
-                'concepts': ['supervised learning', 'model evaluation', 'feature engineering'],
+                'content': '# Machine Learning in R\n\nBuild predictive models with tidymodels and AI guidance...',
+                'concepts': ['supervised learning', 'model evaluation', 'feature engineering', 'AI optimization'],
                 'packages': ['tidymodels', 'ranger', 'glmnet'],
-                'objectives': ['Understand ML workflow', 'Build production models']
+                'objectives': ['Understand ML workflow', 'Build production models', 'Leverage AI for model selection'],
+                'text_model': 'openai/gpt-4-turbo',
+                'generated_via': 'openrouter'
             }
         ]
         
@@ -450,7 +418,9 @@ def create_sample_data():
                 expertise=tutorial_data['expertise'],
                 duration=tutorial_data['duration'],
                 content=tutorial_data['content'],
-                is_premium=True
+                is_premium=True,
+                text_model=tutorial_data['text_model'],
+                generated_via=tutorial_data['generated_via']
             )
             tutorial.set_concepts(tutorial_data['concepts'])
             tutorial.set_packages(tutorial_data['packages'])
@@ -459,7 +429,7 @@ def create_sample_data():
             db.session.add(tutorial)
         
         db.session.commit()
-        print("✅ Sample data created successfully")
+        print("✅ Sample data created successfully with OpenRouter integration")
         
     except Exception as e:
         db.session.rollback()

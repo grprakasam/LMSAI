@@ -1,18 +1,19 @@
-# routes.py - Modified to remove premium restrictions
+# routes.py - Modified for OpenRouter integration
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import json
 import re
+import os
 
 from models import db, User, Tutorial, UsageLog
-from aiservices import ai_generator
+from openrouter_service import openrouter_service
 from utils import (
     track_usage, rate_limit, validate_tutorial_input, sanitize_input, 
     validate_email, calculate_usage_analytics, check_system_health
 )
-from config import PLANS
+from config import PLANS, MODEL_CONFIGS, AUDIO_MODEL_CONFIGS
 
 # Create blueprints
 main_bp = Blueprint('main', __name__)
@@ -29,39 +30,36 @@ def index():
         total_tutorials = Tutorial.query.filter_by(user_id=current_user.id).count()
         monthly_usage = current_user.get_monthly_usage()
         
+        # Get OpenRouter status
+        openrouter_status = openrouter_service.get_model_status()
+        
         user_stats = {
             'total_tutorials': total_tutorials,
             'monthly_usage': monthly_usage,
             'monthly_limit': 999,  # Essentially unlimited
             'plan': 'free',  # Everyone is on free plan with full access
-            'can_create_tutorial': True  # Always true now
+            'can_create_tutorial': True,  # Always true now
+            'openrouter_connected': openrouter_status['status'] == 'connected'
         }
         
-        return render_template('dashboard.html', stats=user_stats, plans=PLANS)
+        return render_template('dashboard.html', 
+                             stats=user_stats, 
+                             plans=PLANS,
+                             models=MODEL_CONFIGS,
+                             audio_models=AUDIO_MODEL_CONFIGS,
+                             openrouter_status=openrouter_status)
     
     # Landing page for non-authenticated users
     return render_template('landing.html', plans=PLANS)
 
-@main_bp.route('/dashboard')
-@login_required
-def dashboard():
-    """User dashboard"""
-    return redirect(url_for('main.index'))
-
-@main_bp.route('/pricing')
-def pricing():
-    """Pricing page - now shows free features"""
-    return render_template('pricing.html', plans=PLANS)
-
 @main_bp.route('/tutorial/<int:tutorial_id>')
 @login_required
 def view_tutorial(tutorial_id):
-    """View a specific tutorial"""
+    """View a specific tutorial with audio playback"""
     tutorial = Tutorial.query.get_or_404(tutorial_id)
     
-    # Check if user owns this tutorial or has team access
+    # Check if user owns this tutorial
     if tutorial.user_id != current_user.id:
-        # Add team access logic here if needed
         return jsonify({'error': 'Access denied'}), 403
     
     # Track tutorial view
@@ -72,16 +70,12 @@ def view_tutorial(tutorial_id):
 # ==================== AUTHENTICATION ROUTES ====================
 
 def is_valid_email_format(email):
-    """
-    Very permissive email validation - allows most formats
-    Only checks for basic @ symbol and domain structure
-    """
+    """Very permissive email validation for demo purposes"""
     if not email or len(email.strip()) == 0:
         return False
     
     email = email.strip().lower()
     
-    # Very basic check - just needs @ and at least one dot after @
     if '@' not in email:
         return False
     
@@ -91,11 +85,9 @@ def is_valid_email_format(email):
     
     local_part, domain_part = parts
     
-    # Local part should not be empty
     if len(local_part) == 0:
         return False
     
-    # Domain should have at least one dot and not be empty
     if len(domain_part) == 0 or '.' not in domain_part:
         return False
     
@@ -109,9 +101,6 @@ def register():
         password = request.form.get('password', '')
         name = request.form.get('name', '').strip()
         
-        print(f"Register attempt - Email: '{email}', Password: '{password}'")  # Debug log
-        
-        # Check email format (very permissive)
         if not is_valid_email_format(email):
             error_msg = 'Please enter a valid email format (e.g., user@domain.com)'
             if request.headers.get('Content-Type') == 'application/json':
@@ -119,7 +108,6 @@ def register():
             flash(error_msg, 'error')
             return render_template('auth.html', mode='register')
         
-        # Check password
         if password != "s":
             error_msg = 'Password must be "s" for demo access'
             if request.headers.get('Content-Type') == 'application/json':
@@ -128,24 +116,19 @@ def register():
             return render_template('auth.html', mode='register')
         
         try:
-            # Check if user already exists
             existing_user = User.query.filter_by(email=email).first()
             if existing_user:
-                # User exists, just log them in
                 login_user(existing_user)
-                print(f"Existing user logged in: {email}")  # Debug log
             else:
-                # Create new user with full access
                 user = User(
                     email=email,
                     password_hash=generate_password_hash(password),
                     name=name if name else email.split('@')[0],
-                    plan='free'  # Free plan now has full access
+                    plan='free'
                 )
                 db.session.add(user)
                 db.session.commit()
                 login_user(user)
-                print(f"New user created and logged in: {email}")  # Debug log
             
             if request.headers.get('Content-Type') == 'application/json':
                 return jsonify({'success': True, 'redirect': url_for('main.index')})
@@ -153,7 +136,6 @@ def register():
             
         except Exception as e:
             db.session.rollback()
-            print(f"Registration error: {e}")  # Debug log
             error_msg = 'Registration failed. Please try again.'
             if request.headers.get('Content-Type') == 'application/json':
                 return jsonify({'success': False, 'error': error_msg})
@@ -162,7 +144,7 @@ def register():
     return render_template('auth.html', mode='register')
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
-@rate_limit(requests_per_minute=20)  # Allow more attempts for demo
+@rate_limit(requests_per_minute=20)
 def login():
     """User login"""
     if request.method == 'POST':
@@ -170,9 +152,6 @@ def login():
         password = request.form.get('password', '')
         remember_me = request.form.get('remember_me', False)
         
-        print(f"Login attempt - Email: '{email}', Password: '{password}'")  # Debug log
-        
-        # Check email format (very permissive)
         if not is_valid_email_format(email):
             error_msg = 'Please enter a valid email format (e.g., user@domain.com)'
             if request.headers.get('Content-Type') == 'application/json':
@@ -180,7 +159,6 @@ def login():
             flash(error_msg, 'error')
             return render_template('auth.html', mode='login')
         
-        # Check password
         if password != "s":
             error_msg = 'Password must be "s" for demo access'
             if request.headers.get('Content-Type') == 'application/json':
@@ -189,24 +167,19 @@ def login():
             return render_template('auth.html', mode='login')
         
         try:
-            # Find or create user
             user = User.query.filter_by(email=email).first()
             if not user:
-                # Create new user automatically with full access
                 user = User(
                     email=email,
                     password_hash=generate_password_hash(password),
                     name=email.split('@')[0],
-                    plan='free'  # Free plan now has full access
+                    plan='free'
                 )
                 db.session.add(user)
                 db.session.commit()
-                print(f"Auto-created new user: {email}")  # Debug log
             
             login_user(user, remember=bool(remember_me))
-            print(f"User logged in successfully: {email}")  # Debug log
             
-            # Redirect to intended page or dashboard
             next_page = request.args.get('next')
             if not next_page or not next_page.startswith('/'):
                 next_page = url_for('main.index')
@@ -217,7 +190,6 @@ def login():
             
         except Exception as e:
             db.session.rollback()
-            print(f"Login error: {e}")  # Debug log
             error_msg = 'Login failed. Please try again.'
             if request.headers.get('Content-Type') == 'application/json':
                 return jsonify({'success': False, 'error': error_msg})
@@ -236,7 +208,7 @@ def logout():
             ip_address=request.remote_addr
         )
     except Exception as e:
-        print(f"Logout logging error: {e}")  # Debug log
+        pass
     
     logout_user()
     flash('You have been logged out successfully.', 'info')
@@ -246,33 +218,43 @@ def logout():
 
 @main_bp.route('/generate-tutorial', methods=['POST'])
 @login_required
-@rate_limit(requests_per_minute=15)  # Generous rate limit
+@rate_limit(requests_per_minute=15)
 @track_usage('tutorial_created')
 def generate_tutorial():
-    """Generate a new tutorial - no restrictions"""
-    
-    # No usage limits anymore - everyone can create unlimited tutorials
+    """Generate a new tutorial using OpenRouter"""
     
     # Get and validate input
     topic = sanitize_input(request.form.get('topic', ''), 200)
     expertise = request.form.get('expertise', '').strip()
     duration = request.form.get('duration', type=int)
+    text_model = request.form.get('text_model', '').strip()
+    audio_model = request.form.get('audio_model', '').strip()
+    voice = request.form.get('voice', '').strip()
+    generate_audio = request.form.get('generate_audio', 'false').lower() == 'true'
     
     # Validate input
     is_valid, error_message = validate_tutorial_input(topic, expertise, duration)
     if not is_valid:
         return jsonify({'success': False, 'error': error_message}), 400
     
-    # No plan limitations - everyone gets full access
-    max_duration = min(duration, 60)  # Reasonable maximum
+    # Set reasonable maximum duration
+    max_duration = min(duration, 60)
     
     try:
-        # Generate tutorial content - everyone gets premium features
-        tutorial_data = ai_generator.generate_tutorial_content(
+        # Get user preferences for better content generation
+        user_preferences = {
+            'focus_areas': request.form.getlist('focus_areas'),
+            'learning_style': request.form.get('learning_style', ''),
+            'industry_context': request.form.get('industry_context', '')
+        }
+        
+        # Generate tutorial content via OpenRouter
+        tutorial_data = openrouter_service.generate_tutorial_content(
             topic=topic,
             expertise=expertise,
             duration=max_duration,
-            user_plan='premium'  # Treat everyone as premium
+            text_model=text_model or None,
+            user_preferences=user_preferences
         )
         
         # Save tutorial to database
@@ -294,6 +276,23 @@ def generate_tutorial():
         db.session.add(tutorial)
         db.session.commit()
         
+        # Generate audio if requested
+        audio_data = None
+        if generate_audio and tutorial_data['content']:
+            audio_result = openrouter_service.generate_audio(
+                text=tutorial_data['content'],
+                audio_model=audio_model or None,
+                voice=voice or None,
+                speed=1.0,
+                format='mp3'
+            )
+            
+            if audio_result['success']:
+                tutorial.audio_url = audio_result['audio_url']
+                tutorial.audio_duration = int(audio_result.get('duration_estimate', max_duration * 60))
+                db.session.commit()
+                audio_data = audio_result
+        
         # Get updated usage count
         monthly_usage = current_user.get_monthly_usage()
         
@@ -304,33 +303,47 @@ def generate_tutorial():
             'concepts': tutorial_data['concepts'],
             'packages': tutorial_data['packages'],
             'objectives': tutorial_data['objectives'],
-            'is_premium': True,  # Everyone gets premium content
+            'is_premium': True,
             'topic': topic,
             'expertise': expertise,
             'duration': max_duration,
             'estimated_reading_time': tutorial_data.get('estimated_reading_time', 5),
             'difficulty_score': tutorial_data.get('difficulty_score', 5),
             'monthly_usage_after': monthly_usage,
-            'monthly_limit': 999,  # Essentially unlimited
-            'advanced_tips': tutorial_data.get('advanced_tips', []),
-            'real_world_applications': tutorial_data.get('real_world_applications', [])
+            'monthly_limit': 999,
+            'model_used': tutorial_data.get('model_used', 'unknown'),
+            'generated_via': tutorial_data.get('generated_via', 'openrouter'),
+            'character_count': tutorial_data.get('character_count', 0),
+            'word_count': tutorial_data.get('word_count', 0)
         }
+        
+        # Add audio data if generated
+        if audio_data:
+            response_data.update({
+                'audio_generated': True,
+                'audio_url': audio_data['audio_url'],
+                'audio_model_used': audio_data.get('model_used', 'unknown'),
+                'audio_voice_used': audio_data.get('voice_used', 'default'),
+                'audio_duration': audio_data.get('duration_estimate', 0),
+                'audio_character_count': audio_data.get('character_count', 0)
+            })
+        else:
+            response_data['audio_generated'] = False
         
         return jsonify(response_data)
         
     except Exception as e:
         db.session.rollback()
-        print(f"Tutorial generation error: {e}")  # Debug log
         return jsonify({
             'success': False,
             'error': 'Tutorial generation failed. Please try again.',
-            'error_details': str(e)  # Show error details for debugging
+            'error_details': str(e)
         }), 500
 
-@main_bp.route('/tutorial/<int:tutorial_id>/regenerate', methods=['POST'])
+@main_bp.route('/generate-audio/<int:tutorial_id>', methods=['POST'])
 @login_required
-def regenerate_tutorial(tutorial_id):
-    """Regenerate a tutorial - available to all users"""
+def generate_audio(tutorial_id):
+    """Generate audio for an existing tutorial"""
     tutorial = Tutorial.query.get_or_404(tutorial_id)
     
     # Check ownership
@@ -338,35 +351,75 @@ def regenerate_tutorial(tutorial_id):
         return jsonify({'success': False, 'error': 'Access denied'}), 403
     
     try:
-        # Regenerate content with full access
-        tutorial_data = ai_generator.generate_tutorial_content(
-            topic=tutorial.topic,
-            expertise=tutorial.expertise,
-            duration=tutorial.duration,
-            user_plan='premium'  # Everyone gets premium features
+        # Get audio generation parameters
+        audio_model = request.form.get('audio_model', '').strip()
+        voice = request.form.get('voice', '').strip()
+        speed = float(request.form.get('speed', 1.0))
+        
+        # Generate audio
+        audio_result = openrouter_service.generate_audio(
+            text=tutorial.content,
+            audio_model=audio_model or None,
+            voice=voice or None,
+            speed=speed,
+            format='mp3'
         )
         
-        # Update tutorial
-        tutorial.content = tutorial_data['content']
-        tutorial.set_concepts(tutorial_data['concepts'])
-        tutorial.set_packages(tutorial_data['packages'])
-        tutorial.set_learning_objectives(tutorial_data['objectives'])
-        tutorial.updated_at = datetime.utcnow()
-        tutorial.is_premium = True  # Everyone gets premium content
-        
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Tutorial regenerated successfully!',
-            'content': tutorial_data['content']
-        })
-        
+        if audio_result['success']:
+            # Update tutorial with audio information
+            tutorial.audio_url = audio_result['audio_url']
+            tutorial.audio_duration = int(audio_result.get('duration_estimate', tutorial.duration * 60))
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Audio generated successfully!',
+                'audio_url': audio_result['audio_url'],
+                'audio_duration': audio_result.get('duration_estimate', 0),
+                'model_used': audio_result.get('model_used', 'unknown'),
+                'voice_used': audio_result.get('voice_used', 'default')
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': audio_result.get('error', 'Audio generation failed')
+            })
+            
     except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'error': 'Regeneration failed'}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # ==================== API ROUTES ====================
+
+@api_bp.route('/models/text')
+@login_required
+def get_text_models():
+    """Get available text generation models"""
+    models = openrouter_service.get_available_models('text')
+    return jsonify({
+        'success': True,
+        'models': models,
+        'current_model': openrouter_service.default_text_model,
+        'model_configs': MODEL_CONFIGS
+    })
+
+@api_bp.route('/models/audio')
+@login_required
+def get_audio_models():
+    """Get available audio generation models"""
+    models = openrouter_service.get_available_models('audio')
+    return jsonify({
+        'success': True,
+        'models': models,
+        'current_model': openrouter_service.default_audio_model,
+        'model_configs': AUDIO_MODEL_CONFIGS
+    })
+
+@api_bp.route('/openrouter/status')
+@login_required
+def openrouter_status():
+    """Get OpenRouter connection status"""
+    status = openrouter_service.get_model_status()
+    return jsonify(status)
 
 @api_bp.route('/usage-stats')
 @login_required
@@ -381,7 +434,7 @@ def usage_stats():
     
     return jsonify({
         'monthly_usage': monthly_usage,
-        'monthly_limit': 999,  # Essentially unlimited
+        'monthly_limit': 999,
         'plan': 'free',
         'plan_info': plan_info,
         'recent_tutorials': [
@@ -390,11 +443,14 @@ def usage_stats():
                 'topic': t.topic,
                 'expertise': t.expertise,
                 'created_at': t.created_at.isoformat(),
-                'is_premium': True,  # Everyone gets premium content
-                'view_count': t.view_count
+                'is_premium': True,
+                'view_count': t.view_count,
+                'has_audio': bool(t.audio_url),
+                'model_used': getattr(t, 'model_used', 'unknown')
             } for t in recent_tutorials
         ],
-        'can_create_tutorial': True  # Always true
+        'can_create_tutorial': True,
+        'openrouter_enabled': bool(openrouter_service.api_key)
     })
 
 @api_bp.route('/tutorials')
@@ -452,45 +508,43 @@ def delete_tutorial(tutorial_id):
         db.session.rollback()
         return jsonify({'success': False, 'error': 'Delete failed'}), 500
 
-@api_bp.route('/analytics')
+@api_bp.route('/tutorial/<int:tutorial_id>/view', methods=['POST'])
 @login_required
-def user_analytics():
-    """Get detailed user analytics"""
-    days = request.args.get('days', 30, type=int)
-    analytics = calculate_usage_analytics(current_user.id, days)
+def track_tutorial_view(tutorial_id):
+    """Track tutorial view"""
+    tutorial = Tutorial.query.get_or_404(tutorial_id)
     
-    return jsonify(analytics)
-
-@api_bp.route('/search-tutorials')
-@login_required
-def search_tutorials():
-    """Search user's tutorials"""
-    query = request.args.get('q', '').strip()
-    if not query:
-        return jsonify({'tutorials': []})
+    # Check ownership
+    if tutorial.user_id != current_user.id:
+        return jsonify({'error': 'Access denied'}), 403
     
-    tutorials = Tutorial.query.filter(
-        Tutorial.user_id == current_user.id,
-        Tutorial.topic.contains(query)
-    ).order_by(Tutorial.created_at.desc()).limit(20).all()
-    
-    return jsonify({
-        'tutorials': [tutorial.to_dict() for tutorial in tutorials],
-        'query': query
-    })
+    try:
+        tutorial.view_count = (tutorial.view_count or 0) + 1
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # ==================== SYSTEM ROUTES ====================
 
 @main_bp.route('/health')
 def health_check():
-    """System health check"""
+    """System health check including OpenRouter status"""
     health_status = check_system_health()
+    
+    # Add OpenRouter status
+    openrouter_status = openrouter_service.get_model_status()
+    health_status['openrouter'] = {
+        'status': openrouter_status['status'],
+        'api_key_configured': bool(openrouter_service.api_key),
+        'models_available': openrouter_status.get('model_count', 0)
+    }
     
     status_code = 200
     if health_status['status'] == 'unhealthy':
         status_code = 503
     elif health_status['status'] == 'warning':
-        status_code = 200  # Still operational
+        status_code = 200
     
     return jsonify(health_status), status_code
 
@@ -498,15 +552,21 @@ def health_check():
 def version_info():
     """API version information"""
     return jsonify({
-        'version': '1.0.0',
-        'api_version': 'v1',
+        'version': '2.0.0',
+        'api_version': 'v2',
         'features': {
+            'openrouter_integration': True,
             'ai_generation': True,
-            'audio_generation': True,   # Available to all
-            'team_management': True,    # Available to all
-            'api_access': True,         # Available to all
-            'advanced_topics': True,    # Available to all
-            'unlimited_tutorials': True # Available to all
+            'audio_generation': True,
+            'model_selection': True,
+            'unlimited_tutorials': True,
+            'advanced_topics': True
+        },
+        'openrouter': {
+            'enabled': bool(openrouter_service.api_key),
+            'base_url': openrouter_service.base_url,
+            'default_text_model': openrouter_service.default_text_model,
+            'default_audio_model': openrouter_service.default_audio_model
         },
         'limits': PLANS
     })
@@ -543,49 +603,3 @@ def rate_limit_exceeded(error):
         'message': 'Too many requests. Please try again later.',
         'retry_after': 60
     }), 429
-
-# ==================== UTILITY ROUTES ====================
-
-@main_bp.route('/contact', methods=['GET', 'POST'])
-def contact():
-    """Contact form"""
-    if request.method == 'POST':
-        # Handle contact form submission
-        name = sanitize_input(request.form.get('name', ''), 100)
-        email = request.form.get('email', '').strip()
-        message = sanitize_input(request.form.get('message', ''), 1000)
-        
-        if not is_valid_email_format(email):
-            flash('Invalid email address', 'error')
-            return render_template('contact.html')
-        
-        # In production, send email or save to database
-        flash('Thank you for your message! We\'ll get back to you soon.', 'success')
-        return redirect(url_for('main.contact'))
-    
-    return render_template('contact.html')
-
-@main_bp.route('/privacy')
-def privacy_policy():
-    """Privacy policy page"""
-    return render_template('privacy.html')
-
-@main_bp.route('/terms')
-def terms_of_service():
-    """Terms of service page"""
-    return render_template('terms.html')
-
-@main_bp.route('/export-data')
-@login_required
-def export_user_data():
-    """Export user data (GDPR compliance)"""
-    from utils import export_user_data
-    
-    user_data = export_user_data(current_user.id)
-    
-    return jsonify({
-        'success': True,
-        'data': user_data,
-        'export_date': datetime.now().isoformat(),
-        'note': 'This export contains all your data stored in R Tutor Pro.'
-    })
