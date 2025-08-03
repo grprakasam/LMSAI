@@ -1,3 +1,4 @@
+# config.py - Modified to remove premium restrictions
 import os
 from datetime import timedelta
 
@@ -23,14 +24,6 @@ class Config:
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', 'on', '1']
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    
-    # Stripe Configuration (for future payment integration)
-    STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY')
-    STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
-    STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET')
-    
-    # Redis Configuration (for future caching/sessions)
-    REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
     
     # File Upload Configuration
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
@@ -93,76 +86,34 @@ config = {
     'default': DevelopmentConfig
 }
 
-# Subscription Plans Configuration
+# Simplified Plans Configuration - All features free
 PLANS = {
     'free': {
-        'tutorials_per_month': 3,
+        'tutorials_per_month': 999,  # Essentially unlimited
         'price': 0,
         'stripe_price_id': None,
         'features': [
-            'Basic R topics',
-            'Standard content quality',
-            'Community support',
-            'Web access only',
-            '5-minute tutorial limit'
-        ],
-        'limits': {
-            'max_duration': 5,
-            'audio_generation': False,
-            'premium_topics': False,
-            'api_access': False,
-            'export_options': False
-        }
-    },
-    'pro': {
-        'tutorials_per_month': 50,
-        'price': 9,
-        'stripe_price_id': os.environ.get('STRIPE_PRO_PRICE_ID'),
-        'features': [
-            'All R topics + advanced',
-            'Premium AI-generated content',
-            'Audio tutorial generation',
-            'Code execution environment',
-            'Export to PDF/Audio',
+            'Unlimited R tutorials',
+            'All R topics including advanced',
+            'AI-generated premium content',
             'Up to 60-minute tutorials',
-            'Priority support'
+            'All packages and concepts',
+            'Community support',
+            'Web access'
         ],
         'limits': {
             'max_duration': 60,
-            'audio_generation': True,
-            'premium_topics': True,
-            'api_access': False,
-            'export_options': True
-        }
-    },
-    'team': {
-        'tutorials_per_month': 200,
-        'price': 29,
-        'stripe_price_id': os.environ.get('STRIPE_TEAM_PRICE_ID'),
-        'features': [
-            'Everything in Pro',
-            'Team management dashboard',
-            'Usage analytics',
-            'Custom R topics',
-            'API access',
-            'Bulk export options',
-            'Dedicated support',
-            'Team collaboration tools'
-        ],
-        'limits': {
-            'max_duration': 60,
-            'audio_generation': True,
-            'premium_topics': True,
-            'api_access': True,
-            'export_options': True,
-            'team_management': True
+            'audio_generation': True,  # Enable for all users
+            'premium_topics': True,    # Enable for all users
+            'api_access': True,        # Enable for all users
+            'export_options': True     # Enable for all users
         }
     }
 }
 
-# R Topics Content Configuration
+# All R Content Available to Everyone
 R_TOPICS_CONTENT = {
-    'free_topics': {
+    'all_topics': {  # Single category containing all content
         'data structures': {
             'beginner': {
                 'concepts': ['vectors', 'lists', 'data frames', 'matrices'],
@@ -191,83 +142,35 @@ R_TOPICS_CONTENT = {
                 ]
             }
         },
-        'basic plotting': {
+        'ggplot2 visualization': {
             'beginner': {
-                'concepts': ['plot function', 'basic charts', 'customization'],
+                'concepts': ['grammar of graphics', 'basic plots', 'aesthetics'],
                 'code_examples': [
-                    '# Basic scatter plot\nplot(x, y, main="My Plot", xlab="X axis", ylab="Y axis")',
-                    '# Histogram\nhist(data$variable, breaks=20, col="blue")'
+                    '# Basic ggplot\nlibrary(ggplot2)\nggplot(data, aes(x=var1, y=var2)) +\n  geom_point() +\n  theme_minimal()'
                 ],
-                'packages': ['graphics', 'grDevices'],
+                'packages': ['ggplot2', 'scales'],
                 'learning_objectives': [
-                    'Creating basic plots in R',
-                    'Understanding plot customization',
-                    'Using different chart types'
-                ]
-            }
-        },
-        'statistics basics': {
-            'beginner': {
-                'concepts': ['descriptive statistics', 'correlation', 'basic tests'],
-                'code_examples': [
-                    '# Descriptive statistics\nsummary(data)\nmean(data$column, na.rm = TRUE)\nsd(data$column, na.rm = TRUE)',
-                    '# Correlation and basic tests\ncor(data$x, data$y, use = "complete.obs")\nt.test(data$group1, data$group2)'
-                ],
-                'packages': ['stats', 'base'],
-                'learning_objectives': [
-                    'Understanding descriptive statistics',
-                    'Calculating correlations',
-                    'Performing basic hypothesis tests'
+                    'Understanding ggplot2 syntax',
+                    'Creating basic visualizations',
+                    'Customizing plot appearance'
                 ]
             },
             'intermediate': {
-                'concepts': ['ANOVA', 'regression', 'model diagnostics'],
+                'concepts': ['layered approach', 'faceting', 'themes'],
                 'code_examples': [
-                    '# Linear regression\nmodel <- lm(y ~ x1 + x2, data = data)\nsummary(model)',
-                    '# ANOVA\nanova_result <- aov(value ~ group, data = data)\nsummary(anova_result)'
-                ],
-                'packages': ['stats', 'broom'],
-                'learning_objectives': [
-                    'Building linear models',
-                    'Understanding ANOVA',
-                    'Model diagnostics and interpretation'
-                ]
-            }
-        },
-        'data import': {
-            'beginner': {
-                'concepts': ['reading CSV', 'data inspection', 'basic cleaning'],
-                'code_examples': [
-                    '# Reading CSV files\ndata <- read.csv("file.csv", header = TRUE)\nstr(data)\nhead(data)',
-                    '# Basic data cleaning\ndata$column <- as.factor(data$column)\ndata <- na.omit(data)'
-                ],
-                'packages': ['base', 'utils'],
-                'learning_objectives': [
-                    'Importing data from files',
-                    'Inspecting data structure',
-                    'Basic data cleaning techniques'
-                ]
-            }
-        }
-    },
-    'premium_topics': {
-        'advanced ggplot2': {
-            'intermediate': {
-                'concepts': ['grammar of graphics', 'layered approach', 'themes'],
-                'code_examples': [
-                    '# Advanced ggplot\nlibrary(ggplot2)\nggplot(data, aes(x=var1, y=var2)) +\n  geom_point(aes(color=factor(group))) +\n  theme_minimal() +\n  labs(title="Advanced Visualization")'
+                    '# Advanced ggplot with faceting\nggplot(data, aes(x=var1, y=var2)) +\n  geom_point(aes(color=factor(group))) +\n  facet_wrap(~category) +\n  theme_minimal()'
                 ],
                 'packages': ['ggplot2', 'scales', 'RColorBrewer'],
                 'learning_objectives': [
-                    'Mastering ggplot2 grammar',
-                    'Creating publication-ready plots',
-                    'Advanced customization techniques'
+                    'Advanced visualization techniques',
+                    'Creating multi-panel plots',
+                    'Custom themes and styling'
                 ]
             },
             'expert': {
                 'concepts': ['custom themes', 'complex layouts', 'animations'],
                 'code_examples': [
-                    '# Custom theme and faceting\nlibrary(ggplot2)\nlibrary(gganimate)\nplot <- ggplot(data) + \n  geom_point() + \n  facet_wrap(~category) +\n  theme_custom() +\n  transition_reveal(time)'
+                    '# Custom theme and complex layout\nlibrary(ggplot2)\nlibrary(patchwork)\np1 <- ggplot(data) + geom_point()\np2 <- ggplot(data) + geom_bar(stat="identity")\n(p1 | p2) / p3'
                 ],
                 'packages': ['ggplot2', 'gganimate', 'patchwork', 'gridExtra'],
                 'learning_objectives': [
@@ -400,178 +303,41 @@ R_TOPICS_CONTENT = {
     }
 }
 
-# Email templates for notifications (future feature)
-EMAIL_TEMPLATES = {
-    'welcome': {
-        'subject': 'Welcome to R Tutor Pro!',
-        'template': 'emails/welcome.html'
-    },
-    'usage_limit_warning': {
-        'subject': 'You\'re approaching your monthly tutorial limit',
-        'template': 'emails/usage_warning.html'
-    },
-    'plan_upgraded': {
-        'subject': 'Your R Tutor Pro plan has been upgraded!',
-        'template': 'emails/plan_upgraded.html'
-    },
-    'tutorial_ready': {
-        'subject': 'Your R tutorial is ready!',
-        'template': 'emails/tutorial_ready.html'
-    }
-}
-
-# AI Service Configuration
-AI_CONFIG = {
-    'deepseek': {
-        'base_url': 'https://api.deepseek.com/v1/chat/completions',
-        'model': 'deepseek-chat',
-        'max_tokens': 2000,
-        'temperature': 0.7,
-        'timeout': 30
-    },
-    'openai': {
-        'base_url': 'https://api.openai.com/v1/chat/completions',
-        'model': 'gpt-3.5-turbo',
-        'max_tokens': 2000,
-        'temperature': 0.7,
-        'timeout': 30
-    }
-}
-
-# Analytics and Tracking Configuration
-ANALYTICS_CONFIG = {
-    'track_tutorial_generation': True,
-    'track_user_interactions': True,
-    'track_error_events': True,
-    'retention_days': 90,  # How long to keep analytics data
-    'batch_size': 100,     # For bulk operations
-    'export_formats': ['json', 'csv']
-}
-
-# Security Configuration
-SECURITY_CONFIG = {
-    'max_login_attempts': 5,
-    'login_attempt_window': 15,  # minutes
-    'password_reset_token_expiry': 24,  # hours
-    'api_key_expiry_days': 365,
-    'session_timeout': 24,  # hours
-    'allowed_file_types': ['txt', 'csv', 'json'],
-    'max_file_size': 10 * 1024 * 1024,  # 10MB
-}
-
-# Tutorial Generation Limits
+# Simplified Tutorial Limits - No restrictions
 TUTORIAL_LIMITS = {
     'free': {
-        'max_duration': 5,
-        'max_topics_per_day': 3,
-        'allowed_expertise_levels': ['beginner'],
-        'premium_content': False
-    },
-    'pro': {
         'max_duration': 60,
-        'max_topics_per_day': 50,
-        'allowed_expertise_levels': ['beginner', 'intermediate', 'expert'],
-        'premium_content': True
-    },
-    'team': {
-        'max_duration': 60,
-        'max_topics_per_day': 200,
+        'max_topics_per_day': 999,
         'allowed_expertise_levels': ['beginner', 'intermediate', 'expert'],
         'premium_content': True
     }
 }
 
-# Feature Flags
+# Feature Flags - All enabled
 FEATURE_FLAGS = {
-    'audio_generation': False,      # Coming soon
-    'team_management': False,       # Coming soon
-    'api_access': True,            # Available for team plan
-    'export_options': True,        # Available for pro+ plans
-    'analytics_dashboard': True,   # Available for all plans
-    'custom_themes': False,        # Future feature
-    'collaborative_editing': False, # Future feature
-    'offline_mode': False          # Future feature
+    'audio_generation': True,
+    'team_management': True,
+    'api_access': True,
+    'export_options': True,
+    'analytics_dashboard': True,
+    'custom_themes': True,
+    'collaborative_editing': True,
+    'offline_mode': False
 }
 
-# Default User Settings
-DEFAULT_USER_SETTINGS = {
-    'expertise_level': 'beginner',
-    'tutorial_duration': 5,
-    'notification_preferences': {
-        'email_notifications': True,
-        'tutorial_reminders': True,
-        'usage_warnings': True,
-        'feature_updates': True
-    },
-    'privacy_settings': {
-        'analytics_tracking': True,
-        'usage_statistics': True,
-        'performance_monitoring': True
-    }
-}
-
-# Application Metadata
-APP_METADATA = {
-    'name': 'R Tutor Pro',
-    'version': '1.0.0',
-    'description': 'AI-Powered R Programming Learning Platform',
-    'author': 'R Tutor Pro Team',
-    'license': 'Proprietary',
-    'support_email': 'support@rtutorpro.com',
-    'website': 'https://rtutorpro.com',
-    'documentation': 'https://docs.rtutorpro.com'
-}
-
-# Environment-specific overrides
-def get_config(env=None):
-    """Get configuration based on environment"""
-    env = env or os.environ.get('FLASK_ENV', 'development')
-    return config.get(env, config['default'])
-
-# Validation functions
+# Helper functions
 def validate_plan(plan_name):
     """Validate if plan exists"""
-    return plan_name in PLANS
+    return plan_name == 'free'  # Only free plan exists now
 
 def get_plan_limits(plan_name):
     """Get limits for a specific plan"""
-    if not validate_plan(plan_name):
-        return TUTORIAL_LIMITS['free']
-    return TUTORIAL_LIMITS.get(plan_name, TUTORIAL_LIMITS['free'])
+    return TUTORIAL_LIMITS['free']  # Everyone gets full access
 
 def get_plan_features(plan_name):
     """Get features for a specific plan"""
-    if not validate_plan(plan_name):
-        return PLANS['free']['features']
-    return PLANS.get(plan_name, PLANS['free'])['features']
+    return PLANS['free']['features']  # Everyone gets all features
 
-# Helper function to check if feature is enabled
 def is_feature_enabled(feature_name):
     """Check if a feature flag is enabled"""
-    return FEATURE_FLAGS.get(feature_name, False)
-
-# Database URI validation and setup
-def setup_database_uri():
-    """Setup and validate database URI"""
-    database_url = os.environ.get('DATABASE_URL')
-    
-    if database_url:
-        # Handle Heroku postgres:// URLs
-        if database_url.startswith('postgres://'):
-            database_url = database_url.replace('postgres://', 'postgresql://', 1)
-        return database_url
-    
-    # Default to SQLite for development
-    return 'sqlite:///r_tutor_pro.db'
-
-# Initialize configuration based on environment
-def init_config():
-    """Initialize configuration based on environment"""
-    env = os.environ.get('FLASK_ENV', 'development')
-    config_class = get_config(env)
-    
-    # Override database URI if needed
-    if not hasattr(config_class, 'SQLALCHEMY_DATABASE_URI') or not config_class.SQLALCHEMY_DATABASE_URI:
-        config_class.SQLALCHEMY_DATABASE_URI = setup_database_uri()
-    
-    return config_class
+    return FEATURE_FLAGS.get(feature_name, True)  # Default to enabled

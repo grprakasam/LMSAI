@@ -1,3 +1,4 @@
+# models.py - Minor updates to support free access for all users
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime
@@ -7,23 +8,23 @@ import json
 db = SQLAlchemy()
 
 class User(UserMixin, db.Model):
-    """User model for authentication and subscription management"""
+    """User model for authentication - all users get full access"""
     __tablename__ = 'users'
     
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     name = db.Column(db.String(100), nullable=False)
-    plan = db.Column(db.String(20), default='free', nullable=False)
+    plan = db.Column(db.String(20), default='free', nullable=False)  # Always 'free' but with full access
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    email_verified = db.Column(db.Boolean, default=False, nullable=False)
+    email_verified = db.Column(db.Boolean, default=True, nullable=False)  # Auto-verify for demo
     
-    # Stripe integration
+    # Stripe integration (kept for future use)
     stripe_customer_id = db.Column(db.String(100), unique=True)
     stripe_subscription_id = db.Column(db.String(100), unique=True)
-    subscription_status = db.Column(db.String(50), default='inactive')
+    subscription_status = db.Column(db.String(50), default='active')  # Always active
     
     # User preferences
     preferred_expertise = db.Column(db.String(20), default='beginner')
@@ -65,16 +66,13 @@ class User(UserMixin, db.Model):
         ).count()
     
     def can_create_tutorial(self):
-        """Check if user can create more tutorials this month"""
-        from config import PLANS
-        monthly_usage = self.get_monthly_usage()
-        monthly_limit = PLANS[self.plan]['tutorials_per_month']
-        return monthly_usage < monthly_limit
+        """Check if user can create more tutorials - always True now"""
+        return True  # Everyone has unlimited access
     
     def get_plan_info(self):
-        """Get current plan information"""
+        """Get current plan information - everyone gets full features"""
         from config import PLANS
-        return PLANS.get(self.plan, PLANS['free'])
+        return PLANS.get('free', PLANS['free'])  # Everyone gets full access
     
     def to_dict(self):
         """Convert user to dictionary"""
@@ -82,10 +80,11 @@ class User(UserMixin, db.Model):
             'id': self.id,
             'email': self.email,
             'name': self.name,
-            'plan': self.plan,
+            'plan': 'premium',  # Show as premium for UI purposes
             'created_at': self.created_at.isoformat(),
             'is_active': self.is_active,
-            'monthly_usage': self.get_monthly_usage()
+            'monthly_usage': self.get_monthly_usage(),
+            'has_full_access': True
         }
 
 class Tutorial(db.Model):
@@ -102,7 +101,7 @@ class Tutorial(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Content metadata
-    is_premium = db.Column(db.Boolean, default=False, nullable=False)
+    is_premium = db.Column(db.Boolean, default=True, nullable=False)  # All content is premium now
     concepts = db.Column(db.Text)  # JSON array of concepts
     packages = db.Column(db.Text)  # JSON array of R packages
     learning_objectives = db.Column(db.Text)  # JSON array of objectives
@@ -161,7 +160,7 @@ class Tutorial(db.Model):
             'duration': self.duration,
             'content': self.content,
             'created_at': self.created_at.isoformat(),
-            'is_premium': self.is_premium,
+            'is_premium': True,  # All content is premium
             'concepts': self.get_concepts(),
             'packages': self.get_packages(),
             'learning_objectives': self.get_learning_objectives(),
@@ -171,7 +170,7 @@ class Tutorial(db.Model):
         }
 
 class UsageLog(db.Model):
-    """Usage logging for analytics and billing"""
+    """Usage logging for analytics"""
     __tablename__ = 'usage_logs'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -222,7 +221,7 @@ class UsageLog(db.Model):
         return log
 
 class Team(db.Model):
-    """Team model for organizational accounts"""
+    """Team model for organizational accounts (future feature)"""
     __tablename__ = 'teams'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -231,12 +230,12 @@ class Team(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Team settings
+    # Team settings - all teams get full access
     plan = db.Column(db.String(20), default='team', nullable=False)
-    max_members = db.Column(db.Integer, default=10)
+    max_members = db.Column(db.Integer, default=999)  # Unlimited members
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     
-    # Billing
+    # Billing (kept for future use)
     stripe_subscription_id = db.Column(db.String(100), unique=True)
     billing_email = db.Column(db.String(120))
     
@@ -255,8 +254,8 @@ class Team(db.Model):
         return self.members.filter_by(is_active=True).count()
     
     def can_add_member(self):
-        """Check if team can add more members"""
-        return self.get_member_count() < self.max_members
+        """Check if team can add more members - always True"""
+        return True  # Unlimited members
     
     def get_monthly_usage(self, year=None, month=None):
         """Get total team usage for a month"""
@@ -303,7 +302,7 @@ class TeamMember(db.Model):
         return self.role == 'admin'
 
 class APIKey(db.Model):
-    """API keys for team plan users"""
+    """API keys for users (all users can have API access now)"""
     __tablename__ = 'api_keys'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -314,23 +313,34 @@ class APIKey(db.Model):
     last_used_at = db.Column(db.DateTime)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     
-    # Permissions
+    # Permissions - all users get full permissions
     permissions = db.Column(db.Text)  # JSON array of allowed actions
     
     def __repr__(self):
         return f'<APIKey {self.name} for {self.user.email}>'
     
     def get_permissions(self):
-        """Get permissions as list"""
-        return json.loads(self.permissions) if self.permissions else []
+        """Get permissions as list - all users get all permissions"""
+        if self.permissions:
+            return json.loads(self.permissions)
+        # Default permissions for all users
+        return [
+            'create_tutorial',
+            'read_tutorial',
+            'update_tutorial',
+            'delete_tutorial',
+            'regenerate_tutorial',
+            'export_data',
+            'analytics'
+        ]
     
     def set_permissions(self, permissions_list):
         """Set permissions from list"""
         self.permissions = json.dumps(permissions_list)
     
     def has_permission(self, action):
-        """Check if API key has specific permission"""
-        return action in self.get_permissions()
+        """Check if API key has specific permission - always True for all users"""
+        return True  # All users have all permissions
     
     def update_last_used(self):
         """Update last used timestamp"""
@@ -347,7 +357,7 @@ def init_db(app):
         
         # Create indexes for better performance
         try:
-            # Create composite indexes
+            # Create composite indexes if they don't exist
             db.engine.execute(
                 'CREATE INDEX IF NOT EXISTS idx_usage_user_action_date ON usage_logs(user_id, action, created_at)'
             )
@@ -358,4 +368,99 @@ def init_db(app):
         except Exception as e:
             print(f"⚠️ Index creation skipped: {e}")
         
-        print("✅ Database initialized successfully")
+        print("✅ Database initialized successfully - Full access enabled for all users")
+
+# Helper function to upgrade existing users to full access
+def upgrade_all_users_to_full_access():
+    """Upgrade all existing users to have full access"""
+    try:
+        # Update all users to have premium-level access while keeping 'free' plan
+        users = User.query.all()
+        for user in users:
+            user.subscription_status = 'active'
+            user.is_active = True
+            user.email_verified = True
+        
+        # Update all tutorials to be premium
+        tutorials = Tutorial.query.all()
+        for tutorial in tutorials:
+            tutorial.is_premium = True
+        
+        db.session.commit()
+        print(f"✅ Upgraded {len(users)} users and {len(tutorials)} tutorials to full access")
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Failed to upgrade users: {e}")
+
+# Function to create sample data for demonstration
+def create_sample_data():
+    """Create sample data for demonstration"""
+    try:
+        # Check if sample data already exists
+        if User.query.filter_by(email='demo@rtutorpro.com').first():
+            print("⚠️ Sample data already exists")
+            return
+        
+        # Create sample users
+        demo_user = User(
+            email='demo@rtutorpro.com',
+            name='Demo User',
+            plan='free'  # Free plan with full access
+        )
+        demo_user.set_password('s')
+        
+        advanced_user = User(
+            email='advanced@rtutorpro.com',
+            name='Advanced User',
+            plan='free'  # Free plan with full access
+        )
+        advanced_user.set_password('s')
+        
+        db.session.add(demo_user)
+        db.session.add(advanced_user)
+        db.session.commit()
+        
+        # Create sample tutorials
+        sample_tutorials = [
+            {
+                'topic': 'ggplot2 Data Visualization',
+                'expertise': 'intermediate',
+                'duration': 15,
+                'content': '# Advanced ggplot2 Tutorial\n\nLearn to create stunning visualizations...',
+                'concepts': ['grammar of graphics', 'layers', 'aesthetics'],
+                'packages': ['ggplot2', 'dplyr'],
+                'objectives': ['Master ggplot2 syntax', 'Create professional plots']
+            },
+            {
+                'topic': 'Machine Learning with tidymodels',
+                'expertise': 'expert',
+                'duration': 30,
+                'content': '# Machine Learning in R\n\nBuild predictive models with tidymodels...',
+                'concepts': ['supervised learning', 'model evaluation', 'feature engineering'],
+                'packages': ['tidymodels', 'ranger', 'glmnet'],
+                'objectives': ['Understand ML workflow', 'Build production models']
+            }
+        ]
+        
+        for tutorial_data in sample_tutorials:
+            tutorial = Tutorial(
+                user_id=demo_user.id,
+                topic=tutorial_data['topic'],
+                expertise=tutorial_data['expertise'],
+                duration=tutorial_data['duration'],
+                content=tutorial_data['content'],
+                is_premium=True
+            )
+            tutorial.set_concepts(tutorial_data['concepts'])
+            tutorial.set_packages(tutorial_data['packages'])
+            tutorial.set_learning_objectives(tutorial_data['objectives'])
+            
+            db.session.add(tutorial)
+        
+        db.session.commit()
+        print("✅ Sample data created successfully")
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Failed to create sample data: {e}")
