@@ -420,9 +420,31 @@ Thank you for joining this R programming tutorial. Keep coding, and happy learni
         return None
     
     def _generate_placeholder_audio(self):
-        """Generate a placeholder audio message"""
-        placeholder_text = "Audio generation is currently unavailable. Please check your TTS service configuration."
-        return self._local_tts(placeholder_text, {'speed': 1.0})
+        """Generate a silent placeholder audio message using pydub"""
+        try:
+            from pydub import AudioSegment
+            import io
+            
+            # Create a 1-second silent audio segment
+            silence = AudioSegment.silent(duration=1000)  # 1000ms = 1 second
+            
+            # Export to MP3 format in memory
+            buf = io.BytesIO()
+            silence.export(buf, format="mp3")
+            buf.seek(0)
+            
+            return buf.read()
+            
+        except ImportError:
+            print("pydub not available. Install with: pip install pydub")
+            # Fallback to a simple message if pydub is not available
+            placeholder_text = "Audio generation failed. Please check your TTS service configuration and ensure pydub is installed."
+            return self._local_tts(placeholder_text, {'speed': 1.0})
+        except Exception as e:
+            print(f"Error generating placeholder audio with pydub: {e}")
+            # Fallback to local TTS if pydub fails
+            placeholder_text = "Audio generation failed. Please check your TTS service configuration."
+            return self._local_tts(placeholder_text, {'speed': 1.0})
 
 # Initialize audio generator
 audio_generator = AudioGenerator()
