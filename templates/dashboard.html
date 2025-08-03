@@ -488,7 +488,7 @@
                         </ul>
                         {% if plan_name != stats.plan %}
                         <a href="/upgrade/{{ plan_name }}" class="btn btn-sm btn-primary">
-                            {% if plan_data.price > stats.plan_price %}Upgrade{% else %}Downgrade{% endif %}
+                            {% if plan_data.price > plans[stats.plan].price %}Upgrade{% else %}Downgrade{% endif %}
                         </a>
                         {% endif %}
                     </div>
