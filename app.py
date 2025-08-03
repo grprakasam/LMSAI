@@ -57,6 +57,7 @@ def create_app(config_name=None):
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(api_bp, url_prefix='/api')
+    app.register_blueprint(admin_api_bp, url_prefix='/api/admin')
     
     # Global template variables
     @app.context_processor
@@ -205,7 +206,7 @@ def create_app(config_name=None):
         })
     
     # Startup validation
-    @app.before_first_request
+    @app.before_request
     def validate_configuration():
         """Validate configuration on startup"""
         logger.info("🚀 Starting R Tutor Pro with OpenRouter integration")

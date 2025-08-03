@@ -19,48 +19,45 @@ from config import PLANS, MODEL_CONFIGS, AUDIO_MODEL_CONFIGS
 main_bp = Blueprint('main', __name__)
 auth_bp = Blueprint('auth', __name__)
 api_bp = Blueprint('api', __name__)
+admin_api_bp = Blueprint('admin_api', __name__)
 
 # ==================== MAIN ROUTES ====================
 
 @main_bp.route('/')
 def index():
-    """Landing page or dashboard based on authentication status"""
-    if current_user.is_authenticated:
-        # Get user statistics for dashboard
-        total_tutorials = Tutorial.query.filter_by(user_id=current_user.id).count()
-        monthly_usage = current_user.get_monthly_usage()
-        
-        # Get OpenRouter status
-        openrouter_status = openrouter_service.get_model_status()
-        
-        user_stats = {
-            'total_tutorials': total_tutorials,
-            'monthly_usage': monthly_usage,
-            'monthly_limit': 999,  # Essentially unlimited
-            'plan': 'free',  # Everyone is on free plan with full access
-            'can_create_tutorial': True,  # Always true now
-            'openrouter_connected': openrouter_status['status'] == 'connected'
-        }
-        
-        return render_template('dashboard.html', 
-                             stats=user_stats, 
-                             plans=PLANS,
-                             models=MODEL_CONFIGS,
-                             audio_models=AUDIO_MODEL_CONFIGS,
-                             openrouter_status=openrouter_status)
+    """Landing page or dashboard - no authentication required"""
+    # Get user statistics for dashboard (using default values)
+    total_tutorials = Tutorial.query.count()
+    monthly_usage = 0
     
-    # Landing page for non-authenticated users
-    return render_template('landing.html', plans=PLANS)
+    # Get OpenRouter status
+    openrouter_status = openrouter_service.get_model_status()
+    
+    user_stats = {
+        'total_tutorials': total_tutorials,
+        'monthly_usage': monthly_usage,
+        'monthly_limit': 999,  # Essentially unlimited
+        'plan': 'free',  # Everyone is on free plan with full access
+        'can_create_tutorial': True,  # Always true now
+        'openrouter_connected': openrouter_status['status'] == 'connected'
+    }
+    
+    return render_template('dashboard.html',
+                         stats=user_stats,
+                         plans=PLANS,
+                         models=MODEL_CONFIGS,
+                         audio_models=AUDIO_MODEL_CONFIGS,
+                         openrouter_status=openrouter_status)
+
+@main_bp.route('/admin')
+def admin():
+    """Admin page"""
+    return render_template('admin.html')
 
 @main_bp.route('/tutorial/<int:tutorial_id>')
-@login_required
 def view_tutorial(tutorial_id):
-    """View a specific tutorial with audio playback"""
+    """View a specific tutorial with audio playback - no authentication required"""
     tutorial = Tutorial.query.get_or_404(tutorial_id)
-    
-    # Check if user owns this tutorial
-    if tutorial.user_id != current_user.id:
-        return jsonify({'error': 'Access denied'}), 403
     
     # Track tutorial view
     tutorial.increment_view()
@@ -217,11 +214,10 @@ def logout():
 # ==================== TUTORIAL GENERATION ROUTES ====================
 
 @main_bp.route('/generate-tutorial', methods=['POST'])
-@login_required
 @rate_limit(requests_per_minute=15)
 @track_usage('tutorial_created')
 def generate_tutorial():
-    """Generate a new tutorial using OpenRouter"""
+    """Generate a new tutorial using OpenRouter - no authentication required"""
     
     # Get and validate input
     topic = sanitize_input(request.form.get('topic', ''), 200)
@@ -257,9 +253,9 @@ def generate_tutorial():
             user_preferences=user_preferences
         )
         
-        # Save tutorial to database
+        # Save tutorial to database (using a default user ID)
         tutorial = Tutorial(
-            user_id=current_user.id,
+            user_id=1,  # Default user ID for system
             topic=topic,
             expertise=expertise,
             duration=max_duration,
@@ -293,9 +289,6 @@ def generate_tutorial():
                 db.session.commit()
                 audio_data = audio_result
         
-        # Get updated usage count
-        monthly_usage = current_user.get_monthly_usage()
-        
         response_data = {
             'success': True,
             'tutorial_id': tutorial.id,
@@ -309,7 +302,7 @@ def generate_tutorial():
             'duration': max_duration,
             'estimated_reading_time': tutorial_data.get('estimated_reading_time', 5),
             'difficulty_score': tutorial_data.get('difficulty_score', 5),
-            'monthly_usage_after': monthly_usage,
+            'monthly_usage_after': 0,
             'monthly_limit': 999,
             'model_used': tutorial_data.get('model_used', 'unknown'),
             'generated_via': tutorial_data.get('generated_via', 'openrouter'),
@@ -341,16 +334,13 @@ def generate_tutorial():
         }), 500
 
 @main_bp.route('/generate-audio/<int:tutorial_id>', methods=['POST'])
-@login_required
 def generate_audio(tutorial_id):
     """Generate audio for an existing tutorial"""
     tutorial = Tutorial.query.get_or_404(tutorial_id)
     
-    # Check ownership
-    if tutorial.user_id != current_user.id:
-        return jsonify({'success': False, 'error': 'Access denied'}), 403
-    
     try:
+        # Use default user ID for logging
+        user_id_for_log = 1
         # Get audio generation parameters
         audio_model = request.form.get('audio_model', '').strip()
         voice = request.form.get('voice', '').strip()
@@ -603,3 +593,309 @@ def rate_limit_exceeded(error):
         'message': 'Too many requests. Please try again later.',
         'retry_after': 60
     }), 429
+
+# ==================== ADMIN API ROUTES ====================
+
+@admin_api_bp.route('/settings', methods=['GET'])
+def get_admin_settings():
+    """Get all admin settings"""
+    return jsonify({
+        'success': True,
+        'settings': {
+            'openrouter': {
+                'api_key': openrouter_service.api_key,
+                'site_url': openrouter_service.site_url,
+                'site_name': openrouter_service.site_name,
+                'default_text_model': openrouter_service.default_text_model,
+                'default_audio_model': openrouter_service.default_audio_model
+            },
+            'commercial': {
+                'openai_api_key': os.environ.get('OPENAI_API_KEY', ''),
+                'anthropic_api_key': os.environ.get('ANTHROPIC_API_KEY', ''),
+                'elevenlabs_api_key': os.environ.get('ELEVENLABS_API_KEY', '')
+            }
+        },
+        'status': {
+            'openrouter_connected': openrouter_service.get_model_status()['status'] == 'connected',
+            'models': {
+                'text': len(openrouter_service.get_available_models('text')),
+                'audio': len(openrouter_service.get_available_models('audio'))
+            }
+        },
+        'usage': {
+            'text_generations': UsageLog.query.filter_by(action='tutorial_created').count(),
+            'audio_generations': UsageLog.query.filter_by(action='audio_generated').count(),
+            'total_tokens': UsageLog.query.with_entities(db.func.sum(UsageLog.tokens_used)).scalar() or 0
+        }
+    })
+
+@admin_api_bp.route('/settings/openrouter', methods=['POST'])
+def save_openrouter_settings():
+    """Save OpenRouter API key and site settings"""
+    data = request.get_json()
+    api_key = data.get('api_key', '').strip()
+    site_url = data.get('site_url', '').strip()
+    site_name = data.get('site_name', '').strip()
+
+    # Update environment variables (or a more persistent config store)
+    os.environ['OPENROUTER_API_KEY'] = api_key
+    os.environ['OPENROUTER_SITE_URL'] = site_url
+    os.environ['OPENROUTER_SITE_NAME'] = site_name
+    
+    # Update the service instance
+    openrouter_service.api_key = api_key
+    openrouter_service.site_url = site_url
+    openrouter_service.site_name = site_name
+
+    return jsonify({'success': True, 'message': 'OpenRouter settings updated. Restart app to apply fully.'})
+
+@admin_api_bp.route('/test-openrouter', methods=['POST'])
+def test_openrouter_connection():
+    """Test OpenRouter API connection"""
+    data = request.get_json()
+    api_key = data.get('api_key', '').strip()
+    site_url = data.get('site_url', '').strip()
+    site_name = data.get('site_name', '').strip()
+
+    # Temporarily update service instance for testing
+    original_api_key = openrouter_service.api_key
+    original_site_url = openrouter_service.site_url
+    original_site_name = openrouter_service.site_name
+
+    openrouter_service.api_key = api_key
+    openrouter_service.site_url = site_url
+    openrouter_service.site_name = site_name
+
+    try:
+        start_time = datetime.now()
+        status = openrouter_service.get_model_status()
+        end_time = datetime.now()
+        response_time = (end_time - start_time).total_seconds() * 1000 # in ms
+
+        if status['status'] == 'connected':
+            return jsonify({
+                'success': True,
+                'message': 'Connection successful!',
+                'model_count': status.get('model_count', 0),
+                'response_time': f"{response_time:.2f} ms"
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': status.get('error', 'Connection failed'),
+                'details': status.get('details', ''),
+                'response_time': f"{response_time:.2f} ms"
+            })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+    finally:
+        # Revert to original settings
+        openrouter_service.api_key = original_api_key
+        openrouter_service.site_url = original_site_url
+        openrouter_service.site_name = original_site_name
+
+@admin_api_bp.route('/models/refresh', methods=['GET'])
+def refresh_models():
+    """Refresh available models from OpenRouter"""
+    try:
+        text_models = openrouter_service.get_available_models('text')
+        audio_models = openrouter_service.get_available_models('audio')
+        return jsonify({
+            'success': True,
+            'text_models': text_models,
+            'audio_models': audio_models
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@admin_api_bp.route('/settings/models', methods=['POST'])
+def save_model_settings():
+    """Save default text and audio models"""
+    data = request.get_json()
+    default_text_model = data.get('default_text_model', '').strip()
+    default_audio_model = data.get('default_audio_model', '').strip()
+
+    os.environ['OPENROUTER_TEXT_MODEL'] = default_text_model
+    os.environ['OPENROUTER_AUDIO_MODEL'] = default_audio_model
+
+    openrouter_service.default_text_model = default_text_model
+    openrouter_service.default_audio_model = default_audio_model
+
+    return jsonify({'success': True, 'message': 'Default models updated. Restart app to apply fully.'})
+
+@admin_api_bp.route('/settings/commercial', methods=['POST'])
+def save_commercial_api_keys():
+    """Save commercial API keys"""
+    data = request.get_json()
+    openai_api_key = data.get('openai_api_key', '').strip()
+    anthropic_api_key = data.get('anthropic_api_key', '').strip()
+    elevenlabs_api_key = data.get('elevenlabs_api_key', '').strip()
+
+    os.environ['OPENAI_API_KEY'] = openai_api_key
+    os.environ['ANTHROPIC_API_KEY'] = anthropic_api_key
+    os.environ['ELEVENLABS_API_KEY'] = elevenlabs_api_key
+
+    return jsonify({'success': True, 'message': 'Commercial API keys updated. Restart app to apply fully.'})
+
+@admin_api_bp.route('/test-commercial-api', methods=['POST'])
+def test_commercial_api():
+    """Test commercial API key"""
+    data = request.get_json()
+    provider = data.get('provider', '').strip()
+    api_key = data.get('api_key', '').strip()
+
+    # This is a placeholder. Real implementation would involve
+    # making a small API call to the respective provider.
+    if provider == 'openai':
+        if api_key.startswith('sk-'):
+            return jsonify({'success': True, 'message': 'OpenAI API key format looks valid.'})
+        else:
+            return jsonify({'success': False, 'error': 'Invalid OpenAI API key format.'})
+    elif provider == 'anthropic':
+        if api_key.startswith('sk-ant-'):
+            return jsonify({'success': True, 'message': 'Anthropic API key format looks valid.'})
+        else:
+            return jsonify({'success': False, 'error': 'Invalid Anthropic API key format.'})
+    elif provider == 'elevenlabs':
+        if len(api_key) == 32: # ElevenLabs API keys are 32 chars
+            return jsonify({'success': True, 'message': 'ElevenLabs API key format looks valid.'})
+        else:
+            return jsonify({'success': False, 'error': 'Invalid ElevenLabs API key format.'})
+    else:
+        return jsonify({'success': False, 'error': 'Unknown API provider.'})
+
+@admin_api_bp.route('/settings/export', methods=['GET'])
+def export_settings():
+    """Export current settings"""
+    settings = {
+        'openrouter': {
+            'api_key': os.environ.get('OPENROUTER_API_KEY', ''),
+            'site_url': os.environ.get('OPENROUTER_SITE_URL', ''),
+            'site_name': os.environ.get('OPENROUTER_SITE_NAME', ''),
+            'default_text_model': os.environ.get('OPENROUTER_TEXT_MODEL', ''),
+            'default_audio_model': os.environ.get('OPENROUTER_AUDIO_MODEL', '')
+        },
+        'commercial': {
+            'openai_api_key': os.environ.get('OPENAI_API_KEY', ''),
+            'anthropic_api_key': os.environ.get('ANTHROPIC_API_KEY', ''),
+            'elevenlabs_api_key': os.environ.get('ELEVENLABS_API_KEY', '')
+        }
+    }
+    return jsonify({'success': True, 'settings': settings})
+
+@admin_api_bp.route('/settings/import', methods=['POST'])
+def import_settings():
+    """Import settings"""
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'error': 'No data provided'}), 400
+
+    openrouter_settings = data.get('openrouter', {})
+    commercial_settings = data.get('commercial', {})
+
+    if 'api_key' in openrouter_settings:
+        os.environ['OPENROUTER_API_KEY'] = openrouter_settings['api_key']
+        openrouter_service.api_key = openrouter_settings['api_key']
+    if 'site_url' in openrouter_settings:
+        os.environ['OPENROUTER_SITE_URL'] = openrouter_settings['site_url']
+        openrouter_service.site_url = openrouter_settings['site_url']
+    if 'site_name' in openrouter_settings:
+        os.environ['OPENROUTER_SITE_NAME'] = openrouter_settings['site_name']
+        openrouter_service.site_name = openrouter_settings['site_name']
+    if 'default_text_model' in openrouter_settings:
+        os.environ['OPENROUTER_TEXT_MODEL'] = openrouter_settings['default_text_model']
+        openrouter_service.default_text_model = openrouter_settings['default_text_model']
+    if 'default_audio_model' in openrouter_settings:
+        os.environ['OPENROUTER_AUDIO_MODEL'] = openrouter_settings['default_audio_model']
+        openrouter_service.default_audio_model = openrouter_settings['default_audio_model']
+
+    if 'openai_api_key' in commercial_settings:
+        os.environ['OPENAI_API_KEY'] = commercial_settings['openai_api_key']
+    if 'anthropic_api_key' in commercial_settings:
+        os.environ['ANTHROPIC_API_KEY'] = commercial_settings['anthropic_api_key']
+    if 'elevenlabs_api_key' in commercial_settings:
+        os.environ['ELEVENLABS_API_KEY'] = commercial_settings['elevenlabs_api_key']
+
+    return jsonify({'success': True, 'message': 'Settings imported successfully. Restart app to apply fully.'})
+
+@admin_api_bp.route('/settings/reset', methods=['POST'])
+def reset_settings():
+    """Reset all settings to default"""
+    # Clear relevant environment variables
+    for key in ['OPENROUTER_API_KEY', 'OPENROUTER_SITE_URL', 'OPENROUTER_SITE_NAME',
+                'OPENROUTER_TEXT_MODEL', 'OPENROUTER_AUDIO_MODEL',
+                'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'ELEVENLABS_API_KEY']:
+        if key in os.environ:
+            del os.environ[key]
+    
+    # Re-initialize the service to pick up defaults
+    global openrouter_service
+    openrouter_service = type(openrouter_service)() # Re-instantiate to reset
+
+    return jsonify({'success': True, 'message': 'All settings reset to default. Restart app to apply fully.'})
+
+@admin_api_bp.route('/test-generation/text', methods=['POST'])
+def test_text_generation():
+    """Test text generation with current settings"""
+    data = request.get_json()
+    topic = data.get('topic', 'R Data Structures').strip()
+    
+    try:
+        tutorial_data = openrouter_service.generate_tutorial_content(
+            topic=topic,
+            expertise='beginner',
+            duration=5,
+            text_model=openrouter_service.default_text_model
+        )
+        if tutorial_data and tutorial_data['content']:
+            return jsonify({
+                'success': True,
+                'message': 'Text generation successful!',
+                'content': tutorial_data['content'],
+                'model_used': tutorial_data.get('model_used', 'unknown'),
+                'tokens_used': tutorial_data.get('word_count', 0) * 1.5 # Rough token estimate
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Text generation returned empty content.'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@admin_api_bp.route('/test-generation/audio', methods=['POST'])
+def test_audio_generation():
+    """Test audio generation with current settings"""
+    data = request.get_json()
+    topic = data.get('topic', 'R Data Structures').strip()
+    
+    # First, generate some text content to convert to audio
+    try:
+        tutorial_data = openrouter_service.generate_tutorial_content(
+            topic=topic,
+            expertise='beginner',
+            duration=1, # Short tutorial for audio test
+            text_model=openrouter_service.default_text_model
+        )
+        if not tutorial_data or not tutorial_data['content']:
+            return jsonify({'success': False, 'error': 'Could not generate text content for audio test.'})
+        
+        audio_result = openrouter_service.generate_audio(
+            text=tutorial_data['content'],
+            audio_model=openrouter_service.default_audio_model,
+            voice=openrouter_service.AUDIO_VOICE, # Assuming AUDIO_VOICE is accessible
+            speed=1.0,
+            format='mp3'
+        )
+        
+        if audio_result and audio_result['success']:
+            return jsonify({
+                'success': True,
+                'message': 'Audio generation successful!',
+                'audio_url': audio_result['audio_url'],
+                'model_used': audio_result.get('model_used', 'unknown'),
+                'audio_voice': audio_result.get('voice_used', 'default'),
+                'audio_duration': audio_result.get('duration_estimate', 0)
+            })
+        else:
+            return jsonify({'success': False, 'error': audio_result.get('error', 'Audio generation failed.')})
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})

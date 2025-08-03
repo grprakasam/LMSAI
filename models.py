@@ -308,17 +308,18 @@ def init_db(app):
         # Create indexes for better performance
         try:
             # Create composite indexes if they don't exist
-            db.engine.execute(
-                'CREATE INDEX IF NOT EXISTS idx_usage_user_action_date ON usage_logs(user_id, action, created_at)'
-            )
-            db.engine.execute(
-                'CREATE INDEX IF NOT EXISTS idx_tutorials_user_date ON tutorials(user_id, created_at)'
-            )
-            print("✅ Database indexes created successfully")
+            with db.engine.connect() as conn:
+                conn.execute(
+                    db.text('CREATE INDEX IF NOT EXISTS idx_usage_user_action_date ON usage_logs(user_id, action, created_at)')
+                )
+                conn.execute(
+                    db.text('CREATE INDEX IF NOT EXISTS idx_tutorials_user_date ON tutorials(user_id, created_at)')
+                )
+            print("Database indexes created successfully")
         except Exception as e:
-            print(f"⚠️ Index creation skipped: {e}")
+            print(f"Index creation skipped: {e}")
         
-        print("✅ Database initialized successfully - OpenRouter integration enabled")
+        print("Database initialized successfully - OpenRouter integration enabled")
 
 # Helper function to upgrade existing users to full access
 def upgrade_all_users_to_full_access():
@@ -345,11 +346,11 @@ def upgrade_all_users_to_full_access():
             tutorial.generated_via = 'openrouter'
         
         db.session.commit()
-        print(f"✅ Upgraded {len(users)} users and {len(tutorials)} tutorials to full access")
+        print(f"[SUCCESS] Upgraded {len(users)} users and {len(tutorials)} tutorials to full access")
         
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Failed to upgrade users: {e}")
+        print(f"Failed to upgrade users: {e}")
 
 # Function to create sample data for demonstration
 def create_sample_data():
@@ -429,7 +430,7 @@ def create_sample_data():
             db.session.add(tutorial)
         
         db.session.commit()
-        print("✅ Sample data created successfully with OpenRouter integration")
+        print("Sample data created successfully with OpenRouter integration")
         
     except Exception as e:
         db.session.rollback()

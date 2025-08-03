@@ -15,6 +15,7 @@
         <div class="nav-right">
             <div class="user-menu">
                 <span>Welcome back!</span>
+                <a href="/admin" class="btn btn-sm">Admin</a>
                 <a href="/logout" class="btn btn-sm">Logout</a>
             </div>
         </div>
@@ -141,6 +142,10 @@
     </div>
 
     <script>
+        // Global state for the current tutorial being displayed
+        let currentTutorialData = null;
+        let audioPlayer = null;
+
         // Global state
         let currentUser = {
             plan: 'free',
@@ -202,6 +207,7 @@
             }
         });
 
+        // Function to display tutorial results
         function displayTutorialResult(data) {
             const result = document.getElementById('tutorialResult');
             
@@ -226,17 +232,17 @@
                 `<span class="concept-tag">${concept}</span>`
             ).join('');
 
-            // Content preview
+            // Content preview (full content now)
             const content = document.getElementById('content');
-            const contentPreview = data.content.substring(0, 500) + 
-                (data.content.length > 500 ? '...' : '');
-            content.innerHTML = `<div class="content-text">${contentPreview}</div>`;
+            content.innerHTML = `<div class="content-text">${data.content}</div>`;
+
+            // Store the full tutorial data for audio generation
+            currentTutorialData = data;
 
             // Show result
             result.style.display = 'block';
             result.scrollIntoView({ behavior: 'smooth' });
         }
-
 
         async function loadRecentTutorials() {
             try {
@@ -263,8 +269,47 @@
         }
 
         // Audio generation
-        document.getElementById('audioBtn').addEventListener('click', function() {
-            alert('Audio generation feature would be implemented here!');
+        document.getElementById('audioBtn').addEventListener('click', async function() {
+            if (!currentTutorialData || !currentTutorialData.tutorial_id) {
+                alert('Please generate a tutorial first to enable audio generation.');
+                return;
+            }
+
+            const audioBtn = this;
+            const originalText = audioBtn.innerHTML;
+            audioBtn.disabled = true;
+            audioBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating Audio...';
+
+            try {
+                const response = await fetch(`/generate-audio/${currentTutorialData.tutorial_id}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({}) // No additional data needed for now
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Audio generated successfully! Playing now.');
+                    if (audioPlayer) {
+                        audioPlayer.pause();
+                        audioPlayer.src = '';
+                    }
+                    audioPlayer = new Audio(data.audio_url);
+                    audioPlayer.play();
+                    audioPlayer.addEventListener('ended', () => {
+                        audioBtn.innerHTML = '<i class="fas fa-headphones"></i> Generate Audio';
+                        audioBtn.disabled = false;
+                    });
+                } else {
+                    alert(`Audio generation failed: ${data.error}`);
+                }
+            } catch (error) {
+                console.error('Error generating audio:', error);
+                alert('Network error during audio generation. Please try again.');
+            } finally {
+                audioBtn.innerHTML = originalText;
+                audioBtn.disabled = false;
+            }
         });
 
         // Initialize

@@ -71,7 +71,7 @@ def init_database():
         from models import db, User
         from werkzeug.security import generate_password_hash
         
-        print("🗄️  Initializing database...")
+        print("Initializing database...")
         db.create_all()
         
         # Create sample admin user if none exists
@@ -98,7 +98,7 @@ def init_database():
             db.session.add(free_user)
             
             db.session.commit()
-            print("✅ Sample users created:")
+            print("Sample users created:")
             print("   Admin: admin@rtutorpro.com / admin123")
             print("   Demo:  demo@rtutorpro.com / demo123")
         
@@ -116,11 +116,11 @@ def run_development_server():
     """Run development server with debugging enabled"""
     app = create_app()
     
-    print("🚀 Starting R Tutor Pro SaaS - Development Mode")
+    print("Starting R Tutor Pro SaaS - Development Mode")
     print("=" * 50)
-    print(f"📊 Dashboard: http://localhost:{app.config.get('PORT', 5000)}")
-    print(f"🔧 Environment: {app.config.get('ENV', 'development')}")
-    print(f"🗄️  Database: {app.config.get('SQLALCHEMY_DATABASE_URI', 'Not configured')}")
+    print(f"Dashboard: http://localhost:{app.config.get('PORT', 5000)}")
+    print(f"Environment: {app.config.get('ENV', 'development')}")
+    print(f"Database: {app.config.get('SQLALCHEMY_DATABASE_URI', 'Not configured')}")
     print("=" * 50)
     
     # Check environment setup
