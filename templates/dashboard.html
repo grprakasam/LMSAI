@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>R Tutor Pro - Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #2196F3, #4CAF50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .plan-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .plan-free { background: #e3f2fd; color: #1976d2; }
+        .plan-pro { background: #e8f5e8; color: #388e3c; }
+        .plan-team { background: #fff3e0; color: #f57c00; }
+
+        .user-menu {
+            position: relative;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .main-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #2196F3, #4CAF50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .usage-bar {
+            width: 100%;
+            height: 8px;
+            background: #e3f2fd;
+            border-radius: 4px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .usage-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #2196F3, #4CAF50);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .tutorial-form {
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(33, 150, 243, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e3f2fd;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #2196F3;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            color: white;
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .upgrade-card {
+            background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+            color: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .upgrade-card h3 {
+            margin-bottom: 0.5rem;
+        }
+
+        .tutorial-result {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 2rem;
+            margin-top: 2rem;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            font-family: 'Monaco', 'Consolas', monospace;
+            overflow-x: auto;
+        }
+
+        .recent-tutorials {
+            margin-top: 2rem;
+        }
+
+        .tutorial-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e3f2fd;
+            border-top: 4px solid #2196F3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .premium-feature {
+            opacity: 0.6;
+            position: relative;
+        }
+
+        .premium-feature::after {
+            content: '🔒 Pro Feature';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 152, 0, 0.9);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+            
+            .navbar {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <i class="fab fa-r-project"></i> R Tutor Pro
+        </div>
+        <div class="nav-right">
+            <span class="plan-badge plan-{{ stats.plan }}">{{ stats.plan.title() }}</span>
+            <div class="user-menu">
+                <span>Welcome back!</span>
+                <a href="/logout" class="btn btn-sm">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="dashboard-grid">
+            <div class="main-panel">
+                <h2><i class="fas fa-magic"></i> Generate New R Tutorial</h2>
+                
+                <!-- Usage Alert -->
+                <div id="usageAlert" class="alert alert-warning" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Usage Limit Reached!</strong> You've used all tutorials for this month. 
+                    <a href="#upgrade" class="upgrade-link">Upgrade now</a> to continue learning.
+                </div>
+
+                <form id="tutorialForm" class="tutorial-form">
+                    <div class="form-group">
+                        <label for="topic">
+                            <i class="fas fa-book"></i> R Programming Topic
+                        </label>
+                        <input type="text" id="topic" name="topic" class="form-control" 
+                               placeholder="e.g., ggplot2 advanced visualization, machine learning with caret..." required>
+                        <div class="topic-suggestions" style="margin-top: 0.5rem;">
+                            <button type="button" class="btn btn-sm btn-outline" data-topic="Data Structures">Data Structures</button>
+                            <button type="button" class="btn btn-sm btn-outline" data-topic="ggplot2 Visualization">ggplot2</button>
+                            <button type="button" class="btn btn-sm btn-outline premium-topic" data-topic="Machine Learning">ML (Pro)</button>
+                            <button type="button" class="btn btn-sm btn-outline premium-topic" data-topic="Shiny Dashboards">Shiny (Pro)</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="expertise">
+                            <i class="fas fa-user-graduate"></i> Your R Expertise Level
+                        </label>
+                        <select id="expertise" name="expertise" class="form-control" required>
+                            <option value="">Select your level</option>
+                            <option value="beginner">🌱 Beginner - New to R</option>
+                            <option value="intermediate">🌿 Intermediate - Some experience</option>
+                            <option value="expert">🌳 Expert - Advanced user</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="duration">
+                            <i class="fas fa-clock"></i> Tutorial Duration: <span id="durationDisplay">5</span> minutes
+                        </label>
+                        <input type="range" id="duration" name="duration" min="1" max="15" value="5" class="form-control">
+                        <div class="duration-labels">
+                            <small>Quick (1-3 min)</small>
+                            <small>Standard (4-8 min)</small>
+                            <small>Detailed (9-15 min)</small>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="generateBtn" class="btn btn-primary">
+                        <i class="fas fa-magic"></i> Generate Tutorial
+                    </button>
+                </form>
+
+                <!-- Loading State -->
+                <div id="loading" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>🧠 AI is analyzing your topic and crafting a personalized tutorial...</p>
+                </div>
+
+                <!-- Tutorial Result -->
+                <div id="tutorialResult" class="tutorial-result" style="display: none;">
+                    <div class="result-header">
+                        <h3><i class="fas fa-check-circle"></i> Tutorial Generated!</h3>
+                        <div class="result-meta">
+                            <span class="topic-tag"></span>
+                            <span class="level-tag"></span>
+                            <span class="premium-tag" style="display: none;">🔥 Premium Content</span>
+                        </div>
+                    </div>
+                    
+                    <div class="tutorial-content">
+                        <h4>📚 Learning Objectives</h4>
+                        <ul id="objectives"></ul>
+                        
+                        <h4>📦 R Packages Used</h4>
+                        <div id="packages" class="packages-list"></div>
+                        
+                        <h4>🎯 Key Concepts</h4>
+                        <div id="concepts" class="concepts-list"></div>
+                        
+                        <h4>📝 Tutorial Content</h4>
+                        <div id="content" class="content-preview"></div>
+                        
+                        <div class="tutorial-actions">
+                            <button id="audioBtn" class="btn btn-success">
+                                <i class="fas fa-headphones"></i> Generate Audio (Pro)
+                            </button>
+                            <button id="downloadBtn" class="btn btn-warning">
+                                <i class="fas fa-download"></i> Download (Pro)
+                            </button>
+                            <button id="shareBtn" class="btn btn-primary">
+                                <i class="fas fa-share"></i> Share
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Tutorials -->
+                <div class="recent-tutorials">
+                    <h3><i class="fas fa-history"></i> Recent Tutorials</h3>
+                    <div id="recentList"></div>
+                </div>
+            </div>
+
+            <!-- Stats Sidebar -->
+            <div class="stats-panel">
+                <div class="stat-card">
+                    <div class="stat-number" id="monthlyUsage">{{ stats.monthly_usage }}</div>
+                    <div class="stat-label">This Month</div>
+                    <div class="usage-bar">
+                        <div class="usage-fill" style="width: {{ (stats.monthly_usage / stats.monthly_limit * 100) }}%"></div>
+                    </div>
+                    <small>{{ stats.monthly_usage }} / {{ stats.monthly_limit }} tutorials</small>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-number">{{ stats.total_tutorials }}</div>
+                    <div class="stat-label">Total Tutorials</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-number">{{ stats.plan.title() }}</div>
+                    <div class="stat-label">Current Plan</div>
+                </div>
+
+                {% if stats.plan == 'free' %}
+                <div class="upgrade-card">
+                    <h3>🚀 Unlock Premium</h3>
+                    <p>Get unlimited tutorials, advanced topics, and audio generation!</p>
+                    <a href="/upgrade/pro" class="btn btn-light">
+                        <i class="fas fa-crown"></i> Upgrade to Pro
+                    </a>
+                </div>
+                {% endif %}
+
+                <!-- Plan Comparison -->
+                <div class="plan-comparison">
+                    <h4>Plan Features</h4>
+                    {% for plan_name, plan_data in plans.items() %}
+                    <div class="plan-item {{ 'current' if plan_name == stats.plan else '' }}">
+                        <h5>{{ plan_name.title() }} {% if plan_data.price > 0 %}- ${{ plan_data.price }}/mo{% else %}- Free{% endif %}</h5>
+                        <ul>
+                            <li>{{ plan_data.tutorials_per_month }} tutorials/month</li>
+                            {% for feature in plan_data.features %}
+                            <li>{{ feature }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% if plan_name != stats.plan %}
+                        <a href="/upgrade/{{ plan_name }}" class="btn btn-sm btn-primary">
+                            {% if plan_data.price > stats.plan_price %}Upgrade{% else %}Downgrade{% endif %}
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentUser = {
+            plan: '{{ stats.plan }}',
+            monthlyUsage: {{ stats.monthly_usage }},
+            monthlyLimit: {{ stats.monthly_limit }}
+        };
+
+        // Check usage limits
+        function checkUsageLimit() {
+            if (currentUser.monthlyUsage >= currentUser.monthlyLimit) {
+                document.getElementById('usageAlert').style.display = 'block';
+                document.getElementById('generateBtn').disabled = true;
+                return false;
+            }
+            return true;
+        }
+
+        // Topic suggestions
+        document.querySelectorAll('[data-topic]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (this.classList.contains('premium-topic') && currentUser.plan === 'free') {
+                    alert('This is a premium topic. Upgrade to Pro to access advanced R topics!');
+                    return;
+                }
+                document.getElementById('topic').value = this.dataset.topic;
+            });
+        });
+
+        // Duration slider
+        document.getElementById('duration').addEventListener('input', function() {
+            document.getElementById('durationDisplay').textContent = this.value;
+            
+            // Limit free users to 5 minutes
+            if (currentUser.plan === 'free' && this.value > 5) {
+                this.value = 5;
+                document.getElementById('durationDisplay').textContent = '5';
+                alert('Free plan is limited to 5-minute tutorials. Upgrade to Pro for longer tutorials!');
+            }
+        });
+
+        // Form submission
+        document.getElementById('tutorialForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!checkUsageLimit()) return;
+
+            const formData = new FormData(this);
+            const generateBtn = document.getElementById('generateBtn');
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('tutorialResult');
+
+            // Update UI
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            loading.style.display = 'block';
+            result.style.display = 'none';
+
+            try {
+                const response = await fetch('/generate-tutorial', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Update usage counter
+                    currentUser.monthlyUsage++;
+                    updateUsageDisplay();
+
+                    // Display results
+                    displayTutorialResult(data);
+                    
+                    // Load recent tutorials
+                    loadRecentTutorials();
+                } else {
+                    if (data.upgrade_required) {
+                        document.getElementById('usageAlert').style.display = 'block';
+                        generateBtn.disabled = true;
+                    }
+                    alert(data.error || 'Failed to generate tutorial');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Network error. Please try again.');
+            } finally {
+                loading.style.display = 'none';
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '<i class="fas fa-magic"></i> Generate Tutorial';
+            }
+        });
+
+        function displayTutorialResult(data) {
+            const result = document.getElementById('tutorialResult');
+            
+            // Update result content
+            document.querySelector('.topic-tag').textContent = data.topic;
+            document.querySelector('.level-tag').textContent = data.expertise;
+            
+            if (data.is_premium) {
+                document.querySelector('.premium-tag').style.display = 'inline';
+            }
+
+            // Objectives
+            const objectivesList = document.getElementById('objectives');
+            objectivesList.innerHTML = data.objectives.map(obj => `<li>${obj}</li>`).join('');
+
+            // Packages
+            const packagesList = document.getElementById('packages');
+            packagesList.innerHTML = data.packages.map(pkg => 
+                `<span class="package-tag">${pkg}</span>`
+            ).join('');
+
+            // Concepts
+            const conceptsList = document.getElementById('concepts');
+            conceptsList.innerHTML = data.concepts.map(concept => 
+                `<span class="concept-tag">${concept}</span>`
+            ).join('');
+
+            // Content preview
+            const content = document.getElementById('content');
+            const contentPreview = data.content.substring(0, 500) + 
+                (data.content.length > 500 ? '...' : '');
+            content.innerHTML = `<div class="content-text">${contentPreview}</div>`;
+
+            // Show result
+            result.style.display = 'block';
+            result.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function updateUsageDisplay() {
+            document.getElementById('monthlyUsage').textContent = currentUser.monthlyUsage;
+            const usagePercent = (currentUser.monthlyUsage / currentUser.monthlyLimit) * 100;
+            document.querySelector('.usage-fill').style.width = usagePercent + '%';
+            
+            checkUsageLimit();
+        }
+
+        async function loadRecentTutorials() {
+            try {
+                const response = await fetch('/api/usage-stats');
+                const data = await response.json();
+                
+                const recentList = document.getElementById('recentList');
+                if (data.recent_tutorials.length === 0) {
+                    recentList.innerHTML = '<p>No tutorials yet. Create your first one above!</p>';
+                    return;
+                }
+
+                recentList.innerHTML = data.recent_tutorials.map(tutorial => `
+                    <div class="tutorial-item">
+                        <div>
+                            <strong>${tutorial.topic}</strong>
+                            <br><small>${tutorial.expertise} • ${new Date(tutorial.created_at).toLocaleDateString()}</small>
+                        </div>
+                        <div>
+                            ${tutorial.is_premium ? '<span class="premium-badge">Pro</span>' : ''}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to load recent tutorials:', error);
+            }
+        }
+
+        // Audio generation (Pro feature)
+        document.getElementById('audioBtn').addEventListener('click', function() {
+            if (currentUser.plan === 'free') {
+                alert('Audio generation is a Pro feature. Upgrade now to generate audio tutorials!');
+                return;
+            }
+            // Implement audio generation
+            alert('Audio generation coming soon in the next update!');
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            checkUsageLimit();
+            loadRecentTutorials();
+        });
+
+        // Add styles for tags
+        const style = document.createElement('style');
+        style.textContent = `
+            .topic-tag, .level-tag, .premium-tag {
+                display: inline-block;
+                padding: 0.25rem 0.5rem;
+                border-radius: 12px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                margin-right: 0.5rem;
+            }
+            .topic-tag { background: #e3f2fd; color: #1976d2; }
+            .level-tag { background: #e8f5e8; color: #388e3c; }
+            .premium-tag { background: #fff3e0; color: #f57c00; }
+            
+            .package-tag, .concept-tag {
+                display: inline-block;
+                padding: 0.25rem 0.5rem;
+                background: #f5f5f5;
+                border-radius: 8px;
+                font-size: 0.85rem;
+                margin: 0.25rem;
+                border: 1px solid #ddd;
+            }
+            
+            .btn-outline {
+                background: transparent;
+                border: 1px solid #2196F3;
+                color: #2196F3;
+                padding: 0.25rem 0.5rem;
+                font-size: 0.75rem;
+            }
+            
+            .premium-topic {
+                border-color: #FF9800;
+                color: #FF9800;
+            }
+            
+            .plan-item {
+                background: rgba(255, 255, 255, 0.5);
+                padding: 1rem;
+                border-radius: 8px;
+                margin-bottom: 0.5rem;
+            }
+            
+            .plan-item.current {
+                background: rgba(76, 175, 80, 0.1);
+                border: 1px solid #4CAF50;
+            }
+            
+            .premium-badge {
+                background: #FF9800;
+                color: white;
+                padding: 0.125rem 0.25rem;
+                border-radius: 4px;
+                font-size: 0.625rem;
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

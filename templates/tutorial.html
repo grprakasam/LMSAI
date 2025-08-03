@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ tutorial.topic }} - R Tutor Pro</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #2196F3, #4CAF50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-decoration: none;
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #666;
+            border: 1px solid #e3f2fd;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .tutorial-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .tutorial-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #2196F3, #4CAF50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tutorial-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(33, 150, 243, 0.1);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .expertise-beginner { background: rgba(76, 175, 80, 0.1); color: #388e3c; }
+        .expertise-intermediate { background: rgba(255, 152, 0, 0.1); color: #f57c00; }
+        .expertise-expert { background: rgba(244, 67, 54, 0.1); color: #d32f2f; }
+
+        .premium-badge {
+            background: linear-gradient(45deg, #ff6b6b, #ffa726);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .tutorial-content {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 2rem;
+        }
+
+        .main-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .sidebar-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .sidebar-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+
+        .concept-tag, .package-tag {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            margin: 0.25rem;
+            color: #495057;
+        }
+
+        .package-tag {
+            background: rgba(33, 150, 243, 0.1);
+            border-color: rgba(33, 150, 243, 0.2);
+            color: #1976d2;
+            font-family: 'Monaco', 'Consolas', monospace;
+        }
+
+        .objectives-list {
+            list-style: none;
+        }
+
+        .objectives-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+        }
+
+        .objectives-list li::before {
+            content: '✓';
+            color: #4CAF50;
+            font-weight: bold;
+            margin-top: 0.1rem;
+        }
+
+        .tutorial-text {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #2c3e50;
+        }
+
+        .tutorial-text h2 {
+            color: #1976d2;
+            margin: 2rem 0 1rem 0;
+            font-size: 1.5rem;
+        }
+
+        .tutorial-text h3 {
+            color: #388e3c;
+            margin: 1.5rem 0 1rem 0;
+            font-size: 1.2rem;
+        }
+
+        .tutorial-text p {
+            margin-bottom: 1rem;
+        }
+
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 1.5rem 0;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            border-left: 4px solid #2196F3;
+        }
+
+        .code-block code {
+            background: none;
+            padding: 0;
+            border-radius: 0;
+        }
+
+        .pause-marker, .emphasis-marker {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin: 0 0.25rem;
+        }
+
+        .pause-marker {
+            background: rgba(255, 152, 0, 0.1);
+            color: #f57c00;
+        }
+
+        .emphasis-marker {
+            background: rgba(244, 67, 54, 0.1);
+            color: #d32f2f;
+        }
+
+        .audio-player {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .audio-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .play-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .play-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: white;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .tutorial-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #eee;
+            flex-wrap: wrap;
+        }
+
+        .stats-bar {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2196F3;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .related-tutorials {
+            margin-top: 3rem;
+        }
+
+        .related-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .related-card {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .related-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #2196F3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .tutorial-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+            
+            .tutorial-header {
+                padding: 1.5rem;
+            }
+            
+            .tutorial-title {
+                font-size: 2rem;
+            }
+            
+            .tutorial-meta {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .audio-controls {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .tutorial-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <a href="/" class="logo">
+                <i class="fab fa-r-project"></i> R Tutor Pro
+            </a>
+            <div class="nav-actions">
+                <a href="/" class="btn btn-secondary">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="/auth/logout" class="btn btn-secondary">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="tutorial-header">
+            <h1 class="tutorial-title">{{ tutorial.topic }}</h1>
+            
+            <div class="tutorial-meta">
+                <div class="meta-item expertise-{{ tutorial.expertise }}">
+                    <i class="fas fa-user-graduate"></i>
+                    {{ tutorial.expertise.title() }}
+                </div>
+                <div class="meta-item">
+                    <i class="fas fa-clock"></i>
+                    {{ tutorial.duration }} minutes
+                </div>
+                <div class="meta-item">
+                    <i class="fas fa-calendar"></i>
+                    {{ tutorial.created_at.strftime('%B %d, %Y') }}
+                </div>
+                {% if tutorial.is_premium %}
+                <div class="premium-badge">
+                    <i class="fas fa-crown"></i> Premium
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <div class="stat-number">{{ tutorial.view_count }}</div>
+                    <div class="stat-label">Views</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ tutorial.get_concepts()|length }}</div>
+                    <div class="stat-label">Concepts</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ tutorial.get_packages()|length }}</div>
+                    <div class="stat-label">Packages</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ tutorial.duration }}</div>
+                    <div class="stat-label">Minutes</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Audio Player (if available) -->
+        {% if tutorial.audio_url %}
+        <div class="audio-player">
+            <div class="audio-controls">
+                <button class="play-btn" id="playBtn">
+                    <i class="fas fa-play"></i>
+                </button>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <span id="timeDisplay">0:00 / {{ tutorial.audio_duration // 60 }}:{{ '%02d'|format(tutorial.audio_duration % 60) if tutorial.audio_duration else '0:00' }}</span>
+            </div>
+            <audio id="audioPlayer" src="{{ tutorial.audio_url }}" preload="metadata"></audio>
+        </div>
+        {% endif %}
+
+        <div class="tutorial-content">
+            <div class="main-content">
+                <div class="tutorial-text" id="tutorialContent">
+                    {{ tutorial.content | safe }}
+                </div>
+
+                <div class="tutorial-actions">
+                    <button class="btn btn-primary" onclick="regenerateTutorial()">
+                        <i class="fas fa-sync-alt"></i> Regenerate (Pro)
+                    </button>
+                    <button class="btn btn-secondary" onclick="downloadPDF()">
+                        <i class="fas fa-file-pdf"></i> Download PDF
+                    </button>
+                    <button class="btn btn-secondary" onclick="shareTutorial()">
+                        <i class="fas fa-share"></i> Share
+                    </button>
+                    <button class="btn btn-secondary" onclick="deleteTutorial()" style="margin-left: auto; background: #ffebee; color: #c62828;">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <!-- Key Concepts -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">
+                        <i class="fas fa-lightbulb"></i> Key Concepts
+                    </h3>
+                    <div>
+                        {% for concept in tutorial.get_concepts() %}
+                        <span class="concept-tag">{{ concept }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- R Packages -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">
+                        <i class="fas fa-cube"></i> R Packages
+                    </h3>
+                    <div>
+                        {% for package in tutorial.get_packages() %}
+                        <span class="package-tag">{{ package }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Learning Objectives -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">
+                        <i class="fas fa-target"></i> Learning Objectives
+                    </h3>
+                    <ul class="objectives-list">
+                        {% for objective in tutorial.get_learning_objectives() %}
+                        <li>{{ objective }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">
+                        <i class="fas fa-bolt"></i> Quick Actions
+                    </h3>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <button class="btn btn-primary" onclick="generateAudio()" style="font-size: 0.9rem;">
+                            <i class="fas fa-headphones"></i> Generate Audio
+                        </button>
+                        <button class="btn btn-secondary" onclick="copyToClipboard()" style="font-size: 0.9rem;">
+                            <i class="fas fa-copy"></i> Copy Content
+                        </button>
+                        <button class="btn btn-secondary" onclick="printTutorial()" style="font-size: 0.9rem;">
+                            <i class="fas fa-print"></i> Print
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Related Tutorials -->
+        <div class="related-tutorials">
+            <h2>Related Tutorials</h2>
+            <div class="related-grid" id="relatedTutorials">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Loading related tutorials...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-r.min.js"></script>
+    
+    <script>
+        // Tutorial data
+        const tutorialData = {
+            id: {{ tutorial.id }},
+            topic: "{{ tutorial.topic }}",
+            expertise: "{{ tutorial.expertise }}",
+            duration: {{ tutorial.duration }},
+            isOwner: true // This would be dynamically set
+        };
+
+        // Audio player functionality
+        const audioPlayer = document.getElementById('audioPlayer');
+        const playBtn = document.getElementById('playBtn');
+        const progressFill = document.getElementById('progressFill');
+        const timeDisplay = document.getElementById('timeDisplay');
+
+        if (audioPlayer) {
+            playBtn.addEventListener('click', function() {
+                if (audioPlayer.paused) {
+                    audioPlayer.play();
+                    playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                } else {
+                    audioPlayer.pause();
+                    playBtn.innerHTML = '<i class="fas fa-play"></i>';
+                }
+            });
+
+            audioPlayer.addEventListener('timeupdate', function() {
+                const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                progressFill.style.width = progress + '%';
+                
+                const currentMin = Math.floor(audioPlayer.currentTime / 60);
+                const currentSec = Math.floor(audioPlayer.currentTime % 60);
+                const totalMin = Math.floor(audioPlayer.duration / 60);
+                const totalSec = Math.floor(audioPlayer.duration % 60);
+                
+                timeDisplay.textContent = `${currentMin}:${currentSec.toString().padStart(2, '0')} / ${totalMin}:${totalSec.toString().padStart(2, '0')}`;
+            });
+
+            audioPlayer.addEventListener('ended', function() {
+                playBtn.innerHTML = '<i class="fas fa-play"></i>';
+                progressFill.style.width = '0%';
+            });
+        }
+
+        // Format tutorial content
+        function formatTutorialContent() {
+            const content = document.getElementById('tutorialContent');
+            let html = content.innerHTML;
+            
+            // Format pause markers
+            html = html.replace(/\[PAUSE\]/g, '<span class="pause-marker"><i class="fas fa-pause"></i> PAUSE</span>');
+            
+            // Format emphasis markers
+            html = html.replace(/\[EMPHASIS\]/g, '<span class="emphasis-marker"><i class="fas fa-exclamation"></i> EMPHASIS</span>');
+            
+            // Format code blocks
+            html = html.replace(/```r\n([\s\S]*?)\n```/g, '<div class="code-block"><code class="language-r">$1</code></div>');
+            html = html.replace(/`([^`]+)`/g, '<code style="background: #f8f9fa; padding: 0.2rem 0.4rem; border-radius: 4px; font-family: monospace;">$1</code>');
+            
+            content.innerHTML = html;
+            
+            // Highlight code
+            if (typeof Prism !== 'undefined') {
+                Prism.highlightAll();
+            }
+        }
+
+        // Tutorial actions
+        async function regenerateTutorial() {
+            if (!confirm('Regenerate this tutorial? This will replace the current content.')) return;
+            
+            try {
+                const response = await fetch(`/tutorial/${tutorialData.id}/regenerate`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert(result.error || 'Failed to regenerate tutorial');
+                }
+            } catch (error) {
+                alert('Network error. Please try again.');
+            }
+        }
+
+        async function deleteTutorial() {
+            if (!confirm('Delete this tutorial? This action cannot be undone.')) return;
+            
+            try {
+                const response = await fetch(`/api/tutorial/${tutorialData.id}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    window.location.href = '/';
+                } else {
+                    alert(result.error || 'Failed to delete tutorial');
+                }
+            } catch (error) {
+                alert('Network error. Please try again.');
+            }
+        }
+
+        function downloadPDF() {
+            // Generate PDF download
+            const content = document.getElementById('tutorialContent').innerText;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${tutorialData.topic.replace(/[^a-z0-9]/gi, '_')}_tutorial.txt`;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        function shareTutorial() {
+            if (navigator.share) {
+                navigator.share({
+                    title: `R Tutorial: ${tutorialData.topic}`,
+                    text: `Check out this R programming tutorial on ${tutorialData.topic}`,
+                    url: window.location.href
+                });
+            } else {
+                navigator.clipboard.writeText(window.location.href);
+                alert('Tutorial link copied to clipboard!');
+            }
+        }
+
+        function copyToClipboard() {
+            const content = document.getElementById('tutorialContent').innerText;
+            navigator.clipboard.writeText(content);
+            alert('Tutorial content copied to clipboard!');
+        }
+
+        function printTutorial() {
+            window.print();
+        }
+
+        async function generateAudio() {
+            alert('Audio generation is coming soon! This will be available in the next update.');
+        }
+
+        // Load related tutorials
+        async function loadRelatedTutorials() {
+            try {
+                const response = await fetch(`/api/tutorials?related_to=${tutorialData.id}&limit=4`);
+                const data = await response.json();
+                
+                const container = document.getElementById('relatedTutorials');
+                
+                if (data.tutorials && data.tutorials.length > 0) {
+                    container.innerHTML = data.tutorials.map(tutorial => `
+                        <a href="/tutorial/${tutorial.id}" class="related-card">
+                            <h4>${tutorial.topic}</h4>
+                            <p>
+                                <span class="meta-item expertise-${tutorial.expertise}">
+                                    ${tutorial.expertise}
+                                </span>
+                                <span class="meta-item">
+                                    ${tutorial.duration} min
+                                </span>
+                            </p>
+                            <p style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">
+                                ${tutorial.concepts.slice(0, 3).join(', ')}
+                            </p>
+                        </a>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<p style="text-align: center; color: #666;">No related tutorials found.</p>';
+                }
+            } catch (error) {
+                console.error('Failed to load related tutorials:', error);
+                document.getElementById('relatedTutorials').innerHTML = 
+                    '<p style="text-align: center; color: #666;">Failed to load related tutorials.</p>';
+            }
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            formatTutorialContent();
+            loadRelatedTutorials();
+            
+            // Track tutorial view
+            fetch(`/api/tutorial/${tutorialData.id}/view`, { method: 'POST' })
+                .catch(error => console.error('Failed to track view:', error));
+        });
+    </script>
+</body>
+</html>

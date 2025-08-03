@@ -130,9 +130,18 @@
             audioSection.style.display = 'none';
             
             try {
-                const response = await fetch('/submit', {
+                const data = {
+                    topic: formData.get('topic'),
+                    expertise: formData.get('expertise'),
+                    duration: formData.get('duration'),
+                };
+
+                const response = await fetch('/api/v1/tutorial', {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
                 });
                 
                 const result = await response.json();

@@ -1,172 +1,318 @@
 import os
-import random
-import time
-import requests
+import secrets
+import hashlib
 import json
-from datetime import datetime
-import tempfile
-import base64
-from io import BytesIO
-import threading
-from queue import Queue
+from datetime import datetime, timedelta
+from functools import wraps
+from flask import request, jsonify, current_app
+from flask_login import current_user
+from models import UsageLog, db
+import logging
 
-class AudioGenerator:
-    def __init__(self):
-        self.audio_queue = Queue()
-        self.processing = False
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+def track_usage(action: str, resource_type: str = None, resource_id: int = None):
+    """
+    Decorator to track user actions for analytics and billing
     
-    def generate_tutorial_script(self, topic, expertise, duration, learning_objectives, concepts, code_examples):
-        """Generate a comprehensive tutorial script using local generation"""
-        
-        return self._generate_local_script(topic, expertise, duration, concepts, code_examples)
+    Args:
+        action: Action being performed (e.g., 'tutorial_created', 'audio_generated')
+        resource_type: Type of resource being accessed
+        resource_id: ID of the resource
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if current_user.is_authenticated:
+                try:
+                    # Create usage log
+                    log = UsageLog(
+                        user_id=current_user.id,
+                        action=action,
+                        resource_type=resource_type,
+                        resource_id=resource_id,
+                        ip_address=get_client_ip(),
+                        user_agent=request.headers.get('User-Agent', '')[:500]
+                    )
+                    
+                    # Add request metadata
+                    metadata = {
+                        'endpoint': request.endpoint,
+                        'method': request.method,
+                        'user_plan': current_user.plan
+                    }
+                    
+                    # Add additional context from kwargs if available
+                    if 'tutorial_data' in kwargs:
+                        metadata.update({
+                            'topic': kwargs['tutorial_data'].get('topic'),
+                            'expertise': kwargs['tutorial_data'].get('expertise'),
+                            'duration': kwargs['tutorial_data'].get('duration')
+                        })
+                    
+                    log.set_metadata(metadata)
+                    
+                    db.session.add(log)
+                    db.session.commit()
+                    
+                except Exception as e:
+                    logger.error(f"Failed to track usage: {e}")
+                    # Don't fail the main function if logging fails
+                    pass
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+def check_usage_limits(action: str = 'tutorial_created'):
+    """
+    Check if user has exceeded their plan limits
     
-    def _generate_local_script(self, topic, expertise, duration, concepts, code_examples):
-        """Fallback local script generation"""
+    Args:
+        action: Action to check limits for
         
-        intro = f"""Welcome to this {duration}-minute R programming tutorial on {topic}! 
-        
-[PAUSE] My name is your AI R tutor, and today we'll be exploring {topic} specifically designed for {expertise} level R developers.
-
-[PAUSE] By the end of this tutorial, you'll have a solid understanding of {', '.join(concepts[:3])} and be ready to apply these concepts in your own R projects."""
-
-        main_content = f"""
-Let's start with the fundamentals. [PAUSE]
-
-{topic} is a crucial concept in R programming that every {expertise} developer should master. [EMPHASIS] This is particularly important because it forms the foundation for more advanced R programming techniques.
-
-[PAUSE] Let me walk you through some practical examples.
-
-{code_examples[0] if code_examples else "# Example R code would be discussed here"}
-
-[PAUSE] As you can see in this code, we're demonstrating the key principles of {concepts[0] if concepts else topic}. [EMPHASIS] Notice how we structure the code for clarity and efficiency.
-
-[PAUSE] Now, let's explore some best practices that will make your R code more robust and maintainable."""
-
-        conclusion = f"""
-[PAUSE] To summarize what we've covered today:
-
-We explored {', '.join(concepts[:2])} and learned how to apply these concepts practically in R.
-
-[EMPHASIS] Remember, the key to mastering {topic} is consistent practice and experimentation.
-
-[PAUSE] For your next steps, I recommend practicing with the code examples we discussed and exploring the {', '.join(["dplyr", "ggplot2"]) if "data" in topic.lower() else ["base R functions"]} packages.
-
-Thank you for joining this R programming tutorial. Keep coding, and happy learning!"""
-
-        return f"{intro}\n\n{main_content}\n\n{conclusion}"
+    Returns:
+        tuple: (is_over_limit, current_usage, limit)
+    """
+    if not current_user.is_authenticated:
+        return True, 0, 0
     
-    def text_to_speech(self, text, voice_settings=None):
-        """Convert text to speech using available TTS services"""
-        
-        if voice_settings is None:
-            voice_settings = {
-                'voice': 'alloy',
-                'speed': 1.0,
-                'service': 'local_tts'
+    from config import PLANS
+    
+    # Get current month usage
+    start_of_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    current_usage = UsageLog.query.filter(
+        UsageLog.user_id == current_user.id,
+        UsageLog.action == action,
+        UsageLog.created_at >= start_of_month
+    ).count()
+    
+    plan_limit = PLANS[current_user.plan]['tutorials_per_month']
+    is_over_limit = current_usage >= plan_limit
+    
+    return is_over_limit, current_usage, plan_limit
+
+def require_plan(required_plan: str):
+    """
+    Decorator to require specific subscription plan
+    
+    Args:
+        required_plan: Minimum plan required (free, pro, team)
+    """
+    plan_hierarchy = {'free': 0, 'pro': 1, 'team': 2}
+    
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not current_user.is_authenticated:
+                return jsonify({'success': False, 'error': 'Authentication required'}), 401
+            
+            user_plan_level = plan_hierarchy.get(current_user.plan, 0)
+            required_plan_level = plan_hierarchy.get(required_plan, 0)
+            
+            if user_plan_level < required_plan_level:
+                return jsonify({
+                    'success': False,
+                    'error': f'{required_plan.title()} plan required for this feature',
+                    'upgrade_required': True,
+                    'current_plan': current_user.plan,
+                    'required_plan': required_plan
+                }), 403
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+def rate_limit(requests_per_minute: int = 60):
+    """
+    Rate limiting decorator
+    
+    Args:
+        requests_per_minute: Maximum requests per minute
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not current_user.is_authenticated:
+                client_id = get_client_ip()
+            else:
+                client_id = f"user_{current_user.id}"
+            
+            # Simple in-memory rate limiting (use Redis in production)
+            if not hasattr(current_app, 'rate_limit_storage'):
+                current_app.rate_limit_storage = {}
+            
+            now = datetime.now()
+            window_start = now - timedelta(minutes=1)
+            
+            # Clean old entries
+            current_app.rate_limit_storage = {
+                k: v for k, v in current_app.rate_limit_storage.items()
+                if v['timestamp'] > window_start
             }
-        
-        # Clean text for TTS
-        clean_text = self._clean_text_for_tts(text)
-        
-        # Try different TTS services in order of preference
-        for service in ['local_tts']:
-            try:
-                audio_data = self._generate_audio_with_service(clean_text, service, voice_settings)
-                if audio_data:
-                    return audio_data
-            except Exception as e:
-                print(f"TTS service {service} failed: {e}")
-                continue
-        
-        # If all services fail, return placeholder
-        return self._generate_placeholder_audio()
+            
+            # Check current usage
+            client_requests = [
+                v for k, v in current_app.rate_limit_storage.items()
+                if k.startswith(client_id)
+            ]
+            
+            if len(client_requests) >= requests_per_minute:
+                return jsonify({
+                    'success': False,
+                    'error': 'Rate limit exceeded. Please try again later.',
+                    'retry_after': 60
+                }), 429
+            
+            # Record this request
+            request_key = f"{client_id}_{now.timestamp()}"
+            current_app.rate_limit_storage[request_key] = {'timestamp': now}
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+def get_client_ip():
+    """Get client IP address, handling proxies"""
+    if request.headers.get('X-Forwarded-For'):
+        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
+    elif request.headers.get('X-Real-IP'):
+        return request.headers.get('X-Real-IP')
+    else:
+        return request.remote_addr
+
+def generate_api_key():
+    """Generate a secure API key"""
+    return secrets.token_urlsafe(32)
+
+def hash_api_key(api_key: str):
+    """Hash API key for secure storage"""
+    return hashlib.sha256(api_key.encode()).hexdigest()
+
+def validate_email(email: str):
+    """Basic email validation"""
+    import re
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(pattern, email) is not None
+
+def sanitize_input(text: str, max_length: int = 1000):
+    """Sanitize user input"""
+    if not text:
+        return ""
     
-    def _clean_text_for_tts(self, text):
-        """Clean text for better TTS pronunciation"""
-        # Remove special markers
-        text = text.replace('[PAUSE]', '. ')
-        text = text.replace('[EMPHASIS]', '')
-        
-        # Clean up R-specific terms for better pronunciation
-        replacements = {
-            'ggplot2': 'g g plot two',
-            'dplyr': 'd ply r',
-            'tidyr': 'tidy r',
-            'R programming': 'R programming',
-            'data.frame': 'data frame',
-            'data.table': 'data table'
-        }
-        
-        for old, new in replacements.items():
-            text = text.replace(old, new)
-        
-        return text
+    # Remove any potentially harmful characters
+    import html
+    text = html.escape(text.strip())
     
-    def _generate_audio_with_service(self, text, service, voice_settings):
-        """Generate audio using specific TTS service"""
+    # Truncate if too long
+    if len(text) > max_length:
+        text = text[:max_length] + "..."
+    
+    return text
+
+def format_duration(seconds: int):
+    """Format duration in seconds to human-readable format"""
+    if seconds < 60:
+        return f"{seconds}s"
+    elif seconds < 3600:
+        minutes = seconds // 60
+        remaining_seconds = seconds % 60
+        if remaining_seconds == 0:
+            return f"{minutes}m"
+        return f"{minutes}m {remaining_seconds}s"
+    else:
+        hours = seconds // 3600
+        remaining_minutes = (seconds % 3600) // 60
+        if remaining_minutes == 0:
+            return f"{hours}h"
+        return f"{hours}h {remaining_minutes}m"
+
+def calculate_usage_analytics(user_id: int, days: int = 30):
+    """
+    Calculate usage analytics for a user
+    
+    Args:
+        user_id: User ID
+        days: Number of days to analyze
         
-        if service == 'local_tts':
-            return self._local_tts(text, voice_settings)
+    Returns:
+        Dictionary with analytics data
+    """
+    from models import UsageLog, Tutorial
+    
+    start_date = datetime.now() - timedelta(days=days)
+    
+    # Get usage logs
+    usage_logs = UsageLog.query.filter(
+        UsageLog.user_id == user_id,
+        UsageLog.created_at >= start_date
+    ).all()
+    
+    # Get tutorials
+    tutorials = Tutorial.query.filter(
+        Tutorial.user_id == user_id,
+        Tutorial.created_at >= start_date
+    ).all()
+    
+    # Calculate analytics
+    analytics = {
+        'total_actions': len(usage_logs),
+        'total_tutorials': len(tutorials),
+        'unique_topics': len(set(t.topic for t in tutorials)),
+        'average_duration': sum(t.duration for t in tutorials) / len(tutorials) if tutorials else 0,
+        'expertise_distribution': {},
+        'topic_categories': {},
+        'daily_usage': {},
+        'most_active_day': None,
+        'most_popular_topic': None
+    }
+    
+    # Expertise distribution
+    for tutorial in tutorials:
+        expertise = tutorial.expertise
+        analytics['expertise_distribution'][expertise] = analytics['expertise_distribution'].get(expertise, 0) + 1
+    
+    # Daily usage
+    for log in usage_logs:
+        date_key = log.created_at.strftime('%Y-%m-%d')
+        analytics['daily_usage'][date_key] = analytics['daily_usage'].get(date_key, 0) + 1
+    
+    # Most active day
+    if analytics['daily_usage']:
+        analytics['most_active_day'] = max(analytics['daily_usage'], key=analytics['daily_usage'].get)
+    
+    # Most popular topic
+    topic_counts = {}
+    for tutorial in tutorials:
+        topic_counts[tutorial.topic] = topic_counts.get(tutorial.topic, 0) + 1
+    
+    if topic_counts:
+        analytics['most_popular_topic'] = max(topic_counts, key=topic_counts.get)
+    
+    return analytics
+
+def export_user_data(user_id: int):
+    """
+    Export all user data for GDPR compliance
+    
+    Args:
+        user_id: User ID
         
+    Returns:
+        Dictionary with all user data
+    """
+    from models import User, Tutorial, UsageLog
+    
+    user = User.query.get(user_id)
+    if not user:
         return None
     
-    def _local_tts(self, text, voice_settings):
-        """Generate audio using local TTS (pyttsx3 or similar)"""
-        try:
-            import pyttsx3
-            import io
-            import wave
-            
-            engine = pyttsx3.init()
-            
-            # Configure voice settings
-            rate = engine.getProperty('rate')
-            engine.setProperty('rate', int(rate * voice_settings.get('speed', 1.0)))
-            
-            # Create temporary file for audio
-            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
-                engine.save_to_file(text, temp_file.name)
-                engine.runAndWait()
-                
-                # Read the audio file
-                with open(temp_file.name, 'rb') as audio_file:
-                    audio_data = audio_file.read()
-                
-                # Clean up
-                os.unlink(temp_file.name)
-                
-                return audio_data
-                
-        except ImportError:
-            print("pyttsx3 not available, install with: pip install pyttsx3")
-        except Exception as e:
-            print(f"Local TTS error: {e}")
-        
-        return None
+    # Get all user data
+    tutorials = Tutorial.query.filter_by(user_id=user_id).all()
+    usage_logs = UsageLog.query.filter_by(user_id=user_id).all()
     
-    def _generate_placeholder_audio(self):
-        """Generate a silent placeholder audio message using pydub"""
-        try:
-            from pydub import AudioSegment
-            import io
-            
-            # Create a 1-second silent audio segment
-            silence = AudioSegment.silent(duration=1000)  # 1000ms = 1 second
-            
-            # Export to MP3 format in memory
-            buf = io.BytesIO()
-            silence.export(buf, format="mp3")
-            buf.seek(0)
-            
-            return buf.read()
-            
-        except ImportError:
-            print("pydub not available. Install with: pip install pydub")
-            # Fallback to a simple message if pydub is not available
-            placeholder_text = "Audio generation failed. Please check your TTS service configuration and ensure pydub is installed."
-            return self._local_tts(placeholder_text, {'speed': 1.0})
-        except Exception as e:
-            print(f"Error generating placeholder audio with pydub: {e}")
-            # Fallback to local TTS if pydub fails
-            placeholder_text = "Audio generation failed. Please check your TTS service configuration."
-            return self._local_tts(placeholder_text, {'speed': 1.0})
+    export_data = {
+        'user_info': user.to_dict(),
+        'tutorials':
