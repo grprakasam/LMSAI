@@ -315,4 +315,89 @@ def export_user_data(user_id: int):
     
     export_data = {
         'user_info': user.to_dict(),
-        'tutorials':
+        'tutorials': [tutorial.to_dict() for tutorial in tutorials],
+        'usage_logs': [log.to_dict() for log in usage_logs]
+    }
+    
+    return export_data
+
+def validate_tutorial_input(topic: str, expertise: str, duration: int):
+    """
+    Validate tutorial input parameters
+    
+    Args:
+        topic: Tutorial topic
+        expertise: Expertise level
+        duration: Tutorial duration in minutes
+        
+    Returns:
+        tuple: (is_valid, error_message)
+    """
+    if not topic or len(topic.strip()) < 3:
+        return False, "Topic must be at least 3 characters long"
+    
+    if expertise not in ['beginner', 'intermediate', 'expert']:
+        return False, "Invalid expertise level"
+    
+    if not isinstance(duration, int) or duration < 1 or duration > 60:
+        return False, "Duration must be between 1 and 60 minutes"
+    
+    return True, None
+
+def check_system_health():
+    """
+    Check system health status
+    
+    Returns:
+        Dictionary with health status
+    """
+    from config import PLANS
+    from flask import current_app
+    
+    health_status = {
+        'status': 'healthy',
+        'checks': {
+            'database': 'unknown',
+            'ai_services': 'unknown',
+            'file_system': 'unknown'
+        },
+        'timestamp': datetime.utcnow().isoformat()
+    }
+    
+    # Check database connection
+    try:
+        db.session.query('1').from_statement(db.text('SELECT 1')).all()
+        health_status['checks']['database'] = 'healthy'
+    except Exception as e:
+        health_status['checks']['database'] = 'unhealthy'
+        health_status['status'] = 'unhealthy'
+        logger.error(f"Database health check failed: {e}")
+    
+    # Check AI services
+    try:
+        from aiservices import ai_generator
+        if ai_generator.deepseek_key or ai_generator.openai_key:
+            health_status['checks']['ai_services'] = 'healthy'
+        else:
+            health_status['checks']['ai_services'] = 'warning'
+            if health_status['status'] == 'healthy':
+                health_status['status'] = 'warning'
+    except Exception as e:
+        health_status['checks']['ai_services'] = 'unhealthy'
+        health_status['status'] = 'unhealthy'
+        logger.error(f"AI services health check failed: {e}")
+    
+    # Check file system (basic check)
+    try:
+        # Try to create and delete a temporary file
+        temp_file = os.path.join(current_app.instance_path, 'health_check.tmp')
+        with open(temp_file, 'w') as f:
+            f.write('health check')
+        os.remove(temp_file)
+        health_status['checks']['file_system'] = 'healthy'
+    except Exception as e:
+        health_status['checks']['file_system'] = 'unhealthy'
+        health_status['status'] = 'unhealthy'
+        logger.error(f"File system health check failed: {e}")
+    
+    return health_status

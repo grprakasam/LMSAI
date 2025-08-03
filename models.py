@@ -180,7 +180,7 @@ class UsageLog(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
     
     # Action metadata
-    metadata = db.Column(db.Text)  # JSON string for additional data
+    metadata_json = db.Column(db.Text)  # JSON string for additional data
     ip_address = db.Column(db.String(45))
     user_agent = db.Column(db.String(500))
     
@@ -193,11 +193,11 @@ class UsageLog(db.Model):
     
     def get_metadata(self):
         """Get metadata as dictionary"""
-        return json.loads(self.metadata) if self.metadata else {}
+        return json.loads(self.metadata_json) if self.metadata_json else {}
     
     def set_metadata(self, metadata_dict):
         """Set metadata from dictionary"""
-        self.metadata = json.dumps(metadata_dict)
+        self.metadata_json = json.dumps(metadata_dict)
     
     @classmethod
     def log_action(cls, user_id, action, **kwargs):

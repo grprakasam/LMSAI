@@ -5,7 +5,7 @@ from datetime import datetime
 import json
 
 from models import db, User, Tutorial, UsageLog
-from ai_services import ai_generator
+from aiservices import ai_generator
 from utils import (
     track_usage, check_usage_limits, require_plan, rate_limit,
     validate_tutorial_input, sanitize_input, validate_email,
