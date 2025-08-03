@@ -147,6 +147,12 @@
                         audio_base64: result.audio_base64
                     };
                     
+                    // Update download button
+                    const downloadBtn = document.getElementById('downloadBtn');
+                    downloadBtn.onclick = function() {
+                        window.location.href = result.audio_url;
+                    };
+                    
                     // Show audio section with enhanced content
                     document.getElementById('audioContent').innerHTML = `
                         <div class="result-summary">
@@ -244,11 +250,11 @@
         });
         
         document.getElementById('downloadBtn').addEventListener('click', function() {
-            // Simulate download
-            this.innerHTML = '<i class="fas fa-check"></i> Downloaded!';
-            setTimeout(() => {
-                this.innerHTML = '<i class="fas fa-download"></i> Download Audio';
-            }, 2000);
+            if (currentAudioData && currentAudioData.audio_url) {
+                window.location.href = currentAudioData.audio_url;
+            } else {
+                alert('No audio file to download. Please generate a tutorial first.');
+            }
         });
 
         document.getElementById('shareBtn').addEventListener('click', function() {

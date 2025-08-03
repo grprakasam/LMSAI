@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, url_for
 import os
 import random
 import time
@@ -17,20 +17,9 @@ app = Flask(__name__)
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"  # Replace with actual DeepSeek API
 DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY', 'your-api-key-here')
 
-# Text-to-Speech Configuration (using multiple options)
 TTS_OPTIONS = {
-    'openai': {
-        'url': 'https://api.openai.com/v1/audio/speech',
-        'key': os.getenv('OPENAI_API_KEY', ''),
-        'voices': ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']
-    },
-    'elevenlabs': {
-        'url': 'https://api.elevenlabs.io/v1/text-to-speech',
-        'key': os.getenv('ELEVENLABS_API_KEY', ''),
-        'voices': ['21m00Tcm4TlvDq8ikWAM', 'AZnzlk1XvdvUeBnXmlld']
-    },
     'local_tts': {
-        'enabled': True  # Fallback to local TTS
+        'enabled': True
     }
 }
 
@@ -449,6 +438,10 @@ Thank you for joining this R programming tutorial. Keep coding, and happy learni
 # Initialize audio generator
 audio_generator = AudioGenerator()
 
+# Ensure the directory for generated audio exists
+if not os.path.exists('static/generated_audio'):
+    os.makedirs('static/generated_audio')
+
 def get_topic_content(topic, expertise):
     """Get content for a specific topic and expertise level"""
     topic_key = None
@@ -514,20 +507,21 @@ def submit_form():
         
         # Save audio to temporary file and encode for response
         audio_base64 = None
-        audio_url = None
+        stream_url = None
+        download_url = None
         
         if audio_data:
-            # Save to temporary file
+            # Save to static/generated_audio
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             filename = f"r_tutorial_{timestamp}.mp3"
-            filepath = os.path.join(tempfile.gettempdir(), filename)
+            filepath = os.path.join('static', 'generated_audio', filename)
             
             with open(filepath, 'wb') as f:
                 f.write(audio_data)
             
             # Encode for web playback
             audio_base64 = base64.b64encode(audio_data).decode('utf-8')
-            audio_url = f"/download_audio/{filename}"
+            audio_url = url_for('static', filename=f'generated_audio/{filename}', _external=True)
         
         return jsonify({
             'success': True,
@@ -551,17 +545,6 @@ def submit_form():
             'error': f'An error occurred: {str(e)}'
         }), 500
 
-@app.route('/download_audio/<filename>')
-def download_audio(filename):
-    """Download generated audio file"""
-    try:
-        filepath = os.path.join(tempfile.gettempdir(), filename)
-        if os.path.exists(filepath):
-            return send_file(filepath, as_attachment=True, download_name=filename)
-        else:
-            return jsonify({'error': 'Audio file not found'}), 404
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 @app.route('/health')
 def health_check():
