@@ -6,6 +6,7 @@
     <title>R Tutor - Dashboard</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='animations.css') }}">
 </head>
 <body>
     <nav class="navbar">
@@ -26,8 +27,23 @@
             <div class="main-panel">
                 <h2><i class="fas fa-magic"></i> Generate New R Tutorial</h2>
                 
+                <!-- Content Type Selection -->
+                <div class="content-type-selector" style="margin-bottom: 2rem;">
+                    <div class="type-tabs">
+                        <button type="button" class="tab-btn active" data-type="tutorial">
+                            <i class="fas fa-book"></i> Text Tutorial
+                        </button>
+                        <button type="button" class="tab-btn" data-type="animation">
+                            <i class="fas fa-film"></i> Animated Content
+                        </button>
+                        <button type="button" class="tab-btn" data-type="interactive">
+                            <i class="fas fa-play-circle"></i> Interactive Demo
+                        </button>
+                    </div>
+                </div>
 
-                <form id="tutorialForm" class="tutorial-form">
+                <!-- Tutorial Form -->
+                <form id="tutorialForm" class="tutorial-form content-panel active" data-panel="tutorial">
                     <div class="form-group">
                         <label for="topic">
                             <i class="fas fa-book"></i> R Programming Topic
@@ -71,10 +87,210 @@
                     </button>
                 </form>
 
+                <!-- Animation Creation Form -->
+                <form id="animationForm" class="tutorial-form content-panel" data-panel="animation" style="display: none;">
+                    <div class="form-group">
+                        <label for="animationTopic">
+                            <i class="fas fa-film"></i> Animation Topic
+                        </label>
+                        <input type="text" id="animationTopic" name="topic" class="form-control" 
+                               placeholder="e.g., How data.frame works, ggplot2 layer system, dplyr pipe operations..." required>
+                        <div class="topic-suggestions" style="margin-top: 0.5rem;">
+                            <button type="button" class="btn btn-sm btn-outline" data-topic="Data Frame Operations">Data Frame</button>
+                            <button type="button" class="btn btn-sm btn-outline" data-topic="ggplot2 Layer System">ggplot2 Layers</button>
+                            <button type="button" class="btn btn-sm btn-outline" data-topic="Pipe Operator Flow">Pipe Operations</button>
+                            <button type="button" class="btn btn-sm btn-outline" data-topic="Function Visualization">Functions</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="animationType">
+                            <i class="fas fa-palette"></i> Animation Type
+                        </label>
+                        <select id="animationType" name="animation_type" class="form-control" required>
+                            <option value="">Choose animation style</option>
+                            <option value="data_flow">📊 Data Flow - Show data transformations</option>
+                            <option value="code_execution">💻 Code Execution - Step-by-step code</option>
+                            <option value="concept_illustration">🎨 Concept Illustration - Visual explanations</option>
+                            <option value="interactive_demo">🎮 Interactive Demo - Hands-on learning</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="animationComplexity">
+                            <i class="fas fa-layer-group"></i> Complexity Level
+                        </label>
+                        <select id="animationComplexity" name="complexity" class="form-control" required>
+                            <option value="">Select complexity</option>
+                            <option value="simple">🟢 Simple - Basic animations with few elements</option>
+                            <option value="moderate">🟡 Moderate - Multiple steps and interactions</option>
+                            <option value="advanced">🔴 Advanced - Complex multi-layered animations</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="animationDuration">
+                            <i class="fas fa-stopwatch"></i> Animation Duration: <span id="animationDurationDisplay">30</span> seconds
+                        </label>
+                        <input type="range" id="animationDuration" name="duration" min="15" max="120" value="30" class="form-control">
+                        <div class="duration-labels">
+                            <small>Quick (15s)</small>
+                            <small>Standard (30-60s)</small>
+                            <small>Detailed (60-120s)</small>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-cogs"></i> Animation Features
+                        </label>
+                        <div class="feature-checkboxes">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="features" value="narration" checked>
+                                <span class="checkmark"></span>
+                                🎙️ Voice Narration
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="features" value="interactive" checked>
+                                <span class="checkmark"></span>
+                                🖱️ Interactive Controls
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="features" value="code_highlighting">
+                                <span class="checkmark"></span>
+                                💡 Code Highlighting
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="features" value="step_by_step">
+                                <span class="checkmark"></span>
+                                📚 Step-by-step Breakdown
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="generateAnimationBtn" class="btn btn-primary">
+                        <i class="fas fa-film"></i> Create Animation
+                    </button>
+                </form>
+
+                <!-- Interactive Demo Form -->
+                <form id="interactiveForm" class="tutorial-form content-panel" data-panel="interactive" style="display: none;">
+                    <div class="form-group">
+                        <label for="demoTopic">
+                            <i class="fas fa-play-circle"></i> Interactive Demo Topic
+                        </label>
+                        <input type="text" id="demoTopic" name="topic" class="form-control" 
+                               placeholder="e.g., Interactive data filtering, Live plotting, R console simulation..." required>
+                        <div class="topic-suggestions" style="margin-top: 0.5rem;">
+                            <button type="button" class="btn btn-sm btn-outline" data-topic="Interactive Plotting">Live Plotting</button>
+                            <button type="button" class="btn btn-sm btn-outline" data-topic="Data Filtering Demo">Data Filtering</button>
+                            <button type="button" class="btn btn-sm btn-outline" data-topic="R Console Simulation">R Console</button>
+                            <button type="button" class="btn btn-sm btn-outline" data-topic="Package Explorer">Package Explorer</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="demoType">
+                            <i class="fas fa-gamepad"></i> Demo Type
+                        </label>
+                        <select id="demoType" name="demo_type" class="form-control" required>
+                            <option value="">Choose demo style</option>
+                            <option value="code_playground">🏟️ Code Playground - Live R environment</option>
+                            <option value="guided_tutorial">🎯 Guided Tutorial - Step-by-step guidance</option>
+                            <option value="quiz_interaction">❓ Quiz Interaction - Test knowledge</option>
+                            <option value="data_explorer">🔍 Data Explorer - Interactive data analysis</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" id="generateDemoBtn" class="btn btn-primary">
+                        <i class="fas fa-play-circle"></i> Create Interactive Demo
+                    </button>
+                </form>
+
                 <!-- Loading State -->
                 <div id="loading" class="loading" style="display: none;">
                     <div class="spinner"></div>
-                    <p>🧠 AI is analyzing your topic and crafting a personalized tutorial...</p>
+                    <p id="loadingText">🧠 AI is analyzing your topic and crafting a personalized tutorial...</p>
+                </div>
+
+                <!-- Animation Result -->
+                <div id="animationResult" class="animation-result" style="display: none;">
+                    <div class="result-header">
+                        <h3><i class="fas fa-film"></i> Animation Created!</h3>
+                        <div class="result-meta">
+                            <span class="animation-type-tag"></span>
+                            <span class="complexity-tag"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="animation-player" id="animationPlayer">
+                        <!-- Animation content will be dynamically inserted here -->
+                    </div>
+                    
+                    <div class="animation-controls">
+                        <button class="control-btn" id="restartBtn" title="Restart">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                        <button class="control-btn play-btn" id="playPauseBtn" title="Play/Pause">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button class="control-btn" id="nextStepBtn" title="Next Step">
+                            <i class="fas fa-step-forward"></i>
+                        </button>
+                        <div class="progress-bar" id="animationProgress">
+                            <div class="progress-fill" id="animationProgressFill"></div>
+                        </div>
+                        <button class="control-btn" id="speedBtn" title="Speed">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </button>
+                        <button class="control-btn" id="fullscreenBtn" title="Fullscreen">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="animation-details">
+                        <h4>📋 Animation Details</h4>
+                        <div id="animationDescription"></div>
+                        <div id="animationSteps"></div>
+                    </div>
+                    
+                    <div class="animation-actions">
+                        <button class="btn btn-primary" onclick="downloadAnimation()">
+                            <i class="fas fa-download"></i> Export Animation
+                        </button>
+                        <button class="btn btn-secondary" onclick="shareAnimation()">
+                            <i class="fas fa-share"></i> Share
+                        </button>
+                        <button class="btn btn-success" onclick="addToTutorial()">
+                            <i class="fas fa-plus"></i> Add to Tutorial
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Interactive Demo Result -->
+                <div id="demoResult" class="animation-result" style="display: none;">
+                    <div class="result-header">
+                        <h3><i class="fas fa-play-circle"></i> Interactive Demo Ready!</h3>
+                        <div class="result-meta">
+                            <span class="demo-type-tag"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="demo-container" id="demoContainer">
+                        <!-- Demo content will be dynamically inserted here -->
+                    </div>
+                    
+                    <div class="animation-actions">
+                        <button class="btn btn-primary" onclick="resetDemo()">
+                            <i class="fas fa-redo"></i> Reset Demo
+                        </button>
+                        <button class="btn btn-secondary" onclick="shareDemo()">
+                            <i class="fas fa-share"></i> Share
+                        </button>
+                        <button class="btn btn-success" onclick="addDemoToTutorial()">
+                            <i class="fas fa-plus"></i> Add to Tutorial
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Tutorial Result -->
@@ -153,11 +369,48 @@
             monthlyLimit: 999
         };
 
-        // Topic suggestions
+        // Topic suggestions for all forms
         document.querySelectorAll('[data-topic]').forEach(btn => {
             btn.addEventListener('click', function() {
-                document.getElementById('topic').value = this.dataset.topic;
+                const activePanel = document.querySelector('.content-panel.active');
+                const topicInput = activePanel.querySelector('input[name="topic"]');
+                if (topicInput) {
+                    topicInput.value = this.dataset.topic;
+                }
             });
+        });
+
+        // Tab switching functionality
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const targetType = this.dataset.type;
+                
+                // Update active tab
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Update active panel
+                document.querySelectorAll('.content-panel').forEach(panel => {
+                    panel.classList.remove('active');
+                    panel.style.display = 'none';
+                });
+                
+                const targetPanel = document.querySelector(`[data-panel="${targetType}"]`);
+                if (targetPanel) {
+                    targetPanel.classList.add('active');
+                    targetPanel.style.display = 'block';
+                }
+                
+                // Hide all results
+                document.querySelectorAll('#tutorialResult, #animationResult, #demoResult').forEach(result => {
+                    result.style.display = 'none';
+                });
+            });
+        });
+
+        // Animation duration slider
+        document.getElementById('animationDuration').addEventListener('input', function() {
+            document.getElementById('animationDurationDisplay').textContent = this.value;
         });
 
         // Duration slider
@@ -165,7 +418,46 @@
             document.getElementById('durationDisplay').textContent = this.value;
         });
 
-        // Form submission
+        // Animation Form submission
+        document.getElementById('animationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const animationData = {
+                topic: formData.get('topic'),
+                animation_type: formData.get('animation_type'),
+                complexity: formData.get('complexity'),
+                duration: parseInt(formData.get('duration')),
+                features: formData.getAll('features')
+            };
+            
+            if (!animationData.topic || !animationData.animation_type || !animationData.complexity) {
+                alert('Please fill in all required fields for animation creation.');
+                return;
+            }
+            
+            await generateAnimation(animationData);
+        });
+
+        // Interactive Demo Form submission
+        document.getElementById('interactiveForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const demoData = {
+                topic: formData.get('topic'),
+                demo_type: formData.get('demo_type')
+            };
+            
+            if (!demoData.topic || !demoData.demo_type) {
+                alert('Please fill in all required fields for demo creation.');
+                return;
+            }
+            
+            await generateInteractiveDemo(demoData);
+        });
+
+        // Tutorial Form submission
         document.getElementById('tutorialForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -361,6 +653,566 @@
                 audioBtn.disabled = false;
             }
         });
+
+        // ==================== ANIMATION GENERATION ====================
+        
+        // Global animation state
+        let currentAnimation = null;
+        let animationTimer = null;
+        let animationStep = 0;
+        let isPlaying = false;
+        let animationSpeed = 1;
+
+        async function generateAnimation(animationData) {
+            const loading = document.getElementById('loading');
+            const loadingText = document.getElementById('loadingText');
+            const animationResult = document.getElementById('animationResult');
+            
+            // Hide other results
+            document.querySelectorAll('#tutorialResult, #demoResult').forEach(result => {
+                result.style.display = 'none';
+            });
+            
+            // Show loading
+            loading.style.display = 'block';
+            loadingText.textContent = '🎬 Creating your animated R tutorial...';
+            
+            try {
+                // Simulate API call (you would implement actual backend here)
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Generate animation based on type
+                const animationContent = createAnimationContent(animationData);
+                
+                // Update result display
+                document.querySelector('.animation-type-tag').textContent = getAnimationTypeLabel(animationData.animation_type);
+                document.querySelector('.complexity-tag').textContent = getComplexityLabel(animationData.complexity);
+                
+                // Set animation content
+                const animationPlayer = document.getElementById('animationPlayer');
+                animationPlayer.innerHTML = animationContent.html;
+                
+                // Set animation details
+                document.getElementById('animationDescription').innerHTML = animationContent.description;
+                document.getElementById('animationSteps').innerHTML = animationContent.steps;
+                
+                // Store animation data
+                currentAnimation = animationContent;
+                
+                // Show result
+                loading.style.display = 'none';
+                animationResult.style.display = 'block';
+                animationResult.scrollIntoView({ behavior: 'smooth' });
+                
+                // Auto-start animation
+                setTimeout(() => startAnimation(), 500);
+                
+            } catch (error) {
+                loading.style.display = 'none';
+                alert('Animation generation failed: ' + error.message);
+            }
+        }
+
+        function createAnimationContent(data) {
+            const { topic, animation_type, complexity, duration } = data;
+            
+            switch (animation_type) {
+                case 'data_flow':
+                    return createDataFlowAnimation(topic, complexity, duration);
+                case 'code_execution':
+                    return createCodeExecutionAnimation(topic, complexity, duration);
+                case 'concept_illustration':
+                    return createConceptIllustrationAnimation(topic, complexity, duration);
+                case 'interactive_demo':
+                    return createInteractiveDemoAnimation(topic, complexity, duration);
+                default:
+                    return createDataFlowAnimation(topic, complexity, duration);
+            }
+        }
+
+        function createDataFlowAnimation(topic, complexity, duration) {
+            return {
+                html: `
+                    <div class="animation-container">
+                        <div class="data-flow-animation">
+                            <div class="data-box input-data">
+                                <h4>📊 Input Data</h4>
+                                <p>${topic} Dataset</p>
+                                <small>Raw R data structure</small>
+                            </div>
+                            <div class="data-arrow">
+                                ➡️
+                                <div class="data-transformation">Transform</div>
+                            </div>
+                            <div class="data-box output-data">
+                                <h4>📈 Output</h4>
+                                <p>Processed Result</p>
+                                <small>Clean, analyzed data</small>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                description: `
+                    <p>This animation demonstrates how data flows through R operations for <strong>${topic}</strong>.</p>
+                    <p>Watch as raw data is transformed into meaningful insights through R's powerful data manipulation functions.</p>
+                `,
+                steps: `
+                    <ol>
+                        <li><strong>Data Input:</strong> Raw dataset is loaded into R</li>
+                        <li><strong>Transformation:</strong> R functions process the data</li>
+                        <li><strong>Output:</strong> Clean, analyzed results are produced</li>
+                    </ol>
+                `
+            };
+        }
+
+        function createCodeExecutionAnimation(topic, complexity, duration) {
+            const codeLines = [
+                { code: '# Load required libraries', type: 'comment' },
+                { code: 'library(dplyr)', type: 'function' },
+                { code: 'library(ggplot2)', type: 'function' },
+                { code: '', type: 'blank' },
+                { code: '# Read data', type: 'comment' },
+                { code: `data <- read.csv("${topic.toLowerCase()}.csv")`, type: 'assignment' },
+                { code: '', type: 'blank' },
+                { code: '# Process data', type: 'comment' },
+                { code: 'result <- data %>%', type: 'pipe' },
+                { code: '  filter(!is.na(value)) %>%', type: 'function' },
+                { code: '  group_by(category) %>%', type: 'function' },
+                { code: '  summarise(mean_value = mean(value))', type: 'function' }
+            ];
+
+            const codeHTML = codeLines.map((line, index) => `
+                <div class="code-line" data-step="${index}">
+                    <div class="execution-pointer"></div>
+                    <span class="syntax-${line.type}">${line.code}</span>
+                </div>
+            `).join('');
+
+            const outputLines = [
+                '> library(dplyr)',
+                '> library(ggplot2)',
+                '> data <- read.csv("data.csv")',
+                '  [Data loaded: 1000 rows, 5 columns]',
+                '> result <- data %>% ...',
+                '  # A tibble: 3 × 2',
+                '    category    mean_value',
+                '    <chr>         <dbl>',
+                '  1 Group A        85.2',
+                '  2 Group B        92.1',
+                '  3 Group C        78.9'
+            ];
+
+            const outputHTML = outputLines.map((line, index) => `
+                <div class="output-line" style="animation-delay: ${index * 0.5}s">${line}</div>
+            `).join('');
+
+            return {
+                html: `
+                    <div class="animation-container">
+                        <div class="code-execution-animation">
+                            <div class="code-panel">
+                                <h4>💻 R Code</h4>
+                                ${codeHTML}
+                            </div>
+                            <div class="output-panel">
+                                <h4>📊 Console Output</h4>
+                                ${outputHTML}
+                            </div>
+                        </div>
+                    </div>
+                `,
+                description: `
+                    <p>Watch R code execute step-by-step for <strong>${topic}</strong>.</p>
+                    <p>Each line highlights as it runs, showing the corresponding output in real-time.</p>
+                `,
+                steps: `
+                    <ol>
+                        <li><strong>Library Loading:</strong> Import required R packages</li>
+                        <li><strong>Data Import:</strong> Read data from CSV file</li>
+                        <li><strong>Data Processing:</strong> Apply dplyr operations</li>
+                        <li><strong>Results:</strong> View processed output</li>
+                    </ol>
+                `
+            };
+        }
+
+        function createConceptIllustrationAnimation(topic, complexity, duration) {
+            return {
+                html: `
+                    <div class="animation-container">
+                        <div class="concept-illustration-animation">
+                            <h3 style="color: #2196F3; margin-bottom: 2rem;">Understanding ${topic}</h3>
+                            <div class="concept-diagram">
+                                <div class="concept-node">Input</div>
+                                <div class="concept-node">Process</div>
+                                <div class="concept-node">Output</div>
+                                <div class="concept-connection connection-1"></div>
+                                <div class="concept-connection connection-2"></div>
+                                <div class="concept-connection connection-3"></div>
+                            </div>
+                            <p style="color: #d4d4d4; text-align: center; max-width: 400px;">
+                                ${topic} involves data transformation through a series of connected operations,
+                                creating a flow from raw input to meaningful results.
+                            </p>
+                        </div>
+                    </div>
+                `,
+                description: `
+                    <p>Visual representation of <strong>${topic}</strong> concepts and relationships.</p>
+                    <p>This diagram shows how different components work together in R programming.</p>
+                `,
+                steps: `
+                    <ol>
+                        <li><strong>Concept Introduction:</strong> Core ideas are presented</li>
+                        <li><strong>Connection Mapping:</strong> Relationships are visualized</li>
+                        <li><strong>Integration:</strong> Complete picture emerges</li>
+                    </ol>
+                `
+            };
+        }
+
+        function createInteractiveDemoAnimation(topic, complexity, duration) {
+            return {
+                html: `
+                    <div class="animation-container">
+                        <div class="interactive-demo-animation">
+                            <div class="demo-header">
+                                Interactive ${topic} Demo
+                            </div>
+                            <div class="demo-workspace">
+                                <div class="demo-input">
+                                    <h4>Input Code</h4>
+                                    <textarea class="demo-code-editor" id="demoCodeEditor" placeholder="# Enter your R code here
+data <- c(1, 2, 3, 4, 5)
+mean(data)">data <- c(1, 2, 3, 4, 5)
+mean(data)</textarea>
+                                </div>
+                                <div class="demo-output">
+                                    <h4>Output</h4>
+                                    <div class="demo-result" id="demoResult">
+                                        Click 'Run Code' to see results
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="demo-controls">
+                                <button class="demo-btn" onclick="runDemoCode()">
+                                    <i class="fas fa-play"></i> Run Code
+                                </button>
+                                <button class="demo-btn" onclick="clearDemo()">
+                                    <i class="fas fa-eraser"></i> Clear
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                description: `
+                    <p>Interactive hands-on demo for <strong>${topic}</strong>.</p>
+                    <p>Try writing your own R code and see the results instantly!</p>
+                `,
+                steps: `
+                    <ol>
+                        <li><strong>Code Entry:</strong> Write R code in the editor</li>
+                        <li><strong>Execution:</strong> Run code to see results</li>
+                        <li><strong>Experimentation:</strong> Try different approaches</li>
+                    </ol>
+                `
+            };
+        }
+
+        // Animation control functions
+        function startAnimation() {
+            isPlaying = true;
+            animationStep = 0;
+            document.getElementById('playPauseBtn').innerHTML = '<i class="fas fa-pause"></i>';
+            
+            if (currentAnimation) {
+                runAnimationSequence();
+            }
+        }
+
+        function pauseAnimation() {
+            isPlaying = false;
+            document.getElementById('playPauseBtn').innerHTML = '<i class="fas fa-play"></i>';
+            if (animationTimer) {
+                clearTimeout(animationTimer);
+            }
+        }
+
+        function restartAnimation() {
+            pauseAnimation();
+            animationStep = 0;
+            document.getElementById('animationProgressFill').style.width = '0%';
+            
+            // Reset all animations
+            const animationContainer = document.querySelector('.animation-container');
+            if (animationContainer) {
+                animationContainer.style.animation = 'none';
+                animationContainer.offsetHeight; // Trigger reflow
+                animationContainer.style.animation = null;
+            }
+            
+            setTimeout(startAnimation, 100);
+        }
+
+        function runAnimationSequence() {
+            if (!isPlaying) return;
+            
+            const steps = document.querySelectorAll('.code-line, .data-box, .concept-node');
+            const totalSteps = steps.length || 10;
+            
+            if (animationStep < totalSteps) {
+                // Update progress
+                const progress = (animationStep / totalSteps) * 100;
+                document.getElementById('animationProgressFill').style.width = progress + '%';
+                
+                // Activate current step
+                if (steps[animationStep]) {
+                    steps[animationStep].classList.add('active');
+                }
+                
+                animationStep++;
+                animationTimer = setTimeout(runAnimationSequence, 1000 / animationSpeed);
+            } else {
+                // Animation complete
+                isPlaying = false;
+                document.getElementById('playPauseBtn').innerHTML = '<i class="fas fa-redo"></i>';
+                document.getElementById('animationProgressFill').style.width = '100%';
+            }
+        }
+
+        // Animation control event listeners
+        document.getElementById('playPauseBtn').addEventListener('click', function() {
+            if (isPlaying) {
+                pauseAnimation();
+            } else {
+                startAnimation();
+            }
+        });
+
+        document.getElementById('restartBtn').addEventListener('click', restartAnimation);
+
+        document.getElementById('speedBtn').addEventListener('click', function() {
+            animationSpeed = animationSpeed === 1 ? 2 : animationSpeed === 2 ? 0.5 : 1;
+            this.title = `Speed: ${animationSpeed}x`;
+            
+            if (isPlaying) {
+                // Restart with new speed
+                pauseAnimation();
+                startAnimation();
+            }
+        });
+
+        document.getElementById('fullscreenBtn').addEventListener('click', function() {
+            const animationPlayer = document.getElementById('animationPlayer');
+            if (!document.fullscreenElement) {
+                animationPlayer.requestFullscreen();
+                this.innerHTML = '<i class="fas fa-compress"></i>';
+            } else {
+                document.exitFullscreen();
+                this.innerHTML = '<i class="fas fa-expand"></i>';
+            }
+        });
+
+        // Demo functions
+        function runDemoCode() {
+            const code = document.getElementById('demoCodeEditor').value;
+            const resultDiv = document.getElementById('demoResult');
+            
+            // Simple R code simulation (in real implementation, you'd send to backend)
+            if (code.includes('mean(')) {
+                const match = code.match(/mean\((.+?)\)/);
+                if (match) {
+                    resultDiv.innerHTML = '<span style="color: #4CAF50;">[1] 3</span>';
+                }
+            } else if (code.includes('sum(')) {
+                resultDiv.innerHTML = '<span style="color: #4CAF50;">[1] 15</span>';
+            } else if (code.includes('length(')) {
+                resultDiv.innerHTML = '<span style="color: #4CAF50;">[1] 5</span>';
+            } else {
+                resultDiv.innerHTML = '<span style="color: #4CAF50;">Code executed successfully!</span>';
+            }
+        }
+
+        function clearDemo() {
+            document.getElementById('demoCodeEditor').value = '';
+            document.getElementById('demoResult').innerHTML = 'Click \'Run Code\' to see results';
+        }
+
+        // Interactive Demo Generation
+        async function generateInteractiveDemo(demoData) {
+            const loading = document.getElementById('loading');
+            const loadingText = document.getElementById('loadingText');
+            const demoResult = document.getElementById('demoResult');
+            
+            // Hide other results
+            document.querySelectorAll('#tutorialResult, #animationResult').forEach(result => {
+                result.style.display = 'none';
+            });
+            
+            // Show loading
+            loading.style.display = 'block';
+            loadingText.textContent = '🎮 Building your interactive R demo...';
+            
+            try {
+                // Simulate API call
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Generate demo content
+                const demoContent = createInteractiveDemoContent(demoData);
+                
+                // Update result display
+                document.querySelector('.demo-type-tag').textContent = getDemoTypeLabel(demoData.demo_type);
+                
+                // Set demo content
+                const demoContainer = document.getElementById('demoContainer');
+                demoContainer.innerHTML = demoContent.html;
+                
+                // Show result
+                loading.style.display = 'none';
+                demoResult.style.display = 'block';
+                demoResult.scrollIntoView({ behavior: 'smooth' });
+                
+            } catch (error) {
+                loading.style.display = 'none';
+                alert('Demo generation failed: ' + error.message);
+            }
+        }
+
+        function createInteractiveDemoContent(data) {
+            const { topic, demo_type } = data;
+            
+            switch (demo_type) {
+                case 'code_playground':
+                    return {
+                        html: `
+                            <div class="demo-workspace" style="grid-template-columns: 1fr 1fr; gap: 1rem; height: 400px;">
+                                <div>
+                                    <h4 style="color: #2196F3; margin-bottom: 1rem;">R Code Editor</h4>
+                                    <textarea class="demo-code-editor" id="playgroundEditor" style="height: 300px;"># Welcome to R Playground for ${topic}
+# Try running some R code below:
+
+data <- c(1, 2, 3, 4, 5)
+print(data)
+mean(data)
+summary(data)</textarea>
+                                    <button class="run-code-btn" onclick="runPlaygroundCode()">
+                                        <i class="fas fa-play"></i> Run Code
+                                    </button>
+                                </div>
+                                <div>
+                                    <h4 style="color: #4CAF50; margin-bottom: 1rem;">Output Console</h4>
+                                    <div class="demo-output" id="playgroundOutput" style="height: 340px;">
+                                        Welcome to the R Playground!<br>
+                                        Enter code on the left and click "Run Code" to see results here.
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                case 'guided_tutorial':
+                    return {
+                        html: `
+                            <div class="guided-tutorial">
+                                <div class="tutorial-step active" data-step="1">
+                                    <h4>Step 1: Understanding ${topic}</h4>
+                                    <p>Let's start by exploring the basics of ${topic} in R.</p>
+                                    <code>example_code <- "Hello ${topic}"</code>
+                                    <button class="btn btn-primary" onclick="nextTutorialStep()">Next Step</button>
+                                </div>
+                            </div>
+                        `
+                    };
+                default:
+                    return { html: '<p>Demo content loading...</p>' };
+            }
+        }
+
+        // Utility functions
+        function getAnimationTypeLabel(type) {
+            const labels = {
+                'data_flow': '📊 Data Flow',
+                'code_execution': '💻 Code Execution',
+                'concept_illustration': '🎨 Concept Illustration',
+                'interactive_demo': '🎮 Interactive Demo'
+            };
+            return labels[type] || type;
+        }
+
+        function getComplexityLabel(complexity) {
+            const labels = {
+                'simple': '🟢 Simple',
+                'moderate': '🟡 Moderate',
+                'advanced': '🔴 Advanced'
+            };
+            return labels[complexity] || complexity;
+        }
+
+        function getDemoTypeLabel(type) {
+            const labels = {
+                'code_playground': '🏟️ Code Playground',
+                'guided_tutorial': '🎯 Guided Tutorial',
+                'quiz_interaction': '❓ Quiz Interaction',
+                'data_explorer': '🔍 Data Explorer'
+            };
+            return labels[type] || type;
+        }
+
+        // Export and sharing functions
+        function downloadAnimation() {
+            alert('Animation export feature coming soon!');
+        }
+
+        function shareAnimation() {
+            navigator.clipboard.writeText(window.location.href);
+            alert('Animation link copied to clipboard!');
+        }
+
+        function addToTutorial() {
+            alert('Animation will be added to your tutorial library!');
+        }
+
+        function resetDemo() {
+            const demoContainer = document.getElementById('demoContainer');
+            const editors = demoContainer.querySelectorAll('.demo-code-editor');
+            const outputs = demoContainer.querySelectorAll('.demo-output');
+            
+            editors.forEach(editor => editor.value = '');
+            outputs.forEach(output => output.innerHTML = 'Ready for new code...');
+        }
+
+        function shareDemo() {
+            navigator.clipboard.writeText(window.location.href);
+            alert('Demo link copied to clipboard!');
+        }
+
+        function addDemoToTutorial() {
+            alert('Demo will be added to your tutorial library!');
+        }
+
+        function runPlaygroundCode() {
+            const code = document.getElementById('playgroundEditor').value;
+            const output = document.getElementById('playgroundOutput');
+            
+            // Simulate R code execution
+            const lines = code.split('\n').filter(line => line.trim() && !line.trim().startsWith('#'));
+            let result = '';
+            
+            lines.forEach((line, index) => {
+                result += `> ${line}\n`;
+                
+                if (line.includes('print(') || line.includes('data')) {
+                    result += '[1] 1 2 3 4 5\n';
+                } else if (line.includes('mean(')) {
+                    result += '[1] 3\n';
+                } else if (line.includes('summary(')) {
+                    result += 'Min. 1st Qu. Median Mean 3rd Qu. Max.\n1.0   2.0    3.0  3.0    4.0   5.0\n';
+                }
+                result += '\n';
+            });
+            
+            output.innerHTML = result || 'No output generated.';
+        }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {

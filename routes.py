@@ -1110,3 +1110,341 @@ def test_audio_generation():
             
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+# ==================== ANIMATION GENERATION ROUTES ====================
+
+@main_bp.route('/generate-animation', methods=['POST'])
+@rate_limit(requests_per_minute=10)
+@track_usage('animation_created')
+def generate_animation():
+    """Generate animated content based on user topic and preferences"""
+    
+    # Get and validate input
+    topic = sanitize_input(request.form.get('topic', ''), 200)
+    animation_type = request.form.get('animation_type', '').strip()
+    expertise = request.form.get('expertise', '').strip()
+    duration = request.form.get('duration', type=int)
+    features = request.form.getlist('features')
+    
+    # Validate required fields
+    if not topic or len(topic.strip()) < 3:
+        return jsonify({'success': False, 'error': 'Topic must be at least 3 characters long'}), 400
+    
+    if animation_type not in ['data-flow', 'code-execution', 'concept-illustration', 'interactive-demo']:
+        return jsonify({'success': False, 'error': 'Invalid animation type selected'}), 400
+    
+    if not expertise or expertise not in ['beginner', 'intermediate', 'advanced']:
+        return jsonify({'success': False, 'error': 'Please select a valid expertise level'}), 400
+    
+    if not duration or duration < 1 or duration > 30:
+        return jsonify({'success': False, 'error': 'Duration must be between 1 and 30 minutes'}), 400
+    
+    try:
+        # Generate animation content
+        animation_content = _generate_animation_content(
+            topic=topic,
+            animation_type=animation_type,
+            expertise=expertise,
+            duration=duration,
+            features=features
+        )
+        
+        # Save animated tutorial to database
+        animated_tutorial = Tutorial(
+            user_id=1,  # Default user ID for system
+            topic=f"Animated: {topic}",
+            expertise=expertise,
+            duration=duration,
+            content=animation_content['content'],
+            is_premium=True,
+            status='completed'
+        )
+        
+        # Set additional animation metadata
+        animated_tutorial.set_concepts(animation_content['concepts'])
+        animated_tutorial.set_packages(animation_content['packages'])
+        animated_tutorial.set_learning_objectives(animation_content['objectives'])
+        
+        db.session.add(animated_tutorial)
+        db.session.commit()
+        
+        response_data = {
+            'success': True,
+            'tutorial_id': animated_tutorial.id,
+            'animation_type': animation_type,
+            'animation_html': animation_content['animation_html'],
+            'animation_script': animation_content['animation_script'],
+            'content': animation_content['content'],
+            'concepts': animation_content['concepts'],
+            'packages': animation_content['packages'],
+            'objectives': animation_content['objectives'],
+            'features': features,
+            'topic': topic,
+            'expertise': expertise,
+            'duration': duration,
+            'estimated_steps': animation_content['estimated_steps'],
+            'controls_enabled': True
+        }
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Animation generation failed: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Animation generation failed. Please try again.',
+            'error_details': str(e)
+        }), 500
+
+def _generate_animation_content(topic, animation_type, expertise, duration, features):
+    """Generate template-based animation content for different animation types"""
+    
+    # Animation templates based on type
+    animation_templates = {
+        'data-flow': {
+            'html_template': '''
+            <div class="animation-container">
+                <div class="data-flow-animation">
+                    <div class="data-box input-data">
+                        <h4>Input Data</h4>
+                        <p>{input_description}</p>
+                    </div>
+                    <div class="data-arrow">
+                        <span>→</span>
+                        <div class="data-transformation">{transformation}</div>
+                    </div>
+                    <div class="data-box output-data">
+                        <h4>Output</h4>
+                        <p>{output_description}</p>
+                    </div>
+                </div>
+            </div>
+            ''',
+            'script_template': '''
+            function runDataFlowAnimation() {{
+                const elements = document.querySelectorAll('.data-box, .data-arrow');
+                elements.forEach((el, index) => {{
+                    setTimeout(() => {{
+                        el.classList.add('animate-fade-in');
+                    }}, index * 800);
+                }});
+            }}
+            '''
+        },
+        'code-execution': {
+            'html_template': '''
+            <div class="animation-container">
+                <div class="code-execution-animation">
+                    <div class="code-panel">
+                        <h4>R Code</h4>
+                        {code_lines}
+                    </div>
+                    <div class="output-panel">
+                        <h4>Output</h4>
+                        <div id="output-content"></div>
+                    </div>
+                </div>
+            </div>
+            ''',
+            'script_template': '''
+            function runCodeExecutionAnimation() {{
+                const codeLines = document.querySelectorAll('.code-line');
+                const outputContent = document.getElementById('output-content');
+                const outputs = {outputs};
+                
+                codeLines.forEach((line, index) => {{
+                    setTimeout(() => {{
+                        line.classList.add('active');
+                        if (outputs[index]) {{
+                            const outputLine = document.createElement('div');
+                            outputLine.className = 'output-line';
+                            outputLine.textContent = outputs[index];
+                            outputLine.style.animationDelay = '0.2s';
+                            outputContent.appendChild(outputLine);
+                        }}
+                        if (index > 0) codeLines[index-1].classList.remove('active');
+                    }}, index * 1500);
+                }});
+            }}
+            '''
+        },
+        'concept-illustration': {
+            'html_template': '''
+            <div class="animation-container">
+                <div class="concept-illustration-animation">
+                    <h3>{concept_title}</h3>
+                    <div class="concept-diagram">
+                        {concept_nodes}
+                        {concept_connections}
+                    </div>
+                    <p>{concept_description}</p>
+                </div>
+            </div>
+            ''',
+            'script_template': '''
+            function runConceptAnimation() {{
+                const nodes = document.querySelectorAll('.concept-node');
+                const connections = document.querySelectorAll('.concept-connection');
+                
+                setTimeout(() => {{
+                    connections.forEach((conn, index) => {{
+                        setTimeout(() => {{
+                            conn.classList.add('animate-fade-in');
+                        }}, index * 300);
+                    }});
+                }}, 2000);
+            }}
+            '''
+        },
+        'interactive-demo': {
+            'html_template': '''
+            <div class="animation-container">
+                <div class="interactive-demo-animation">
+                    <div class="demo-header">
+                        <h4>Interactive {topic} Demo</h4>
+                    </div>
+                    <div class="demo-workspace">
+                        <div class="demo-input">
+                            <h5>Try It Yourself</h5>
+                            <textarea class="demo-code-editor" placeholder="# Enter R code here...">{sample_code}</textarea>
+                            <button class="run-code-btn" onclick="runDemoCode()">Run Code</button>
+                        </div>
+                        <div class="demo-output">
+                            <h5>Output</h5>
+                            <div id="demo-output-content">Click "Run Code" to see results...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            ''',
+            'script_template': '''
+            function runDemoCode() {{
+                const code = document.querySelector('.demo-code-editor').value;
+                const output = document.getElementById('demo-output-content');
+                
+                // Simulate R code execution with sample outputs
+                const sampleOutputs = {sample_outputs};
+                const randomOutput = sampleOutputs[Math.floor(Math.random() * sampleOutputs.length)];
+                
+                output.innerHTML = '<div class="output-line">' + randomOutput + '</div>';
+                output.scrollTop = output.scrollHeight;
+            }}
+            
+            function runInteractiveDemoAnimation() {{
+                const editor = document.querySelector('.demo-code-editor');
+                editor.classList.add('animate-glow');
+                setTimeout(() => {{
+                    editor.classList.remove('animate-glow');
+                }}, 2000);
+            }}
+            '''
+        }
+    }
+    
+    # Generate content based on topic and animation type
+    if animation_type == 'data-flow':
+        animation_html = animation_templates['data-flow']['html_template'].format(
+            input_description=f"Raw {topic} data",
+            transformation=f"Process {topic}",
+            output_description=f"Cleaned {topic} results"
+        )
+        animation_script = animation_templates['data-flow']['script_template']
+        
+    elif animation_type == 'code-execution':
+        code_lines_html = ''.join([
+            f'<div class="code-line"><span class="execution-pointer"></span><span class="syntax-keyword">library</span>(<span class="syntax-string">{topic.lower()}</span>)</div>',
+            f'<div class="code-line"><span class="execution-pointer"></span><span class="syntax-variable">data</span> &lt;- <span class="syntax-function">read.csv</span>(<span class="syntax-string">"sample.csv"</span>)</div>',
+            f'<div class="code-line"><span class="execution-pointer"></span><span class="syntax-function">summary</span>(<span class="syntax-variable">data</span>)</div>',
+            f'<div class="code-line"><span class="execution-pointer"></span><span class="syntax-function">plot</span>(<span class="syntax-variable">data</span>)</div>'
+        ])
+        
+        animation_html = animation_templates['code-execution']['html_template'].format(
+            code_lines=code_lines_html
+        )
+        animation_script = animation_templates['code-execution']['script_template'].format(
+            outputs='["Library loaded", "Data imported (150 rows)", "Min: 1.2, Max: 8.7, Mean: 4.5", "Plot generated"]'
+        )
+        
+    elif animation_type == 'concept-illustration':
+        concept_nodes_html = ''.join([
+            f'<div class="concept-node">{topic}</div>',
+            '<div class="concept-node">Analysis</div>',
+            '<div class="concept-node">Results</div>'
+        ])
+        concept_connections_html = ''.join([
+            '<div class="concept-connection connection-1"></div>',
+            '<div class="concept-connection connection-2"></div>',
+            '<div class="concept-connection connection-3"></div>'
+        ])
+        
+        animation_html = animation_templates['concept-illustration']['html_template'].format(
+            concept_title=f"Understanding {topic}",
+            concept_nodes=concept_nodes_html,
+            concept_connections=concept_connections_html,
+            concept_description=f"This diagram shows how {topic} concepts connect and flow together."
+        )
+        animation_script = animation_templates['concept-illustration']['script_template']
+        
+    else:  # interactive-demo
+        sample_code = f"""# Sample {topic} code
+data <- c(1, 2, 3, 4, 5)
+mean(data)
+summary(data)"""
+        
+        animation_html = animation_templates['interactive-demo']['html_template'].format(
+            topic=topic,
+            sample_code=sample_code
+        )
+        animation_script = animation_templates['interactive-demo']['script_template'].format(
+            sample_outputs='["[1] 3", "Min: 1, Max: 5, Mean: 3", "Length: 5, Class: numeric"]'
+        )
+    
+    # Generate learning content
+    content = f"""# Animated Tutorial: {topic}
+
+## Learning Objectives
+- Understand core {topic} concepts through interactive visualizations
+- See step-by-step execution of {topic} operations
+- Practice with hands-on examples
+
+## Animation Overview
+This {animation_type.replace('-', ' ')} animation demonstrates key {topic} concepts using visual elements and interactive components.
+
+### Key Features:
+{chr(10).join(f"- {feature.replace('-', ' ').title()}" for feature in features)}
+
+## Getting Started
+1. Watch the animation sequence
+2. Use the control buttons to pause, replay, or adjust speed
+3. Try the interactive elements when available
+
+## Additional Resources
+- Practice these concepts in RStudio
+- Explore related {topic} functions
+- Build on these examples with your own data
+
+*This animated content was generated to enhance your {topic} learning experience.*
+"""
+    
+    # Estimate animation steps based on type
+    step_counts = {
+        'data-flow': 3,
+        'code-execution': 4,
+        'concept-illustration': 6,
+        'interactive-demo': 2
+    }
+    
+    return {
+        'content': content,
+        'animation_html': animation_html,
+        'animation_script': animation_script,
+        'concepts': [topic, 'Data Visualization', 'Interactive Learning'],
+        'packages': ['base', 'utils'],
+        'objectives': [
+            f'Master {topic} fundamentals',
+            'Apply visual learning techniques',
+            'Practice interactive exploration'
+        ],
+        'estimated_steps': step_counts.get(animation_type, 3)
+    }
