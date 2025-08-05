@@ -813,3 +813,467 @@
                             <strong>Connection successful!</strong><br>
                             Found ${result.model_count} models available<br>
                             Response time: ${result.response_time}
+                        </div>
+                    `;
+                    
+                    // Auto-refresh models on successful connection
+                    refreshModels();
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <strong>Connection failed!</strong><br>
+                            ${result.error}<br>
+                            ${result.details || ''}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('openrouterTestResult').innerHTML = `
+                    <div class="test-result test-error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <strong>Network error!</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            } finally {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        // Save OpenRouter settings
+        document.getElementById('openrouterForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            try {
+                const response = await fetch('/api/admin/settings/openrouter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                    loadCurrentSettings(); // Reload to verify
+                } else {
+                    showAlert(result.error || 'Failed to save settings', 'error');
+                }
+            } catch (error) {
+                showAlert('Network error: ' + error.message, 'error');
+            }
+        });
+
+        // Save commercial API keys
+        document.getElementById('commercialApiForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            try {
+                const response = await fetch('/api/admin/settings/commercial', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                } else {
+                    showAlert(result.error || 'Failed to save API keys', 'error');
+                }
+            } catch (error) {
+                showAlert('Network error: ' + error.message, 'error');
+            }
+        });
+
+        // Refresh available models
+        async function refreshModels() {
+            try {
+                const response = await fetch('/api/admin/models/refresh');
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateModelLists(data.text_models, data.audio_models);
+                    showAlert('Models refreshed successfully', 'success');
+                } else {
+                    showAlert(data.error || 'Failed to refresh models', 'error');
+                }
+            } catch (error) {
+                showAlert('Failed to refresh models: ' + error.message, 'error');
+            }
+        }
+
+        // Update model lists in UI
+        function updateModelLists(textModels, audioModels) {
+            const textSelect = document.getElementById('defaultTextModel');
+            const audioSelect = document.getElementById('defaultAudioModel');
+            const textList = document.getElementById('textModelsList');
+            const audioList = document.getElementById('audioModelsList');
+            
+            // Update dropdowns
+            textSelect.innerHTML = '<option value="">Select a text model...</option>';
+            audioSelect.innerHTML = '<option value="">Select an audio model...</option>';
+            
+            textModels.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                option.textContent = model.name;
+                textSelect.appendChild(option);
+            });
+            
+            audioModels.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                option.textContent = model.name;
+                audioSelect.appendChild(option);
+            });
+            
+            // Update model lists
+            textList.innerHTML = textModels.map(model => `
+                <div class="model-item">
+                    <div class="model-info">
+                        <div class="model-name">${model.name}</div>
+                        <div class="model-description">${model.description || 'No description available'}</div>
+                    </div>
+                    <div class="model-price">${model.pricing || 'N/A'}</div>
+                </div>
+            `).join('');
+            
+            audioList.innerHTML = audioModels.map(model => `
+                <div class="model-item">
+                    <div class="model-info">
+                        <div class="model-name">${model.name}</div>
+                        <div class="model-description">${model.description || 'No description available'}</div>
+                    </div>
+                    <div class="model-price">${model.pricing || 'N/A'}</div>
+                </div>
+            `).join('');
+            
+            // Update status indicators
+            document.getElementById('textModelsStatus').innerHTML = 
+                `<i class="fas fa-check"></i> ${textModels.length} Available`;
+            document.getElementById('audioModelsStatus').innerHTML = 
+                `<i class="fas fa-check"></i> ${audioModels.length} Available`;
+        }
+
+        // Save model settings
+        async function saveModelSettings() {
+            const data = {
+                default_text_model: document.getElementById('defaultTextModel').value,
+                default_audio_model: document.getElementById('defaultAudioModel').value
+            };
+            
+            try {
+                const response = await fetch('/api/admin/settings/models', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                } else {
+                    showAlert(result.error || 'Failed to save model settings', 'error');
+                }
+            } catch (error) {
+                showAlert('Network error: ' + error.message, 'error');
+            }
+        }
+
+        // Toggle API key visibility
+        function toggleApiKeyVisibility(inputId) {
+            const input = document.getElementById(inputId);
+            const button = input.nextElementSibling;
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                button.innerHTML = '<i class="fas fa-eye-slash"></i>';
+            } else {
+                input.type = 'password';
+                button.innerHTML = '<i class="fas fa-eye"></i>';
+            }
+        }
+
+        // Test commercial API keys
+        async function testApiKey(provider) {
+            const apiKeyMap = {
+                'openai': 'openaiApiKey',
+                'anthropic': 'anthropicApiKey',
+                'elevenlabs': 'elevenLabsApiKey'
+            };
+            
+            const inputId = apiKeyMap[provider];
+            const apiKey = document.getElementById(inputId).value;
+            
+            if (!apiKey) {
+                showAlert(`Please enter a ${provider} API key first`, 'warning');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/test-commercial-api', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider, api_key: apiKey })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                } else {
+                    showAlert(result.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Test failed: ' + error.message, 'error');
+            }
+        }
+
+        // Test text generation
+        async function testTextGeneration() {
+            const topic = document.getElementById('testTopic').value;
+            const button = event.target;
+            const originalText = button.innerHTML;
+            
+            try {
+                button.disabled = true;
+                button.innerHTML = '<span class="loading"><span class="spinner"></span> Testing...</span>';
+                
+                const response = await fetch('/api/admin/test-generation/text', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic })
+                });
+                
+                const result = await response.json();
+                const resultsDiv = document.getElementById('testResults');
+                
+                if (result.success) {
+                    resultsDiv.innerHTML = `
+                        <div class="test-result test-success">
+                            <i class="fas fa-check-circle"></i>
+                            <strong>Text generation successful!</strong><br>
+                            Model: ${result.model_used}<br>
+                            Tokens: ~${Math.round(result.tokens_used)}<br>
+                            <details style="margin-top: 1rem;">
+                                <summary>Generated Content Preview</summary>
+                                <div style="max-height: 200px; overflow-y: auto; background: #f8f9fa; padding: 1rem; border-radius: 4px; margin-top: 0.5rem;">
+                                    ${result.content.substring(0, 500)}...
+                                </div>
+                            </details>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="test-result test-error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <strong>Text generation failed!</strong><br>
+                            ${result.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('testResults').innerHTML = `
+                    <div class="test-result test-error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <strong>Network error!</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            } finally {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        // Test audio generation
+        async function testAudioGeneration() {
+            const topic = document.getElementById('testTopic').value;
+            const button = event.target;
+            const originalText = button.innerHTML;
+            
+            try {
+                button.disabled = true;
+                button.innerHTML = '<span class="loading"><span class="spinner"></span> Testing...</span>';
+                
+                const response = await fetch('/api/admin/test-generation/audio', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic })
+                });
+                
+                const result = await response.json();
+                const resultsDiv = document.getElementById('testResults');
+                
+                if (result.success) {
+                    resultsDiv.innerHTML = `
+                        <div class="test-result test-success">
+                            <i class="fas fa-check-circle"></i>
+                            <strong>Audio generation successful!</strong><br>
+                            Model: ${result.model_used}<br>
+                            Voice: ${result.audio_voice}<br>
+                            Duration: ~${result.audio_duration}s<br>
+                            <audio controls style="width: 100%; margin-top: 1rem;">
+                                <source src="${result.audio_url}" type="audio/mpeg">
+                                Your browser does not support the audio element.
+                            </audio>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="test-result test-error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <strong>Audio generation failed!</strong><br>
+                            ${result.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('testResults').innerHTML = `
+                    <div class="test-result test-error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <strong>Network error!</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            } finally {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        // Export settings
+        async function exportSettings() {
+            try {
+                const response = await fetch('/api/admin/settings/export');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const blob = new Blob([JSON.stringify(data.settings, null, 2)], 
+                        { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'r-tutor-pro-settings.json';
+                    a.click();
+                    
+                    URL.revokeObjectURL(url);
+                    showAlert('Settings exported successfully', 'success');
+                } else {
+                    showAlert('Failed to export settings', 'error');
+                }
+            } catch (error) {
+                showAlert('Export failed: ' + error.message, 'error');
+            }
+        }
+
+        // Import settings
+        function importSettings() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = async function(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                try {
+                    const text = await file.text();
+                    const settings = JSON.parse(text);
+                    
+                    const response = await fetch('/api/admin/settings/import', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(settings)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showAlert(result.message, 'success');
+                        loadCurrentSettings();
+                    } else {
+                        showAlert(result.error || 'Import failed', 'error');
+                    }
+                } catch (error) {
+                    showAlert('Import failed: ' + error.message, 'error');
+                }
+            };
+            
+            input.click();
+        }
+
+        // Reset settings
+        async function resetSettings() {
+            if (!confirm('Reset all settings to default? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/settings/reset', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                    loadCurrentSettings();
+                } else {
+                    showAlert(result.error || 'Reset failed', 'error');
+                }
+            } catch (error) {
+                showAlert('Reset failed: ' + error.message, 'error');
+            }
+        }
+
+        // Show alert messages
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                ${message}
+            `;
+            
+            document.body.insertBefore(alertDiv, document.body.firstChild);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Check system status
+        async function checkSystemStatus() {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                
+                if (data.openrouter) {
+                    updateSystemStatus({
+                        openrouter_connected: data.openrouter.status === 'connected',
+                        models: {
+                            text: data.openrouter.models_available || 0,
+                            audio: 0 // Will be updated when models are loaded
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to check system status:', error);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -776,35 +776,69 @@ def rate_limit_exceeded(error):
 @admin_api_bp.route('/settings', methods=['GET'])
 def get_admin_settings():
     """Get all admin settings"""
-    return jsonify({
-        'success': True,
-        'settings': {
-            'openrouter': {
-                'api_key': openrouter_service.api_key,
-                'site_url': openrouter_service.site_url,
-                'site_name': openrouter_service.site_name,
-                'default_text_model': openrouter_service.default_text_model,
-                'default_audio_model': openrouter_service.default_audio_model
+    try:
+        # Safely get OpenRouter status
+        openrouter_status = openrouter_service.get_model_status()
+        is_connected = openrouter_status.get('status') == 'connected'
+        
+        # Safely get model counts
+        text_models = []
+        audio_models = []
+        if is_connected:
+            try:
+                text_models = openrouter_service.get_available_models('text')
+                audio_models = openrouter_service.get_available_models('audio')
+            except Exception as e:
+                logger.warning(f"Failed to get model lists: {e}")
+        
+        # Safely get usage statistics
+        try:
+            text_gen_count = UsageLog.query.filter_by(action='tutorial_created').count()
+            audio_gen_count = UsageLog.query.filter_by(action='audio_generated').count()
+            total_tokens = UsageLog.query.with_entities(db.func.sum(UsageLog.tokens_used)).scalar() or 0
+        except Exception as e:
+            logger.warning(f"Failed to get usage statistics: {e}")
+            text_gen_count = 0
+            audio_gen_count = 0
+            total_tokens = 0
+        
+        return jsonify({
+            'success': True,
+            'settings': {
+                'openrouter': {
+                    'api_key': getattr(openrouter_service, 'api_key', ''),
+                    'site_url': getattr(openrouter_service, 'site_url', 'http://localhost:5000'),
+                    'site_name': getattr(openrouter_service, 'site_name', 'R Tutor Pro'),
+                    'default_text_model': getattr(openrouter_service, 'default_text_model', ''),
+                    'default_audio_model': getattr(openrouter_service, 'default_audio_model', '')
+                },
+                'commercial': {
+                    'openai_api_key': os.environ.get('OPENAI_API_KEY', ''),
+                    'anthropic_api_key': os.environ.get('ANTHROPIC_API_KEY', ''),
+                    'elevenlabs_api_key': os.environ.get('ELEVENLABS_API_KEY', '')
+                }
             },
-            'commercial': {
-                'openai_api_key': os.environ.get('OPENAI_API_KEY', ''),
-                'anthropic_api_key': os.environ.get('ANTHROPIC_API_KEY', ''),
-                'elevenlabs_api_key': os.environ.get('ELEVENLABS_API_KEY', '')
+            'status': {
+                'openrouter_connected': is_connected,
+                'models': {
+                    'text': len(text_models),
+                    'audio': len(audio_models)
+                }
+            },
+            'usage': {
+                'text_generations': text_gen_count,
+                'audio_generations': audio_gen_count,
+                'total_tokens': total_tokens
             }
-        },
-        'status': {
-            'openrouter_connected': openrouter_service.get_model_status()['status'] == 'connected',
-            'models': {
-                'text': len(openrouter_service.get_available_models('text')),
-                'audio': len(openrouter_service.get_available_models('audio'))
-            }
-        },
-        'usage': {
-            'text_generations': UsageLog.query.filter_by(action='tutorial_created').count(),
-            'audio_generations': UsageLog.query.filter_by(action='audio_generated').count(),
-            'total_tokens': UsageLog.query.with_entities(db.func.sum(UsageLog.tokens_used)).scalar() or 0
-        }
-    })
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to get admin settings: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to load admin settings',
+            'details': str(e)
+        }), 500
 
 @admin_api_bp.route('/settings/openrouter', methods=['POST'])
 def save_openrouter_settings():
@@ -1057,7 +1091,7 @@ def test_audio_generation():
         audio_result = openrouter_service.generate_audio(
             text=tutorial_data['content'],
             audio_model=openrouter_service.default_audio_model,
-            voice=openrouter_service.AUDIO_VOICE, # Assuming AUDIO_VOICE is accessible
+            voice=os.environ.get('OPENROUTER_VOICE', 'alloy'),
             speed=1.0,
             format='mp3'
         )

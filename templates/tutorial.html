@@ -216,22 +216,86 @@
             font-size: 1.1rem;
             line-height: 1.8;
             color: #2c3e50;
+            position: relative;
+        }
+
+        .tutorial-text h1 {
+            color: #1976d2;
+            margin: 2.5rem 0 1.5rem 0;
+            font-size: 2rem;
+            border-bottom: 3px solid #2196F3;
+            padding-bottom: 0.5rem;
         }
 
         .tutorial-text h2 {
             color: #1976d2;
             margin: 2rem 0 1rem 0;
             font-size: 1.5rem;
+            border-left: 4px solid #2196F3;
+            padding-left: 1rem;
         }
 
         .tutorial-text h3 {
             color: #388e3c;
             margin: 1.5rem 0 1rem 0;
             font-size: 1.2rem;
+            border-left: 3px solid #4CAF50;
+            padding-left: 0.75rem;
         }
 
         .tutorial-text p {
-            margin-bottom: 1rem;
+            margin-bottom: 1.2rem;
+            text-align: justify;
+        }
+
+        .tutorial-text ul, .tutorial-text ol {
+            margin: 1rem 0 1rem 2rem;
+        }
+
+        .tutorial-text li {
+            margin-bottom: 0.5rem;
+        }
+
+        .tutorial-text blockquote {
+            border-left: 4px solid #FF9800;
+            background: rgba(255, 152, 0, 0.1);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+            font-style: italic;
+        }
+
+        .tutorial-text strong {
+            color: #1976d2;
+            font-weight: 700;
+        }
+
+        .tutorial-text em {
+            color: #388e3c;
+            font-style: italic;
+        }
+
+        .text-highlight {
+            background: linear-gradient(120deg, rgba(255, 193, 7, 0.3) 0%, rgba(255, 193, 7, 0.3) 100%);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            animation: highlight-pulse 2s ease-in-out;
+        }
+
+        @keyframes highlight-pulse {
+            0%, 100% { background: rgba(255, 193, 7, 0.3); }
+            50% { background: rgba(255, 193, 7, 0.6); }
+        }
+
+        .reading-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 4px;
+            background: linear-gradient(90deg, #2196F3, #4CAF50);
+            z-index: 1000;
+            transition: width 0.3s ease;
         }
 
         .code-block {
@@ -244,12 +308,80 @@
             font-size: 0.9rem;
             overflow-x: auto;
             border-left: 4px solid #2196F3;
+            position: relative;
+        }
+
+        .code-block::before {
+            content: 'R';
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: #2196F3;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
         }
 
         .code-block code {
             background: none;
             padding: 0;
             border-radius: 0;
+        }
+
+        .code-explanation {
+            background: rgba(33, 150, 243, 0.1);
+            border: 1px solid rgba(33, 150, 243, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 0.5rem 0 1.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        .code-explanation::before {
+            content: '💡 ';
+            font-size: 1rem;
+        }
+
+        .interactive-element {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(76, 175, 80, 0.05));
+            border: 2px solid rgba(76, 175, 80, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            position: relative;
+        }
+
+        .interactive-element::before {
+            content: '🎯 Interactive';
+            position: absolute;
+            top: -10px;
+            left: 15px;
+            background: #4CAF50;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .copy-button {
+            position: absolute;
+            top: 0.5rem;
+            right: 3rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #d4d4d4;
+            padding: 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .copy-button:hover {
+            background: rgba(255, 255, 255, 0.2);
         }
 
         .pause-marker, .emphasis-marker {
@@ -451,6 +583,9 @@
         </div>
     </nav>
 
+    <!-- Reading Progress Bar -->
+    <div class="reading-progress" id="readingProgress"></div>
+
     <div class="container">
         <div class="tutorial-header">
             <h1 class="tutorial-title">{{ tutorial.topic }}</h1>
@@ -570,6 +705,39 @@
                     </ul>
                 </div>
 
+                <!-- Learning Controls -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">
+                        <i class="fas fa-brain"></i> Learning Controls
+                    </h3>
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <div class="form-group" style="margin-bottom: 0.5rem;">
+                            <label class="form-label" style="font-size: 0.9rem; margin-bottom: 0.25rem;">Reading Speed</label>
+                            <input type="range" id="readingSpeed" min="0.5" max="2" step="0.1" value="1" 
+                                   style="width: 100%;" onchange="adjustReadingSpeed(this.value)">
+                            <small style="color: #666; font-size: 0.8rem;">Current: <span id="speedValue">1.0x</span></small>
+                        </div>
+                        
+                        <div class="form-group" style="margin-bottom: 0.5rem;">
+                            <label class="form-label" style="font-size: 0.9rem; margin-bottom: 0.25rem;">Focus Mode</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="focusMode" onchange="toggleFocusMode(this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                            <small style="color: #666; font-size: 0.8rem;">Highlights current section</small>
+                        </div>
+                        
+                        <div class="form-group" style="margin-bottom: 0.5rem;">
+                            <label class="form-label" style="font-size: 0.9rem; margin-bottom: 0.25rem;">Auto-scroll</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="autoScroll" onchange="toggleAutoScroll(this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                            <small style="color: #666; font-size: 0.8rem;">Sync with audio playback</small>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Quick Actions -->
                 <div class="sidebar-section">
                     <h3 class="sidebar-title">
@@ -579,12 +747,43 @@
                         <button class="btn btn-primary" onclick="generateAudio()" style="font-size: 0.9rem;">
                             <i class="fas fa-headphones"></i> Generate Audio
                         </button>
+                        <button class="btn btn-secondary" onclick="toggleFullscreen()" style="font-size: 0.9rem;">
+                            <i class="fas fa-expand"></i> Fullscreen
+                        </button>
                         <button class="btn btn-secondary" onclick="copyToClipboard()" style="font-size: 0.9rem;">
                             <i class="fas fa-copy"></i> Copy Content
                         </button>
                         <button class="btn btn-secondary" onclick="printTutorial()" style="font-size: 0.9rem;">
                             <i class="fas fa-print"></i> Print
                         </button>
+                    </div>
+                </div>
+
+                <!-- Progress Tracker -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">
+                        <i class="fas fa-chart-line"></i> Progress
+                    </h3>
+                    <div style="margin-bottom: 1rem;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                            <span>Reading Progress</span>
+                            <span id="readingPercentage">0%</span>
+                        </div>
+                        <div style="width: 100%; height: 8px; background: #e3f2fd; border-radius: 4px; overflow: hidden;">
+                            <div id="sidebarProgress" style="height: 100%; background: linear-gradient(90deg, #2196F3, #4CAF50); width: 0%; transition: width 0.3s ease;"></div>
+                        </div>
+                    </div>
+                    
+                    <div style="font-size: 0.85rem; color: #666;">
+                        <div style="margin-bottom: 0.25rem;">
+                            <i class="fas fa-clock"></i> Estimated: <span id="estimatedTime">{{ tutorial.duration }} min</span>
+                        </div>
+                        <div style="margin-bottom: 0.25rem;">
+                            <i class="fas fa-eye"></i> Section: <span id="currentSection">Introduction</span>
+                        </div>
+                        <div>
+                            <i class="fas fa-bookmark"></i> <span id="completedSections">0</span> of <span id="totalSections">0</span> sections
+                        </div>
                     </div>
                 </div>
             </div>
@@ -642,6 +841,9 @@
                 const totalSec = Math.floor(audioPlayer.duration % 60);
                 
                 timeDisplay.textContent = `${currentMin}:${currentSec.toString().padStart(2, '0')} / ${totalMin}:${totalSec.toString().padStart(2, '0')}`;
+                
+                // Sync audio with text highlighting
+                syncAudioWithText();
             });
 
             audioPlayer.addEventListener('ended', function() {
@@ -650,26 +852,242 @@
             });
         }
 
-        // Format tutorial content
+        // Enhanced reading progress tracking
+        function updateReadingProgress() {
+            const windowHeight = window.innerHeight;
+            const documentHeight = document.documentElement.scrollHeight - windowHeight;
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const progress = Math.min((scrollTop / documentHeight) * 100, 100);
+            
+            document.getElementById('readingProgress').style.width = progress + '%';
+            document.getElementById('sidebarProgress').style.width = progress + '%';
+            document.getElementById('readingPercentage').textContent = Math.round(progress) + '%';
+            
+            // Update current section
+            updateCurrentSection();
+        }
+
+        // Update current section based on scroll position
+        function updateCurrentSection() {
+            const headers = document.querySelectorAll('.tutorial-text h1, .tutorial-text h2, .tutorial-text h3');
+            const totalSections = headers.length;
+            document.getElementById('totalSections').textContent = totalSections;
+            
+            let currentSection = 'Introduction';
+            let completedSections = 0;
+            
+            headers.forEach((header, index) => {
+                const rect = header.getBoundingClientRect();
+                if (rect.top <= window.innerHeight / 2) {
+                    currentSection = header.textContent;
+                    completedSections = index + 1;
+                }
+            });
+            
+            document.getElementById('currentSection').textContent = currentSection;
+            document.getElementById('completedSections').textContent = completedSections;
+        }
+
+        // Learning control functions
+        function adjustReadingSpeed(speed) {
+            document.getElementById('speedValue').textContent = parseFloat(speed).toFixed(1) + 'x';
+            
+            // Apply speed to audio if available
+            if (audioPlayer) {
+                audioPlayer.playbackRate = parseFloat(speed);
+            }
+            
+            // Adjust auto-scroll speed
+            window.readingSpeed = parseFloat(speed);
+        }
+
+        function toggleFocusMode(enabled) {
+            const mainContent = document.querySelector('.main-content');
+            const sidebar = document.querySelector('.sidebar');
+            
+            if (enabled) {
+                mainContent.style.filter = 'none';
+                sidebar.style.opacity = '0.3';
+                document.body.classList.add('focus-mode');
+            } else {
+                mainContent.style.filter = 'none';
+                sidebar.style.opacity = '1';
+                document.body.classList.remove('focus-mode');
+            }
+        }
+
+        let autoScrollInterval = null;
+        function toggleAutoScroll(enabled) {
+            if (enabled && audioPlayer && !audioPlayer.paused) {
+                startAutoScroll();
+            } else {
+                stopAutoScroll();
+            }
+        }
+
+        function startAutoScroll() {
+            if (autoScrollInterval) clearInterval(autoScrollInterval);
+            
+            autoScrollInterval = setInterval(() => {
+                if (audioPlayer && !audioPlayer.paused) {
+                    const scrollSpeed = (window.readingSpeed || 1) * 2;
+                    window.scrollBy(0, scrollSpeed);
+                }
+            }, 100);
+        }
+
+        function stopAutoScroll() {
+            if (autoScrollInterval) {
+                clearInterval(autoScrollInterval);
+                autoScrollInterval = null;
+            }
+        }
+
+        function toggleFullscreen() {
+            const mainContent = document.querySelector('.main-content');
+            
+            if (!document.fullscreenElement) {
+                if (mainContent.requestFullscreen) {
+                    mainContent.requestFullscreen();
+                } else if (mainContent.webkitRequestFullscreen) {
+                    mainContent.webkitRequestFullscreen();
+                } else if (mainContent.msRequestFullscreen) {
+                    mainContent.msRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // Format tutorial content with enhanced R markdown support
         function formatTutorialContent() {
             const content = document.getElementById('tutorialContent');
             let html = content.innerHTML;
             
-            // Format pause markers
-            html = html.replace(/\[PAUSE\]/g, '<span class="pause-marker"><i class="fas fa-pause"></i> PAUSE</span>');
+            // Enhanced R code block formatting with copy buttons
+            html = html.replace(/```r\n([\s\S]*?)\n```/g, function(match, code) {
+                const codeId = 'code-' + Math.random().toString(36).substr(2, 9);
+                return `
+                    <div class="code-block" id="${codeId}">
+                        <button class="copy-button" onclick="copyCode('${codeId}')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <code class="language-r">${code}</code>
+                    </div>
+                    <div class="code-explanation">
+                        This R code demonstrates key concepts. Click the copy button to use it in your R environment.
+                    </div>
+                `;
+            });
+
+            // Format inline code with better styling
+            html = html.replace(/`([^`]+)`/g, '<code style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); padding: 0.2rem 0.4rem; border-radius: 4px; font-family: \'Monaco\', monospace; color: #e83e8c; border: 1px solid #dee2e6;">$1</code>');
             
-            // Format emphasis markers
-            html = html.replace(/\[EMPHASIS\]/g, '<span class="emphasis-marker"><i class="fas fa-exclamation"></i> EMPHASIS</span>');
+            // Format blockquotes for important notes
+            html = html.replace(/^>\s*(.+)$/gm, '<blockquote>$1</blockquote>');
             
-            // Format code blocks
-            html = html.replace(/```r\n([\s\S]*?)\n```/g, '<div class="code-block"><code class="language-r">$1</code></div>');
-            html = html.replace(/`([^`]+)`/g, '<code style="background: #f8f9fa; padding: 0.2rem 0.4rem; border-radius: 4px; font-family: monospace;">$1</code>');
+            // Format headers with better styling
+            html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+            html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+            html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+            
+            // Format lists
+            html = html.replace(/^\* (.+)$/gm, '<li>$1</li>');
+            html = html.replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>');
+            
+            // Wrap consecutive list items
+            html = html.replace(/(<li>.*<\/li>)/g, '<ul>$1</ul>');
+            html = html.replace(/<\/ul>\s*<ul>/g, ''); // Merge consecutive lists
+            
+            // Format emphasis and strong text
+            html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+            
+            // Add interactive elements for key concepts
+            html = html.replace(/\[INTERACTIVE\]([\s\S]*?)\[\/INTERACTIVE\]/g, function(match, content) {
+                return `<div class="interactive-element">${content}</div>`;
+            });
+            
+            // Format pause and emphasis markers for audio sync
+            html = html.replace(/\[PAUSE\]/g, '<span class="pause-marker" data-audio-cue="pause"><i class="fas fa-pause"></i> PAUSE</span>');
+            html = html.replace(/\[EMPHASIS\]/g, '<span class="emphasis-marker" data-audio-cue="emphasis"><i class="fas fa-exclamation"></i> EMPHASIS</span>');
             
             content.innerHTML = html;
             
-            // Highlight code
+            // Highlight code syntax
             if (typeof Prism !== 'undefined') {
                 Prism.highlightAll();
+            }
+
+            // Add click handlers for interactive elements
+            addInteractiveHandlers();
+        }
+
+        // Copy code to clipboard
+        function copyCode(codeId) {
+            const codeBlock = document.getElementById(codeId);
+            const code = codeBlock.querySelector('code').textContent;
+            
+            navigator.clipboard.writeText(code).then(() => {
+                const button = codeBlock.querySelector('.copy-button');
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check"></i>';
+                button.style.background = 'rgba(76, 175, 80, 0.2)';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.background = 'rgba(255, 255, 255, 0.1)';
+                }, 2000);
+            });
+        }
+
+        // Add interactive handlers for enhanced learning
+        function addInteractiveHandlers() {
+            // Highlight text on scroll for better reading experience
+            const paragraphs = document.querySelectorAll('.tutorial-text p');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('text-highlight');
+                        setTimeout(() => {
+                            entry.target.classList.remove('text-highlight');
+                        }, 3000);
+                    }
+                });
+            }, { threshold: 0.7 });
+
+            paragraphs.forEach(p => observer.observe(p));
+        }
+
+        // Enhanced audio synchronization
+        function syncAudioWithText() {
+            if (!audioPlayer) return;
+
+            const textElements = document.querySelectorAll('.tutorial-text p, .tutorial-text h1, .tutorial-text h2, .tutorial-text h3');
+            const totalElements = textElements.length;
+            const currentTime = audioPlayer.currentTime;
+            const totalDuration = audioPlayer.duration;
+            
+            if (totalDuration > 0 && totalElements > 0) {
+                const progressPerElement = totalDuration / totalElements;
+                const currentElementIndex = Math.floor(currentTime / progressPerElement);
+                
+                // Remove previous highlights
+                textElements.forEach(el => el.classList.remove('text-highlight'));
+                
+                // Highlight current element
+                if (textElements[currentElementIndex]) {
+                    textElements[currentElementIndex].classList.add('text-highlight');
+                    
+                    // Smooth scroll to current element
+                    textElements[currentElementIndex].scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                }
             }
         }
 
@@ -865,6 +1283,12 @@
         document.addEventListener('DOMContentLoaded', function() {
             formatTutorialContent();
             loadRelatedTutorials();
+            
+            // Add scroll event for reading progress
+            window.addEventListener('scroll', updateReadingProgress);
+            
+            // Initial reading progress update
+            updateReadingProgress();
             
             // Track tutorial view
             fetch(`/api/tutorial/${tutorialData.id}/view`, { method: 'POST' })
