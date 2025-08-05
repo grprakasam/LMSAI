@@ -1,14 +1,10 @@
-# app.py - Updated main application with OpenRouter integration
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timedelta
+# app.py - Optimized main application with OpenRouter integration
+from flask import Flask, render_template, request, jsonify
+from flask_login import LoginManager, login_required, current_user
+from werkzeug.security import generate_password_hash
+from datetime import datetime
 import os
-import uuid
-import json
 import logging
-from functools import wraps
 
 # Import our modules
 from config import config, PLANS, MODEL_CONFIGS, AUDIO_MODEL_CONFIGS
@@ -241,42 +237,15 @@ def create_app(config_name=None):
 app = create_app()
 
 if __name__ == '__main__':
-    print("Starting R Tutor Pro - OpenRouter AI Integration")
-    print("=" * 60)
-    print("AI Features: OpenRouter integration for tutorial generation")
-    print("Audio: AI-powered audio generation via OpenRouter models")
-    print("Content: Unlimited AI-generated R programming tutorials")
-    print("Models: Configurable text and audio generation models")
-    print("=" * 60)
+    from app_config import configure_logging, print_startup_info
     
-    # Environment validation
-    openrouter_key = os.environ.get('OPENROUTER_API_KEY')
-    if openrouter_key:
-        print(f"[OK] OpenRouter API Key: Configured ({openrouter_key[:8]}...)")
-    else:
-        print("[WARN] OpenRouter API Key: Not configured (limited functionality)")
+    # Configure logging
+    configure_logging()
     
-    database_url = os.environ.get('DATABASE_URL', 'sqlite:///r_tutor_dev.db')
-    print(f"Database: {database_url}")
+    # Print startup information
+    print_startup_info()
     
-    secret_key = os.environ.get('SECRET_KEY')
-    if secret_key and secret_key != 'dev-secret-key-change-in-production-r-tutor-pro':
-        print("[OK] Secret Key: Configured (secure)")
-    else:
-        print("[WARN] Secret Key: Using default (change for production)")
-    
-    print("=" * 60)
-    print("Setup Instructions:")
-    print("1. Get OpenRouter API key from https://openrouter.ai/keys")
-    print("2. Set OPENROUTER_API_KEY environment variable")
-    print("3. Choose models in the dashboard model selection")
-    print("4. Generate AI-powered R tutorials with audio!")
-    print("=" * 60)
-    print(f"Access the app at: http://localhost:{os.environ.get('PORT', 5000)}")
-    print("Login with any email + password 's'")
-    print("=" * 60)
-    
-    # Start the development server
+    # Start the development server with optimized settings
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('DEBUG', 'True').lower() == 'true'
     
@@ -284,5 +253,7 @@ if __name__ == '__main__':
         debug=debug,
         host='0.0.0.0',
         port=port,
-        threaded=True
+        threaded=True,
+        use_reloader=debug,  # Only use reloader in debug mode
+        use_debugger=debug   # Only use debugger in debug mode
     )

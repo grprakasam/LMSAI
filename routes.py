@@ -1,23 +1,93 @@
-# routes.py - Modified for OpenRouter integration
+# routes.py - Optimized for OpenRouter integration
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+from pathlib import Path
 import json
 import re
 import os
+import uuid
 
 from models import db, User, Tutorial, UsageLog
+from sqlalchemy.orm import noload
 from openrouter_service import openrouter_service
 from utils import (
     track_usage, rate_limit, validate_tutorial_input, sanitize_input, 
-    validate_email, calculate_usage_analytics, check_system_health
+    validate_email, check_system_health
 )
 from config import PLANS, MODEL_CONFIGS, AUDIO_MODEL_CONFIGS
-# Local TTS deps
-import uuid
-import subprocess
-from pathlib import Path
+
+import logging
+logger = logging.getLogger(__name__)
+
+# Helper function for audio text processing
+def _prepare_text_for_audio(content: str) -> str:
+    """Prepare tutorial content for TTS by removing markdown and optimizing for speech"""
+    
+    # Remove markdown formatting that doesn't work well with TTS
+    text = content
+    
+    # 1. Remove markdown headers but keep the text
+    text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)
+    
+    # 2. Remove code blocks and replace with description
+    def replace_code_block(match):
+        code = match.group(1).strip()
+        # Extract meaningful parts from code
+        lines = [line.strip() for line in code.split('\n') if line.strip() and not line.strip().startswith('#')]
+        if lines:
+            return f"Here's the R code: {', '.join(lines[:2])}... and so on."
+        return "Here's some R code."
+    
+    text = re.sub(r'```r\n(.*?)\n```', replace_code_block, text, flags=re.DOTALL)
+    text = re.sub(r'```(.*?)```', replace_code_block, text, flags=re.DOTALL)
+    
+    # 3. Remove inline code formatting
+    text = re.sub(r'`([^`]+)`', r'\1', text)
+    
+    # 4. Convert markdown lists to natural speech
+    text = re.sub(r'^\s*[-*+]\s+', '• ', text, flags=re.MULTILINE)
+    text = re.sub(r'^\s*\d+\.\s+', '', text, flags=re.MULTILINE)
+    
+    # 5. Convert markdown emphasis to natural pauses
+    text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)  # Remove bold
+    text = re.sub(r'\*(.*?)\*', r'\1', text)     # Remove italic
+    
+    # 6. Remove markdown links but keep text
+    text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
+    
+    # 7. Clean up extra whitespace and normalize line breaks
+    text = re.sub(r'\n\s*\n\s*\n+', '\n\n', text)  # Multiple line breaks to double
+    text = re.sub(r'\n+', ' ', text)  # Convert remaining line breaks to spaces
+    text = re.sub(r'\s+', ' ', text)  # Normalize spaces
+    
+    # 8. Add natural pauses for better speech flow
+    text = text.replace('. ', '. ... ')  # Add pause after sentences
+    text = text.replace('! ', '! ... ')  # Add pause after exclamations
+    text = text.replace('? ', '? ... ')  # Add pause after questions
+    text = text.replace(': ', ': ... ')  # Add pause after colons
+    
+    # 9. Improve pronunciation of common R terms
+    pronunciation_map = {
+        'ggplot2': 'G G plot 2',
+        'dplyr': 'D plier',
+        'tidyr': 'tidy R',
+        '%>%': 'pipe operator',
+        'data.frame': 'data frame',
+        'R programming': 'R programming',
+        'RStudio': 'R Studio'
+    }
+    
+    for term, pronunciation in pronunciation_map.items():
+        text = text.replace(term, pronunciation)
+    
+    # 10. Ensure text ends properly
+    text = text.strip()
+    if not text.endswith(('.', '!', '?')):
+        text += '.'
+    
+    return text
 
 # Create blueprints
 main_bp = Blueprint('main', __name__)
@@ -338,9 +408,18 @@ def generate_tutorial():
         }), 500
 
 @main_bp.route('/generate-audio/<int:tutorial_id>', methods=['POST'])
+@rate_limit(requests_per_minute=10)  # Limit audio generation to prevent abuse
 def generate_audio(tutorial_id):
     """Generate audio for an existing tutorial using local TTS (pyttsx3) with MP3 conversion via pydub/ffmpeg"""
     tutorial = Tutorial.query.get_or_404(tutorial_id)
+    
+    # Validate tutorial content exists
+    if not tutorial.content or len(tutorial.content.strip()) < 10:
+        logger.warning(f"Attempted audio generation for tutorial {tutorial_id} with insufficient content")
+        return jsonify({
+            'success': False, 
+            'error': 'Tutorial content is too short for audio generation'
+        }), 400
 
     try:
         # Prefer JSON body; fallback to form fields
@@ -391,8 +470,12 @@ def generate_audio(tutorial_id):
 
         # Voice selection optional; keep system default for reliability
         text_to_speak = tutorial.content or "No content available for this tutorial."
+        
+        # Optimize text for audio synthesis
+        audio_text = _prepare_text_for_audio(text_to_speak)
+        
         # pyttsx3 writes directly to WAV file; this avoids any runtime use of pyaudio/pyaudioop
-        engine.save_to_file(text_to_speak, str(wav_path))
+        engine.save_to_file(audio_text, str(wav_path))
         engine.runAndWait()
 
         # Try to convert WAV to MP3 via pydub if available, otherwise serve WAV
@@ -463,7 +546,12 @@ def generate_audio(tutorial_id):
         })
 
     except Exception as e:
-        return jsonify({'success': False, 'error': f"Audio generation failed: {e}"}), 500
+        logger.error(f"Audio generation failed for tutorial {tutorial_id}: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False, 
+            'error': f"Audio generation failed: {str(e)}",
+            'tutorial_id': tutorial_id
+        }), 500
 
 # ==================== API ROUTES ====================
 
@@ -505,9 +593,10 @@ def usage_stats():
     monthly_usage = current_user.get_monthly_usage()
     plan_info = current_user.get_plan_info()
     
-    # Get recent tutorials
+    # Get recent tutorials with optimized query
     recent_tutorials = Tutorial.query.filter_by(user_id=current_user.id)\
-        .order_by(Tutorial.created_at.desc()).limit(5).all()
+        .order_by(Tutorial.created_at.desc()).limit(5)\
+        .options(noload('content')).all()  # Don't load content for better performance
     
     return jsonify({
         'monthly_usage': monthly_usage,
@@ -539,6 +628,7 @@ def list_tutorials():
     
     tutorials = Tutorial.query.filter_by(user_id=current_user.id)\
         .order_by(Tutorial.created_at.desc())\
+        .options(noload('content'))\
         .paginate(page=page, per_page=per_page, error_out=False)
     
     return jsonify({

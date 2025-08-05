@@ -11,7 +11,6 @@ from datetime import datetime
 import uuid
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class OpenRouterService:
@@ -30,6 +29,11 @@ class OpenRouterService:
         # Rate limiting
         self.last_request_time = 0
         self.min_request_interval = 1.0  # seconds between requests
+        
+        # Simple cache for model status
+        self._model_status_cache = None
+        self._model_status_cache_time = 0
+        self._cache_duration = 300  # 5 minutes
         
         # Validate configuration
         if not self.api_key:
@@ -191,71 +195,151 @@ class OpenRouterService:
     
     def _create_tutorial_prompt(self, topic: str, expertise: str, duration: int, 
                               user_preferences: Dict = None):
-        """Create a comprehensive prompt for tutorial generation"""
+        """Create a comprehensive prompt for tutorial generation optimized for audio"""
         
-        # Base prompt with structure
-        prompt = f"""Create a comprehensive {duration}-minute R programming tutorial on "{topic}" for {expertise} level users.
+        # Calculate approximate word count for duration
+        words_per_minute_spoken = 140  # Average speaking rate for educational content
+        target_words = duration * words_per_minute_spoken
+        
+        # Base prompt with enhanced audio-friendly structure
+        prompt = f"""Create a high-quality R programming tutorial on "{topic}" for {expertise} level users that will be converted to audio narration.
 
-**Tutorial Requirements:**
+**CRITICAL REQUIREMENTS FOR AUDIO-OPTIMIZED CONTENT:**
 
-1. **Content Structure:**
-   - Introduction and overview (15% of content)
-   - Core concepts and theory (40% of content)
-   - Hands-on code examples (35% of content)
-   - Summary and next steps (10% of content)
+🎯 **Target Specifications:**
+- Duration: {duration} minutes (approximately {target_words} words)
+- Expertise: {expertise} level
+- Format: Markdown with audio-friendly prose
+- Tone: Conversational, engaging, professional
 
-2. **Learning Objectives:**
-   - Define clear, actionable learning outcomes
-   - Ensure objectives match {expertise} level expectations
-   - Include both theoretical understanding and practical skills
+📖 **Content Structure (Must Follow):**
+1. **Welcome & Introduction** (2-3 minutes)
+   - Warm greeting and topic introduction
+   - Clear preview of what listeners will learn
+   - Context about why this topic matters
 
-3. **Code Examples:**
-   - Provide working R code that users can execute
-   - Include detailed comments explaining each step
-   - Progress from simple to more complex examples
-   - Cover common use cases and best practices
+2. **Core Learning Content** ({duration-4} minutes)
+   - Conceptual explanations with clear examples
+   - Step-by-step R code walkthroughs
+   - Practical applications and real-world scenarios
 
-4. **Expertise Level Guidelines:**
-   - **Beginner**: Assume minimal R knowledge, explain basic concepts, use simple examples
-   - **Intermediate**: Build on fundamental knowledge, introduce advanced techniques, real-world applications
-   - **Expert**: Focus on optimization, edge cases, advanced implementations, performance considerations
+3. **Summary & Next Steps** (1-2 minutes)
+   - Key takeaways recap
+   - Suggested practice exercises
+   - Resources for continued learning
 
-5. **Content Format:**
-   - Use clear section headers
-   - Include practical tips and warnings
-   - Provide troubleshooting guidance
-   - Suggest further learning resources
+🎙️ **Audio-Friendly Writing Style:**
+- Use CONVERSATIONAL language like you're teaching a friend
+- Include natural pauses with phrases like "Now, let's move on to..."
+- Use "Let's" instead of "We will" for engagement
+- Explain code line-by-line in simple terms
+- Add verbal signposts: "First," "Next," "Here's the key point," "Remember that"
+- Avoid jargon without explanation - define technical terms clearly
+- Use active voice and shorter sentences
+- Include encouraging phrases: "Great job!" "You're getting it!" "This is important"
 
-6. **Audio-Friendly Writing:**
-   - Write in a conversational, spoken style
-   - Use natural transitions between sections
-   - Include verbal cues like "Now let's look at..." or "Here's an important point..."
-   - Avoid overly complex sentences that are hard to follow when spoken
+💻 **Code Presentation for Audio:**
+- Always introduce code blocks: "Let's look at this code example"
+- Explain each line in plain English after showing it
+- Use descriptive variable names that are easy to pronounce
+- Add pronunciation guides for difficult terms: "ggplot (G-G-plot)"
+- Mention common errors and how to fix them
 
-**Specific Topic Focus: {topic}**
+📝 **Markdown Structure Required:**
+```
+# R Tutorial: [Topic Title]
 
-Please generate comprehensive tutorial content that covers:
-- Essential concepts and terminology
-- Practical R code implementations
-- Common pitfalls and how to avoid them
-- Real-world applications and use cases
-- Best practices for {expertise} level practitioners
+## Introduction
+[Engaging welcome and overview]
 
-**Output Format:**
-Return the content as a well-structured tutorial that flows naturally when read aloud, with clear sections and smooth transitions between topics.
+## What You'll Learn
+[Clear bullet points of outcomes]
 
-**Additional Preferences:**"""
+## Core Concepts
+### [Concept 1]
+[Clear explanation with examples]
+
+### [Concept 2]
+[Clear explanation with examples]
+
+## Hands-On Practice
+### Step 1: [Action]
+[Detailed walkthrough]
+
+```r
+# Code with comments
+[working R code here]
+```
+
+[Explanation of what this code does]
+
+## Real-World Applications
+[Practical examples and use cases]
+
+## Summary
+[Key takeaways and next steps]
+
+## Resources for Further Learning
+[Additional materials]
+```
+
+🎯 **Specific Requirements for "{topic}":**
+- Ensure all content directly relates to "{topic}" as requested by the user
+- Include practical R examples specific to this topic
+- Address common challenges beginners/intermediates/experts face with this topic
+- Provide working code that users can copy and execute
+- Explain WHY things work, not just HOW
+
+**Expertise Level Guidelines:**"""
+
+        if expertise == 'beginner':
+            prompt += """
+- Assume NO prior knowledge of this topic
+- Define ALL technical terms clearly
+- Use simple, step-by-step explanations
+- Include more encouragement and reassurance
+- Provide basic troubleshooting tips
+- Focus on fundamental concepts before advanced applications"""
+        elif expertise == 'intermediate':
+            prompt += """
+- Assume basic R knowledge but not necessarily this specific topic
+- Build on fundamental R concepts
+- Include intermediate techniques and best practices
+- Show multiple ways to solve problems
+- Discuss when to use different approaches
+- Include performance considerations"""
+        else:  # expert
+            prompt += """
+- Assume solid R foundation and some topic knowledge
+- Focus on advanced techniques and optimization
+- Discuss edge cases and complex scenarios
+- Include performance benchmarking
+- Show integration with advanced workflows
+- Discuss latest developments in this area"""
 
         # Add user preferences if provided
         if user_preferences:
+            prompt += "\n\n**User Preferences:**"
             if user_preferences.get('focus_areas'):
-                prompt += f"\n- Focus on: {', '.join(user_preferences['focus_areas'])}"
+                prompt += f"\n- Focus areas: {', '.join(user_preferences['focus_areas'])}"
             if user_preferences.get('learning_style'):
                 prompt += f"\n- Learning style: {user_preferences['learning_style']}"
             if user_preferences.get('industry_context'):
                 prompt += f"\n- Industry context: {user_preferences['industry_context']}"
         
-        prompt += "\n\nGenerate the tutorial content now:"
+        prompt += f"""
+
+**FINAL INSTRUCTIONS:**
+Generate a complete, engaging tutorial that:
+1. Follows the exact markdown structure shown above
+2. Uses conversational, audio-friendly language throughout
+3. Includes working R code examples with clear explanations
+4. Stays focused on "{topic}" as the main subject
+5. Is appropriate for {expertise} level learners
+6. Will sound natural and engaging when read aloud
+7. Provides genuine educational value in {duration} minutes
+
+Begin the tutorial now with a warm, engaging introduction:"""
         
         return prompt
     
@@ -270,7 +354,7 @@ Return the content as a well-structured tutorial that flows naturally when read 
             'messages': [
                 {
                     'role': 'system',
-                    'content': 'You are an expert R programming instructor with 15+ years of experience teaching data science, statistics, and R programming. You create engaging, practical, and comprehensive tutorials for learners at all levels. Your explanations are clear, your code examples are working and well-commented, and you always provide practical, actionable guidance.'
+                    'content': 'You are an expert R programming instructor with 15+ years of experience teaching data science, statistics, and R programming. You specialize in creating audio-friendly tutorials that will be converted to speech. Write in a conversational, engaging tone as if you\'re speaking directly to a student. Use clear explanations, natural transitions, and encourage the learner throughout. Your tutorials should sound warm and professional when read aloud. Include working R code examples with clear verbal explanations of what each part does.'
                 },
                 {
                     'role': 'user',
@@ -375,37 +459,159 @@ Return the content as a well-structured tutorial that flows naturally when read 
             raise
     
     def _parse_tutorial_content(self, content: str, topic: str, expertise: str, duration: int):
-        """Parse and enhance the generated tutorial content"""
+        """Parse and enhance the generated tutorial content with audio optimization"""
+        
+        # Apply audio-specific optimizations
+        audio_optimized_content = self._optimize_for_audio(content)
         
         # Extract concepts (look for key terms and topics)
-        concepts = self._extract_concepts(content, topic)
+        concepts = self._extract_concepts(audio_optimized_content, topic)
         
         # Extract R packages mentioned
-        packages = self._extract_packages(content)
+        packages = self._extract_packages(audio_optimized_content)
         
         # Generate learning objectives
-        objectives = self._extract_objectives(content, topic, expertise)
+        objectives = self._extract_objectives(audio_optimized_content, topic, expertise)
         
         # Estimate reading time
-        reading_time = self._estimate_reading_time(content)
+        reading_time = self._estimate_reading_time(audio_optimized_content)
         
         # Calculate difficulty score
-        difficulty_score = self._calculate_difficulty_score(content, expertise)
+        difficulty_score = self._calculate_difficulty_score(audio_optimized_content, expertise)
         
         return {
-            'content': content,
+            'content': audio_optimized_content,
             'concepts': concepts,
             'packages': packages,
             'objectives': objectives,
             'is_premium': True,
             'estimated_reading_time': reading_time,
             'difficulty_score': difficulty_score,
-            'character_count': len(content),
-            'word_count': len(content.split()),
+            'character_count': len(audio_optimized_content),
+            'word_count': len(audio_optimized_content.split()),
             'topic_category': self._categorize_topic(topic),
             'generated_via': 'openrouter',
-            'model_used': self.default_text_model
+            'model_used': self.default_text_model,
+            'audio_optimized': True
         }
+    
+    def _optimize_for_audio(self, content: str):
+        """Optimize content for audio narration by improving readability and flow"""
+        import re
+        
+        # Apply audio-specific optimizations
+        optimized = content
+        
+        # 1. Add pronunciation guides for common R terms
+        pronunciation_map = {
+            'ggplot2': 'ggplot2 (G-G-plot-two)',
+            'dplyr': 'dplyr (D-plier)',
+            'tidyr': 'tidyr (tidy-R)',
+            '%>%': 'pipe operator (percent greater-than percent)',
+            'data.frame': 'data frame',
+            'str()': 'str function',
+            'summary()': 'summary function',
+            'c()': 'c function',
+            'length()': 'length function',
+            'names()': 'names function'
+        }
+        
+        for term, pronunciation in pronunciation_map.items():
+            if term in optimized and pronunciation not in optimized:
+                # Only add pronunciation guide on first occurrence
+                optimized = optimized.replace(term, pronunciation, 1)
+        
+        # 2. Add natural pauses and transitions
+        section_transitions = {
+            '## ': '## ',  # Keep headers as is, but add mental note for pause
+            '### ': '### ',
+            '\n\n```r': '\n\nNow, let\'s look at this code example:\n\n```r',
+            '```\n\n': '```\n\nLet me explain what this code does. ',
+            '\n- ': '\n- ',  # Keep bullet points clean
+        }
+        
+        # 3. Enhance code block introductions
+        code_block_pattern = r'```r\n(.*?)\n```'
+        
+        def enhance_code_block(match):
+            code = match.group(1)
+            lines = code.split('\n')
+            
+            # Add brief intro if not already present
+            intro_phrases = ['let\'s', 'here\'s', 'now', 'look at', 'example']
+            needs_intro = True
+            
+            # Check preceding text for intro phrases
+            start_pos = match.start()
+            preceding_text = optimized[max(0, start_pos-100):start_pos].lower()
+            if any(phrase in preceding_text for phrase in intro_phrases):
+                needs_intro = False
+            
+            enhanced_code = code
+            
+            # Add explanatory comments for complex lines if missing
+            for i, line in enumerate(lines):
+                line_stripped = line.strip()
+                if line_stripped and not line_stripped.startswith('#'):
+                    # Check if line needs explanation
+                    if any(complex_term in line_stripped for complex_term in ['%>%', 'mutate', 'filter', 'group_by', 'summarise']):
+                        # Look for existing comment
+                        if '#' not in line:
+                            # Could add inline comment, but keep it simple for now
+                            pass
+            
+            return f'```r\n{enhanced_code}\n```'
+        
+        optimized = re.sub(code_block_pattern, enhance_code_block, optimized, flags=re.DOTALL)
+        
+        # 4. Improve readability of complex sentences
+        # Split overly long sentences (>25 words) at logical break points
+        sentences = optimized.split('. ')
+        improved_sentences = []
+        
+        for sentence in sentences:
+            words = sentence.split()
+            if len(words) > 25:
+                # Look for natural break points
+                break_points = [' and ', ' but ', ' however ', ' therefore ', ' which ']
+                for break_point in break_points:
+                    if break_point in sentence:
+                        parts = sentence.split(break_point, 1)
+                        if len(parts) == 2:
+                            sentence = f"{parts[0]}. {break_point.strip().capitalize()} {parts[1]}"
+                            break
+            improved_sentences.append(sentence)
+        
+        optimized = '. '.join(improved_sentences)
+        
+        # 5. Add verbal cues for emphasis
+        emphasis_patterns = {
+            'Important:': 'This is important:',
+            'Note:': 'Please note:',
+            'Warning:': 'Here\'s a warning:',
+            'Tip:': 'Here\'s a helpful tip:',
+            'Remember:': 'Remember this:'
+        }
+        
+        for pattern, replacement in emphasis_patterns.items():
+            optimized = optimized.replace(pattern, replacement)
+        
+        # 6. Improve list introductions for audio
+        list_intro_pattern = r'\n\n([A-Z][^:\n]*:)\n\n((?:\n?[*\-] .+)+)'
+        
+        def improve_list_intro(match):
+            intro = match.group(1)
+            list_items = match.group(2)
+            return f'\n\n{intro}\n\n{list_items}'
+        
+        optimized = re.sub(list_intro_pattern, improve_list_intro, optimized)
+        
+        # 7. Add natural speech markers
+        optimized = optimized.replace('\n\n## ', '\n\nNow, let\'s move on to ')
+        optimized = optimized.replace('In conclusion', 'To wrap up')
+        optimized = optimized.replace('Finally', 'And finally')
+        
+        return optimized
     
     def _extract_concepts(self, content: str, topic: str):
         """Extract key concepts from the tutorial content"""
@@ -524,100 +730,225 @@ Return the content as a well-structured tutorial that flows naturally when read 
         return 'general'
     
     def _generate_fallback_content(self, topic: str, expertise: str, duration: int):
-        """Generate fallback content when API is unavailable"""
-        return {
-            'content': f"""# R Tutorial: {topic} ({expertise.title()} Level)
+        """Generate high-quality fallback content optimized for audio when API is unavailable"""
+        
+        # Generate audio-friendly content based on expertise level
+        if expertise == 'beginner':
+            intro_text = f"Hello and welcome! I'm excited to guide you through your first steps with {topic} in R programming. Don't worry if you're new to this - we'll take it step by step, and by the end of this {duration}-minute tutorial, you'll have a solid foundation to build upon."
+            explanation_depth = "Let me explain this carefully, step by step."
+            encouragement = "You're doing great! This is exactly how learning works - one step at a time."
+        elif expertise == 'intermediate':
+            intro_text = f"Welcome back to R programming! Today, we're diving into {topic}, building on the foundational knowledge you already have. This {duration}-minute tutorial will help you take your skills to the next level."
+            explanation_depth = "Now that you understand the basics of R, let's explore how this works."
+            encouragement = "Great! You can see how this connects to what you already know."
+        else:  # expert
+            intro_text = f"Welcome to this advanced tutorial on {topic}. In the next {duration} minutes, we'll explore sophisticated techniques and optimizations that will enhance your R programming expertise."
+            explanation_depth = "Let's examine the implementation details and performance considerations."
+            encouragement = "Excellent! You can see the powerful applications of this approach."
+
+        content = f"""# R Tutorial: {topic}
 
 ## Introduction
-Welcome to this {duration}-minute tutorial on {topic}! This tutorial is designed for {expertise} level R programmers.
 
-## Learning Objectives
-By the end of this tutorial, you will:
-- Understand the fundamentals of {topic}
-- Be able to implement {topic} in your R projects
-- Know the best practices for working with {topic}
+{intro_text}
+
+## What You'll Learn
+
+By the end of this tutorial, you'll be able to:
+- Understand the core concepts of {topic} in R
+- Implement practical solutions using {topic}
+- Apply best practices for {expertise}-level development
+- Recognize common pitfalls and how to avoid them
+
+## Getting Started
+
+Let's begin by setting up our R environment. First, we'll load the packages we need for this tutorial.
+
+```r
+# Let's load the essential packages for {topic}
+library(tidyverse)  # For data manipulation and visualization
+library(here)       # For project organization
+
+# Let's also check our R version to ensure compatibility
+R.version.string
+```
+
+{explanation_depth} The tidyverse package gives us access to powerful tools like dplyr for data manipulation and ggplot2 for visualization. These will be essential for our work with {topic}.
 
 ## Core Concepts
-{topic} is an important concept in R programming. Let's explore the key aspects:
 
-### Getting Started
-First, let's load the necessary libraries:
-```r
-# Load required packages
-library(tidyverse)  # For data manipulation and visualization
-```
+### Understanding {topic}
 
-### Basic Implementation
-Here's a basic example of {topic}:
+{topic} is a fundamental concept in R that allows us to work more effectively with data. Let me walk you through the key principles.
+
+The most important thing to understand about {topic} is how it fits into your overall R workflow. Think of it as a bridge between your raw data and the insights you want to extract.
+
+### Key Components
+
+Let's break down the essential components:
+
+1. **Data Structure**: How {topic} organizes information
+2. **Functions**: The tools we use to work with {topic}
+3. **Applications**: Real-world uses in data analysis
+
+## Hands-On Practice
+
+Now, let's put this into practice with a concrete example. I'll walk you through each step.
+
+### Step 1: Creating Sample Data
+
 ```r
-# Basic {topic} example
-# This is a foundational example for {expertise} level
-data <- data.frame(
-  x = 1:10,
-  y = rnorm(10)
+# Let's create some sample data to work with
+sample_data <- data.frame(
+  category = c("A", "B", "C", "A", "B", "C"),
+  values = c(10, 15, 12, 18, 22, 14),
+  dates = seq(as.Date("2024-01-01"), by = "month", length.out = 6)
 )
-print(data)
+
+# Let's take a look at what we've created
+print(sample_data)
 ```
 
-## Practical Applications
-{topic} can be used in various scenarios:
-- Data analysis projects
-- Statistical modeling
-- Data visualization
-- Research applications
+Perfect! Now we have a dataset that demonstrates the key principles of {topic}. Notice how each row represents an observation, and each column represents a different variable.
 
-## Best Practices
-When working with {topic}, remember to:
-- Always validate your data
-- Use descriptive variable names
-- Comment your code thoroughly
-- Test your implementations
+### Step 2: Basic Implementation
 
-## Next Steps
-Continue your learning journey by:
-- Practicing with real datasets
-- Exploring advanced {topic} techniques
-- Building projects that use {topic}
-- Joining R communities for support
+```r
+# Now let's apply {topic} concepts to our data
+result <- sample_data %>%
+  group_by(category) %>%
+  summarise(
+    mean_value = mean(values),
+    total_observations = n(),
+    .groups = "drop"
+  )
 
-## Summary
-You've learned the essentials of {topic} in R. Keep practicing and experimenting to master these concepts!
+print(result)
+```
 
-*Note: This is fallback content. For enhanced tutorials, please configure your OpenRouter API key.*
-""",
-            'concepts': ['fundamentals', 'implementation', 'best practices'],
-            'packages': ['tidyverse', 'base'],
+{encouragement} You can see how we've transformed our original data into meaningful insights using {topic} principles.
+
+## Real-World Applications
+
+Let me share some practical scenarios where {topic} becomes incredibly valuable:
+
+### Business Analytics
+In business settings, {topic} helps analysts understand customer behavior, sales patterns, and market trends. For example, you might use these techniques to segment customers or identify seasonal patterns in sales data.
+
+### Research Applications
+Researchers across many fields use {topic} to analyze experimental data, survey responses, and observational studies. The ability to systematically examine patterns makes it an essential tool in the research toolkit.
+
+### Data Science Projects
+In data science, {topic} forms the foundation for more advanced techniques like machine learning and predictive modeling. Understanding these fundamentals is crucial for building robust analytical solutions.
+
+## Best Practices and Tips
+
+Here are some important guidelines to keep in mind:
+
+### Code Organization
+Always write clear, well-commented code. Your future self will thank you! Use meaningful variable names that describe what the data represents.
+
+### Data Validation
+Before applying {topic} techniques, always check your data quality. Look for missing values, outliers, and inconsistencies that might affect your results.
+
+### Reproducibility
+Make your work reproducible by setting random seeds, documenting your process, and organizing your files systematically.
+
+## Common Pitfalls to Avoid
+
+Let me highlight some mistakes I often see:
+
+1. **Rushing the exploration phase**: Take time to understand your data before jumping into analysis
+2. **Ignoring data types**: Make sure your variables are properly formatted (numeric, factor, date, etc.)
+3. **Forgetting to validate results**: Always sense-check your outputs
+
+## Summary and Next Steps
+
+Congratulations! You've learned the essentials of {topic} in R. Let's recap the key points:
+
+- We explored the fundamental concepts and terminology
+- You learned practical implementation techniques
+- We covered real-world applications and use cases
+- You now understand common pitfalls and how to avoid them
+
+### Recommended Practice
+To reinforce what you've learned, try applying these concepts to your own datasets. Start with simple examples and gradually work up to more complex scenarios.
+
+### Further Learning
+Consider exploring these related topics:
+- Advanced R programming techniques
+- Statistical modeling in R
+- Data visualization best practices
+- R package development
+
+### Resources
+- R documentation and help files (use `?function_name`)
+- RStudio community forums
+- Online R courses and tutorials
+- Local R user groups and meetups
+
+## Final Thoughts
+
+Remember, learning R is a journey, not a destination. Each concept you master opens doors to new possibilities in data analysis and statistical computing.
+
+Keep practicing, stay curious, and don't hesitate to experiment with different approaches. The R community is incredibly supportive, so don't be afraid to ask questions and share your discoveries.
+
+Thank you for joining me in this exploration of {topic}. Happy coding!
+
+---
+
+*This tutorial provides foundational knowledge to get you started. For more advanced content and personalized learning paths, consider upgrading to access AI-powered tutorials with OpenRouter integration.*"""
+
+        return {
+            'content': content,
+            'concepts': [
+                f'{topic} fundamentals',
+                'Data structures',
+                'Best practices',
+                'Real-world applications',
+                'Code organization',
+                'Data validation'
+            ],
+            'packages': ['tidyverse', 'here', 'base R'],
             'objectives': [
-                f'Understand {topic} fundamentals',
-                f'Implement {topic} in R projects',
-                'Apply best practices'
+                f'Understand core concepts of {topic} in R',
+                f'Implement practical {topic} solutions',
+                'Apply best practices for clean, readable code',
+                'Recognize and avoid common pitfalls'
             ],
             'is_premium': False,
-            'estimated_reading_time': max(1, duration // 2),
+            'estimated_reading_time': max(1, duration),
             'difficulty_score': {'beginner': 3, 'intermediate': 6, 'expert': 9}[expertise],
-            'character_count': 0,
-            'word_count': 0,
-            'topic_category': 'general',
-            'generated_via': 'fallback',
-            'model_used': 'none'
+            'character_count': len(content),
+            'word_count': len(content.split()),
+            'topic_category': self._categorize_topic(topic),
+            'generated_via': 'enhanced_fallback',
+            'model_used': 'local_generation'
         }
     
     def get_model_status(self):
-        """Get status of OpenRouter connection and available models"""
+        """Get status of OpenRouter connection and available models with caching"""
+        current_time = time.time()
+        
+        # Return cached result if still valid
+        if (self._model_status_cache and 
+            current_time - self._model_status_cache_time < self._cache_duration):
+            return self._model_status_cache
+        
         try:
             headers = self._get_headers()
             response = requests.get(f"{self.base_url}/models", headers=headers, timeout=10)
             
             if response.status_code == 200:
                 models = response.json()
-                return {
+                status = {
                     'status': 'connected',
                     'model_count': len(models.get('data', [])),
                     'api_key_valid': True,
                     'last_check': datetime.now().isoformat()
                 }
             else:
-                return {
+                status = {
                     'status': 'error',
                     'error': f"HTTP {response.status_code}",
                     'api_key_valid': False,
@@ -625,12 +956,17 @@ You've learned the essentials of {topic} in R. Keep practicing and experimenting
                 }
                 
         except Exception as e:
-            return {
+            status = {
                 'status': 'error',
                 'error': str(e),
                 'api_key_valid': False,
                 'last_check': datetime.now().isoformat()
             }
+        
+        # Cache the result
+        self._model_status_cache = status
+        self._model_status_cache_time = current_time
+        return status
 
 # Initialize global service instance
 openrouter_service = OpenRouterService()
