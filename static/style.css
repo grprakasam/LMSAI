@@ -3,17 +3,17 @@
 /* CSS Variables for Consistent Theming */
 :root {
     /* Colors */
-    --primary-blue: #2196F3;
-    --primary-green: #4CAF50;
-    --secondary-purple: #667eea;
-    --secondary-pink: #764ba2;
-    --accent-orange: #FF6B6B;
-    --accent-teal: #4ECDC4;
+    --primary-red: #DC2626;
+    --primary-crimson: #B91C1C;
+    --secondary-red: #EF4444;
+    --secondary-maroon: #991B1B;
+    --accent-red: #F87171;
+    --accent-pink: #EC4899;
     
     /* Gradients */
-    --gradient-primary: linear-gradient(45deg, var(--primary-blue), var(--primary-green));
-    --gradient-background: linear-gradient(135deg, var(--secondary-purple), var(--secondary-pink));
-    --gradient-accent: linear-gradient(45deg, var(--accent-orange), #FF8E53);
+    --gradient-primary: linear-gradient(45deg, var(--primary-red), var(--primary-crimson));
+    --gradient-background: linear-gradient(135deg, var(--secondary-red), var(--secondary-maroon));
+    --gradient-accent: linear-gradient(45deg, var(--accent-red), var(--accent-pink));
     
     /* Neutral Colors */
     --text-primary: #2c3e50;
