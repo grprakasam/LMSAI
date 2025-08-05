@@ -14,6 +14,10 @@ from utils import (
     validate_email, calculate_usage_analytics, check_system_health
 )
 from config import PLANS, MODEL_CONFIGS, AUDIO_MODEL_CONFIGS
+# Local TTS deps
+import uuid
+import subprocess
+from pathlib import Path
 
 # Create blueprints
 main_bp = Blueprint('main', __name__)
@@ -335,48 +339,127 @@ def generate_tutorial():
 
 @main_bp.route('/generate-audio/<int:tutorial_id>', methods=['POST'])
 def generate_audio(tutorial_id):
-    """Generate audio for an existing tutorial"""
+    """Generate audio for an existing tutorial using local TTS (pyttsx3) with MP3 conversion via pydub/ffmpeg"""
     tutorial = Tutorial.query.get_or_404(tutorial_id)
-    
+
     try:
-        # Use default user ID for logging
-        user_id_for_log = 1
-        # Get audio generation parameters
-        audio_model = request.form.get('audio_model', '').strip()
-        voice = request.form.get('voice', '').strip()
-        speed = float(request.form.get('speed', 1.0))
-        
-        # Generate audio
-        audio_result = openrouter_service.generate_audio(
-            text=tutorial.content,
-            audio_model=audio_model or None,
-            voice=voice or None,
-            speed=speed,
-            format='mp3'
-        )
-        
-        if audio_result['success']:
-            # Update tutorial with audio information
-            tutorial.audio_url = audio_result['audio_url']
-            tutorial.audio_duration = int(audio_result.get('duration_estimate', tutorial.duration * 60))
+        # Prefer JSON body; fallback to form fields
+        data = {}
+        try:
+            if request.is_json:
+                data = request.get_json() or {}
+        except Exception:
+            data = {}
+        audio_speed = float(data.get('speed') or request.form.get('speed') or 1.0)
+
+        # Ensure output directory exists
+        out_dir = Path('static/generated_audio')
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        # Generate unique base filename
+        base_id = uuid.uuid4().hex
+        wav_path = out_dir / f"tts_{base_id}.wav"
+        mp3_path = out_dir / f"tts_{base_id}.mp3"
+
+        # Generate WAV via pyttsx3
+        # IMPORTANT: Avoid importing pyaudioop dependency paths by not importing 'audioop' or 'pyaudio'
+        import pyttsx3
+
+        # Explicitly select SAPI5 driver on Windows to avoid pyaudioop import path
+        driver_name = None
+        try:
+            if os.name == "nt":
+                driver_name = "sapi5"
+        except Exception:
+            driver_name = None
+
+        engine = pyttsx3.init(driverName=driver_name) if driver_name else pyttsx3.init()
+
+        # Adjust speaking rate (pyttsx3 default ~200 wpm); scale with speed factor
+        rate = engine.getProperty('rate')
+        try:
+            rate = int(rate * float(audio_speed))
+        except Exception:
+            pass
+        engine.setProperty('rate', rate)
+
+        # Ensure no external output modules are used that may require audioop/pyaudio
+        try:
+            engine.setProperty('volume', 1.0)
+        except Exception:
+            pass
+
+        # Voice selection optional; keep system default for reliability
+        text_to_speak = tutorial.content or "No content available for this tutorial."
+        # pyttsx3 writes directly to WAV file; this avoids any runtime use of pyaudio/pyaudioop
+        engine.save_to_file(text_to_speak, str(wav_path))
+        engine.runAndWait()
+
+        # Convert WAV to MP3 via pydub; attempt to locate ffmpeg automatically
+        from pydub import AudioSegment
+        from pydub.utils import which as pydub_which
+
+        # Configure ffmpeg/ffprobe if available in PATH or common install locations (Windows)
+        ffmpeg_path = pydub_which("ffmpeg")
+        ffprobe_path = pydub_which("ffprobe")
+
+        # Try common Windows locations if not found
+        if not ffmpeg_path:
+            candidate_paths = [
+                r"C:\ffmpeg\bin\ffmpeg.exe",
+                r"C:\Program Files\ffmpeg\bin\ffmpeg.exe",
+                r"C:\Program Files (x86)\ffmpeg\bin\ffmpeg.exe"
+            ]
+            for p in candidate_paths:
+                if Path(p).exists():
+                    ffmpeg_path = p
+                    break
+        if not ffprobe_path:
+            candidate_paths = [
+                r"C:\ffmpeg\bin\ffprobe.exe",
+                r"C:\Program Files\ffmpeg\bin\ffprobe.exe",
+                r"C:\Program Files (x86)\ffmpeg\bin\ffprobe.exe"
+            ]
+            for p in candidate_paths:
+                if Path(p).exists():
+                    ffprobe_path = p
+                    break
+
+        # If still not found, return a clear instruction to install ffmpeg
+        if not ffmpeg_path or not ffprobe_path:
+            # Fallback: serve WAV directly if MP3 not possible
+            audio_url = f"/static/generated_audio/{wav_path.name}"
+            # Save URL on tutorial and return success with WAV
+            tutorial.audio_url = audio_url
+            tutorial.audio_duration = max(1, int((len((tutorial.content or '').split()) / 150) * 60))
             db.session.commit()
-            
             return jsonify({
                 'success': True,
-                'message': 'Audio generated successfully!',
-                'audio_url': audio_result['audio_url'],
-                'audio_duration': audio_result.get('duration_estimate', 0),
-                'model_used': audio_result.get('model_used', 'unknown'),
-                'voice_used': audio_result.get('voice_used', 'default')
+                'message': 'Audio generated as WAV (ffmpeg not found for MP3 conversion).',
+                'audio_url': audio_url,
+                'format': 'wav',
+                'note': 'Install ffmpeg and ensure it is in PATH for MP3 output.'
             })
-        else:
-            return jsonify({
-                'success': False,
-                'error': audio_result.get('error', 'Audio generation failed')
-            })
-            
+
+        # Export to MP3
+        audio_seg = AudioSegment.from_wav(str(wav_path))
+        audio_seg.export(str(mp3_path), format="mp3", bitrate="128k")
+
+        # Prefer MP3 URL
+        audio_url = f"/static/generated_audio/{mp3_path.name}"
+        tutorial.audio_url = audio_url
+        tutorial.audio_duration = max(1, int((len((tutorial.content or '').split()) / 150) * 60))
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Audio generated successfully!',
+            'audio_url': audio_url,
+            'format': 'mp3'
+        })
+
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': f"Audio generation failed: {e}"}), 500
 
 # ==================== API ROUTES ====================
 

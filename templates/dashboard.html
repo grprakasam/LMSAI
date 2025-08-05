@@ -289,7 +289,8 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    alert('Audio generated successfully! Playing now.');
+                    const fmt = data.format || (data.audio_url && data.audio_url.endsWith('.mp3') ? 'mp3' : 'wav');
+                    alert(`Audio generated successfully! (${fmt.toUpperCase()}) Playing now.`);
                     if (audioPlayer) {
                         audioPlayer.pause();
                         audioPlayer.src = '';
