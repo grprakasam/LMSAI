@@ -284,30 +284,79 @@
                 const response = await fetch(`/generate-audio/${currentTutorialData.tutorial_id}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({}) // No additional data needed for now
+                    body: JSON.stringify({ speed: 1.0 })
                 });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
 
                 if (data.success) {
-                    const fmt = data.format || (data.audio_url && data.audio_url.endsWith('.mp3') ? 'mp3' : 'wav');
-                    alert(`Audio generated successfully! (${fmt.toUpperCase()}) Playing now.`);
+                    const fmt = data.format || 'audio';
+                    
+                    // Stop any currently playing audio
                     if (audioPlayer) {
                         audioPlayer.pause();
-                        audioPlayer.src = '';
+                        audioPlayer.currentTime = 0;
                     }
+                    
+                    // Create new audio element and play
                     audioPlayer = new Audio(data.audio_url);
-                    audioPlayer.play();
+                    audioPlayer.controls = true;
+                    
+                    // Handle audio load and play
+                    audioPlayer.addEventListener('loadstart', () => {
+                        console.log('Audio loading started...');
+                    });
+                    
+                    audioPlayer.addEventListener('canplay', () => {
+                        console.log('Audio can start playing');
+                        audioPlayer.play().then(() => {
+                            console.log('Audio playback started successfully');
+                            audioBtn.innerHTML = '<i class="fas fa-pause"></i> Playing Audio...';
+                        }).catch(err => {
+                            console.error('Error playing audio:', err);
+                            alert('Audio generated but failed to play. Please try again.');
+                            audioBtn.innerHTML = originalText;
+                            audioBtn.disabled = false;
+                        });
+                    });
+                    
+                    audioPlayer.addEventListener('error', (e) => {
+                        console.error('Audio error:', e);
+                        alert('Audio file generated but could not be played. Please check the audio format.');
+                        audioBtn.innerHTML = originalText;
+                        audioBtn.disabled = false;
+                    });
+                    
                     audioPlayer.addEventListener('ended', () => {
                         audioBtn.innerHTML = '<i class="fas fa-headphones"></i> Generate Audio';
                         audioBtn.disabled = false;
                     });
+                    
+                    // Add audio element to the page so user can see controls
+                    const existingAudio = document.querySelector('#generatedAudio');
+                    if (existingAudio) {
+                        existingAudio.remove();
+                    }
+                    
+                    audioPlayer.id = 'generatedAudio';
+                    audioPlayer.style.width = '100%';
+                    audioPlayer.style.marginTop = '10px';
+                    
+                    // Insert audio player after the audio button
+                    audioBtn.parentNode.insertBefore(audioPlayer, audioBtn.nextSibling);
+                    
+                    alert(`Audio generated successfully! (${fmt.toUpperCase()})`);
+                    
                 } else {
-                    alert(`Audio generation failed: ${data.error}`);
+                    throw new Error(data.error || 'Unknown error occurred');
                 }
             } catch (error) {
                 console.error('Error generating audio:', error);
-                alert('Network error during audio generation. Please try again.');
-            } finally {
+                alert(`Audio generation failed: ${error.message}`);
                 audioBtn.innerHTML = originalText;
                 audioBtn.disabled = false;
             }

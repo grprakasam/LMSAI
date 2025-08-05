@@ -752,7 +752,78 @@
         }
 
         async function generateAudio() {
-            alert('Audio generation is coming soon! This will be available in the next update.');
+            const button = document.querySelector('button[onclick="generateAudio()"]');
+            const originalText = button.innerHTML;
+            
+            try {
+                button.disabled = true;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating Audio...';
+                
+                const response = await fetch(`/generate-audio/${tutorialData.id}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ speed: 1.0 })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Create audio element
+                    const existingAudio = document.querySelector('#generatedAudio');
+                    if (existingAudio) {
+                        existingAudio.remove();
+                    }
+                    
+                    const audioElement = document.createElement('audio');
+                    audioElement.id = 'generatedAudio';
+                    audioElement.controls = true;
+                    audioElement.style.width = '100%';
+                    audioElement.style.marginTop = '10px';
+                    audioElement.src = data.audio_url;
+                    
+                    // Insert after the button
+                    button.parentNode.insertBefore(audioElement, button.nextSibling);
+                    
+                    // Auto-play the audio
+                    audioElement.play().then(() => {
+                        button.innerHTML = '<i class="fas fa-pause"></i> Playing Audio...';
+                    }).catch(err => {
+                        console.error('Auto-play failed:', err);
+                        button.innerHTML = originalText;
+                        button.disabled = false;
+                    });
+                    
+                    audioElement.addEventListener('ended', () => {
+                        button.innerHTML = originalText;
+                        button.disabled = false;
+                    });
+                    
+                    audioElement.addEventListener('error', () => {
+                        alert('Audio file could not be played. Please check the audio format.');
+                        button.innerHTML = originalText;
+                        button.disabled = false;
+                    });
+                    
+                    const fmt = data.format || 'audio';
+                    alert(`Audio generated successfully! (${fmt.toUpperCase()})`);
+                    
+                } else {
+                    throw new Error(data.error || 'Unknown error occurred');
+                }
+                
+            } catch (error) {
+                console.error('Error generating audio:', error);
+                alert(`Audio generation failed: ${error.message}`);
+            } finally {
+                if (button.innerHTML.includes('spinner')) {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }
+            }
         }
 
         // Load related tutorials

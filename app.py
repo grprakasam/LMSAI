@@ -13,7 +13,7 @@ from functools import wraps
 # Import our modules
 from config import config, PLANS, MODEL_CONFIGS, AUDIO_MODEL_CONFIGS
 from models import init_db, User, Tutorial, UsageLog
-from routes import main_bp, auth_bp, api_bp
+from routes import main_bp, auth_bp, api_bp, admin_api_bp
 from openrouter_service import openrouter_service
 from utils import validate_email, check_system_health
 
@@ -114,7 +114,7 @@ def create_app(config_name=None):
         """Initialize the database."""
         from models import db
         db.create_all()
-        print("✅ Database initialized successfully!")
+        print("[OK] Database initialized successfully!")
     
     @app.cli.command()
     def test_openrouter():
@@ -122,9 +122,9 @@ def create_app(config_name=None):
         status = openrouter_service.get_model_status()
         print(f"OpenRouter Status: {status['status']}")
         if status['status'] == 'connected':
-            print(f"✅ Connected! {status.get('model_count', 0)} models available")
+            print(f"[OK] Connected! {status.get('model_count', 0)} models available")
         else:
-            print(f"❌ Connection failed: {status.get('error', 'Unknown error')}")
+            print(f"[ERROR] Connection failed: {status.get('error', 'Unknown error')}")
     
     @app.cli.command()
     def create_sample_user():
@@ -147,7 +147,7 @@ def create_app(config_name=None):
         
         db.session.add(user)
         db.session.commit()
-        print(f"✅ Created sample user: {email} (password: s)")
+        print(f"[OK] Created sample user: {email} (password: s)")
     
     # Health check endpoint
     @app.route('/health')
@@ -209,31 +209,31 @@ def create_app(config_name=None):
     @app.before_request
     def validate_configuration():
         """Validate configuration on startup"""
-        logger.info("🚀 Starting R Tutor Pro with OpenRouter integration")
+        logger.info("Starting R Tutor Pro with OpenRouter integration")
         
         # Check OpenRouter configuration
         if app.config.get('OPENROUTER_API_KEY'):
-            logger.info("✅ OpenRouter API key configured")
+            logger.info("OpenRouter API key configured")
             status = openrouter_service.get_model_status()
             if status['status'] == 'connected':
-                logger.info(f"✅ OpenRouter connected - {status.get('model_count', 0)} models available")
+                logger.info(f"OpenRouter connected - {status.get('model_count', 0)} models available")
             else:
-                logger.warning(f"⚠️ OpenRouter connection issue: {status.get('error', 'Unknown')}")
+                logger.warning(f"OpenRouter connection issue: {status.get('error', 'Unknown')}")
         else:
-            logger.warning("⚠️ OpenRouter API key not configured - AI features will be limited")
+            logger.warning("OpenRouter API key not configured - AI features will be limited")
         
         # Check database
         try:
             from models import db
             db.create_all()
-            logger.info("✅ Database connection verified")
+            logger.info("Database connection verified")
         except Exception as e:
-            logger.error(f"❌ Database connection failed: {e}")
+            logger.error(f"Database connection failed: {e}")
         
         # Create directories
         upload_dir = app.config.get('UPLOAD_FOLDER', 'static/generated_audio')
         os.makedirs(upload_dir, exist_ok=True)
-        logger.info(f"✅ Upload directory ready: {upload_dir}")
+        logger.info(f"Upload directory ready: {upload_dir}")
     
     return app
 
@@ -241,39 +241,39 @@ def create_app(config_name=None):
 app = create_app()
 
 if __name__ == '__main__':
-    print("🚀 Starting R Tutor Pro - OpenRouter AI Integration")
+    print("Starting R Tutor Pro - OpenRouter AI Integration")
     print("=" * 60)
-    print("🤖 AI Features: OpenRouter integration for tutorial generation")
-    print("🎵 Audio: AI-powered audio generation via OpenRouter models")
-    print("📝 Content: Unlimited AI-generated R programming tutorials")
-    print("🔧 Models: Configurable text and audio generation models")
+    print("AI Features: OpenRouter integration for tutorial generation")
+    print("Audio: AI-powered audio generation via OpenRouter models")
+    print("Content: Unlimited AI-generated R programming tutorials")
+    print("Models: Configurable text and audio generation models")
     print("=" * 60)
     
     # Environment validation
     openrouter_key = os.environ.get('OPENROUTER_API_KEY')
     if openrouter_key:
-        print(f"✅ OpenRouter API Key: Configured ({openrouter_key[:8]}...)")
+        print(f"[OK] OpenRouter API Key: Configured ({openrouter_key[:8]}...)")
     else:
-        print("⚠️  OpenRouter API Key: Not configured (limited functionality)")
+        print("[WARN] OpenRouter API Key: Not configured (limited functionality)")
     
     database_url = os.environ.get('DATABASE_URL', 'sqlite:///r_tutor_dev.db')
-    print(f"🗄️  Database: {database_url}")
+    print(f"Database: {database_url}")
     
     secret_key = os.environ.get('SECRET_KEY')
     if secret_key and secret_key != 'dev-secret-key-change-in-production-r-tutor-pro':
-        print("✅ Secret Key: Configured (secure)")
+        print("[OK] Secret Key: Configured (secure)")
     else:
-        print("⚠️  Secret Key: Using default (change for production)")
+        print("[WARN] Secret Key: Using default (change for production)")
     
     print("=" * 60)
-    print("📖 Setup Instructions:")
+    print("Setup Instructions:")
     print("1. Get OpenRouter API key from https://openrouter.ai/keys")
     print("2. Set OPENROUTER_API_KEY environment variable")
     print("3. Choose models in the dashboard model selection")
     print("4. Generate AI-powered R tutorials with audio!")
     print("=" * 60)
-    print(f"🌐 Access the app at: http://localhost:{os.environ.get('PORT', 5000)}")
-    print("📧 Login with any email + password 's'")
+    print(f"Access the app at: http://localhost:{os.environ.get('PORT', 5000)}")
+    print("Login with any email + password 's'")
     print("=" * 60)
     
     # Start the development server

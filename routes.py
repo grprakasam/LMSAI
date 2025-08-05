@@ -395,67 +395,71 @@ def generate_audio(tutorial_id):
         engine.save_to_file(text_to_speak, str(wav_path))
         engine.runAndWait()
 
-        # Convert WAV to MP3 via pydub; attempt to locate ffmpeg automatically
-        from pydub import AudioSegment
-        from pydub.utils import which as pydub_which
+        # Try to convert WAV to MP3 via pydub if available, otherwise serve WAV
+        mp3_conversion_success = False
+        
+        try:
+            from pydub import AudioSegment
+            from pydub.utils import which as pydub_which
 
-        # Configure ffmpeg/ffprobe if available in PATH or common install locations (Windows)
-        ffmpeg_path = pydub_which("ffmpeg")
-        ffprobe_path = pydub_which("ffprobe")
+            # Configure ffmpeg/ffprobe if available in PATH or common install locations (Windows)
+            ffmpeg_path = pydub_which("ffmpeg")
+            ffprobe_path = pydub_which("ffprobe")
 
-        # Try common Windows locations if not found
-        if not ffmpeg_path:
-            candidate_paths = [
-                r"C:\ffmpeg\bin\ffmpeg.exe",
-                r"C:\Program Files\ffmpeg\bin\ffmpeg.exe",
-                r"C:\Program Files (x86)\ffmpeg\bin\ffmpeg.exe"
-            ]
-            for p in candidate_paths:
-                if Path(p).exists():
-                    ffmpeg_path = p
-                    break
-        if not ffprobe_path:
-            candidate_paths = [
-                r"C:\ffmpeg\bin\ffprobe.exe",
-                r"C:\Program Files\ffmpeg\bin\ffprobe.exe",
-                r"C:\Program Files (x86)\ffmpeg\bin\ffprobe.exe"
-            ]
-            for p in candidate_paths:
-                if Path(p).exists():
-                    ffprobe_path = p
-                    break
+            # Try common Windows locations if not found
+            if not ffmpeg_path:
+                candidate_paths = [
+                    r"C:\ffmpeg\bin\ffmpeg.exe",
+                    r"C:\Program Files\ffmpeg\bin\ffmpeg.exe",
+                    r"C:\Program Files (x86)\ffmpeg\bin\ffmpeg.exe"
+                ]
+                for p in candidate_paths:
+                    if Path(p).exists():
+                        ffmpeg_path = p
+                        break
+            if not ffprobe_path:
+                candidate_paths = [
+                    r"C:\ffmpeg\bin\ffprobe.exe",
+                    r"C:\Program Files\ffmpeg\bin\ffprobe.exe",
+                    r"C:\Program Files (x86)\ffmpeg\bin\ffprobe.exe"
+                ]
+                for p in candidate_paths:
+                    if Path(p).exists():
+                        ffprobe_path = p
+                        break
 
-        # If still not found, return a clear instruction to install ffmpeg
-        if not ffmpeg_path or not ffprobe_path:
-            # Fallback: serve WAV directly if MP3 not possible
+            # If ffmpeg is available, try MP3 conversion
+            if ffmpeg_path and ffprobe_path:
+                # Export to MP3
+                audio_seg = AudioSegment.from_wav(str(wav_path))
+                audio_seg.export(str(mp3_path), format="mp3", bitrate="128k")
+                mp3_conversion_success = True
+                
+        except ImportError as e:
+            print(f"pydub not available or missing dependencies: {e}")
+        except Exception as e:
+            print(f"MP3 conversion failed: {e}")
+
+        # Determine which audio file to serve
+        if mp3_conversion_success and mp3_path.exists():
+            audio_url = f"/static/generated_audio/{mp3_path.name}"
+            audio_format = 'mp3'
+            message = 'Audio generated successfully as MP3!'
+        else:
             audio_url = f"/static/generated_audio/{wav_path.name}"
-            # Save URL on tutorial and return success with WAV
-            tutorial.audio_url = audio_url
-            tutorial.audio_duration = max(1, int((len((tutorial.content or '').split()) / 150) * 60))
-            db.session.commit()
-            return jsonify({
-                'success': True,
-                'message': 'Audio generated as WAV (ffmpeg not found for MP3 conversion).',
-                'audio_url': audio_url,
-                'format': 'wav',
-                'note': 'Install ffmpeg and ensure it is in PATH for MP3 output.'
-            })
+            audio_format = 'wav'
+            message = 'Audio generated as WAV (MP3 conversion not available).'
 
-        # Export to MP3
-        audio_seg = AudioSegment.from_wav(str(wav_path))
-        audio_seg.export(str(mp3_path), format="mp3", bitrate="128k")
-
-        # Prefer MP3 URL
-        audio_url = f"/static/generated_audio/{mp3_path.name}"
+        # Save URL on tutorial
         tutorial.audio_url = audio_url
         tutorial.audio_duration = max(1, int((len((tutorial.content or '').split()) / 150) * 60))
         db.session.commit()
 
         return jsonify({
             'success': True,
-            'message': 'Audio generated successfully!',
+            'message': message,
             'audio_url': audio_url,
-            'format': 'mp3'
+            'format': audio_format
         })
 
     except Exception as e:
