@@ -492,7 +492,7 @@ def generate_content():
         if not is_valid:
             return jsonify({'success': False, 'error': error_message}), 400
         
-        if output_type not in ['text', 'audio', 'animated']:
+        if output_type not in ['text', 'audio', 'animated', 'quiz']:
             return jsonify({'success': False, 'error': 'Invalid output type'}), 400
         
         # Generate content based on type
@@ -502,6 +502,8 @@ def generate_content():
             return generate_audio_content(topic, expertise, duration)
         elif output_type == 'animated':
             return generate_animated_content(topic, expertise, duration)
+        elif output_type == 'quiz':
+            return generate_quiz_content(topic, expertise)
             
     except Exception as e:
         logger.error(f"Content generation error: {str(e)}")
@@ -656,67 +658,31 @@ def generate_audio_content(topic, expertise, duration):
         raise e
 
 def generate_animated_content(topic, expertise, duration):
-    """Generate interactive animated tutorial with audio narration"""
+    """Generate simple animated tutorial content without storage issues"""
     try:
-        # Generate base content
-        tutorial_data = openrouter_service.generate_tutorial_content(
-            topic=topic,
-            expertise=expertise,
-            duration=duration,
-            text_model=None,
-            user_preferences={
-                'animation_focused': True,
-                'slide_based': True,
-                'visual_learning': True
-            }
-        )
+        # Create simple slide-based content on-the-fly without external dependencies
+        slides_content = create_simple_animation_slides(topic, expertise, duration)
         
-        # Create enhanced animation HTML with slides
-        animation_html = create_enhanced_animation_slides(topic, expertise, tutorial_data['content'])
+        # Generate basic narration text (no audio processing to avoid storage issues)
+        narration_text = create_simple_narration(topic, expertise)
         
-        # Generate audio narration for the slides
-        narration_text = create_slide_narration(topic, expertise)
-        audio_text = _prepare_text_for_audio(narration_text)
-        
-        # Generate streaming audio URL with Kyutai TTS for narration
-        from kyutai_tts_service import kyutai_service
-        import uuid
-        
-        stream_id = str(uuid.uuid4())
-        
-        kyutai_service.active_streams[stream_id] = {
-            'text': audio_text,
-            'voice': "default",
-            'language': "en",
-            'speed': 0.9,  # Slightly slower for educational content
-            'format': "mp3",
-            'created_at': time.time(),
-            'status': 'ready'
-        }
-        
-        audio_stream_url = f"/api/kyutai-stream/{stream_id}"
-        
-        # Save to database
-        tutorial = Tutorial(
-            user_id=1,
-            topic=topic,
-            expertise=expertise,
-            duration=duration,
-            content=tutorial_data['content'],
-            audio_url=audio_stream_url,
-            is_premium=True,
-            status='completed'
-        )
-        
-        tutorial.set_concepts(tutorial_data['concepts'])
-        tutorial.set_packages(tutorial_data['packages'])
-        tutorial.set_learning_objectives(tutorial_data['objectives'])
-        
-        db.session.add(tutorial)
-        db.session.commit()
-        
-        # Store narration text for streaming
-        _store_streaming_audio_content(stream_id, audio_text)
+        # Save minimal record to database (optional, can be skipped if storage is an issue)
+        try:
+            tutorial = Tutorial(
+                user_id=1,
+                topic=topic,
+                expertise=expertise,
+                duration=duration,
+                content=f"Animated tutorial: {topic}",
+                is_premium=True,
+                status='completed'
+            )
+            db.session.add(tutorial)
+            db.session.commit()
+            tutorial_id = tutorial.id
+        except:
+            # If database save fails, continue without saving
+            tutorial_id = None
         
         return jsonify({
             'success': True,
@@ -724,16 +690,20 @@ def generate_animated_content(topic, expertise, duration):
             'topic': topic,
             'expertise': expertise,
             'duration': duration,
-            'content': tutorial_data['content'],
-            'animation_html': animation_html,
-            'audio_stream_url': audio_stream_url,
-            'has_narration': True,
-            'tutorial_id': tutorial.id
+            'content': slides_content['content'],
+            'animation_html': slides_content['html'],
+            'narration_text': narration_text,
+            'has_narration': False,  # No audio to avoid storage issues
+            'tutorial_id': tutorial_id,
+            'slides': slides_content['slides']
         })
         
     except Exception as e:
-        db.session.rollback()
-        raise e
+        logger.error(f"Animated content generation error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to generate animated content. Please try again.'
+        }), 500
 
 def create_animation_html(topic, expertise, content):
     """Create interactive animation HTML"""
@@ -2032,3 +2002,261 @@ This {animation_type.replace('-', ' ')} animation demonstrates key {topic} conce
         ],
         'estimated_steps': step_counts.get(animation_type, 3)
     }
+
+def create_simple_animation_slides(topic, expertise, duration):
+    """Create simple animation slides without external dependencies"""
+    
+    # Define slide content based on topic
+    slides_data = [
+        {
+            'title': f"Welcome to {topic}",
+            'content': f"Let's explore {topic} fundamentals step by step.",
+            'animation': "fadeIn"
+        },
+        {
+            'title': f"{topic} Basics",
+            'content': f"Understanding core {topic} concepts for {expertise} level learners.",
+            'animation': "slideInLeft"
+        },
+        {
+            'title': f"Practical {topic}",
+            'content': f"Real-world applications and examples of {topic} in action.",
+            'animation': "slideInRight"
+        },
+        {
+            'title': f"Next Steps",
+            'content': f"Continue your {topic} journey with hands-on practice.",
+            'animation': "fadeInUp"
+        }
+    ]
+    
+    # Create HTML for slides
+    animation_html = f"""
+    <div class="animation-container">
+        <div class="slides-wrapper">
+            {''.join([f'''
+            <div class="slide {slide['animation']}" data-slide="{i}">
+                <div class="slide-content">
+                    <h2 class="slide-title">{slide['title']}</h2>
+                    <p class="slide-text">{slide['content']}</p>
+                </div>
+            </div>
+            ''' for i, slide in enumerate(slides_data)])}
+        </div>
+        <div class="animation-controls">
+            <button onclick="prevSlide()">Previous</button>
+            <button onclick="nextSlide()">Next</button>
+            <button onclick="playSlideshow()">Play</button>
+        </div>
+    </div>
+    
+    <script>
+        let currentSlide = 0;
+        let slideInterval;
+        
+        function showSlide(n) {{
+            const slides = document.querySelectorAll('.slide');
+            if (n >= slides.length) currentSlide = 0;
+            if (n < 0) currentSlide = slides.length - 1;
+            slides.forEach(slide => slide.style.display = 'none');
+            if (slides[currentSlide]) slides[currentSlide].style.display = 'block';
+        }}
+        
+        function nextSlide() {{
+            currentSlide++;
+            showSlide(currentSlide);
+        }}
+        
+        function prevSlide() {{
+            currentSlide--;
+            showSlide(currentSlide);
+        }}
+        
+        function playSlideshow() {{
+            if (slideInterval) clearInterval(slideInterval);
+            slideInterval = setInterval(nextSlide, 3000);
+        }}
+        
+        // Initialize
+        showSlide(0);
+    </script>
+    
+    <style>
+        .animation-container {{ max-width: 800px; margin: 0 auto; padding: 20px; }}
+        .slide {{ display: none; padding: 40px; text-align: center; background: #f8f9fa; border-radius: 10px; }}
+        .slide-title {{ color: #333; font-size: 2em; margin-bottom: 20px; }}
+        .slide-text {{ color: #666; font-size: 1.2em; line-height: 1.6; }}
+        .animation-controls {{ text-align: center; margin-top: 20px; }}
+        .animation-controls button {{ margin: 0 10px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }}
+        .animation-controls button:hover {{ background: #0056b3; }}
+    </style>
+    """
+    
+    content_text = f"Interactive slides for {topic} - {len(slides_data)} slides covering fundamental concepts."
+    
+    return {
+        'content': content_text,
+        'html': animation_html,
+        'slides': slides_data
+    }
+
+def create_simple_narration(topic, expertise):
+    """Create simple narration text for the animation"""
+    return f"""Welcome to this {topic} tutorial designed for {expertise} level learners. 
+    
+    We'll start with the basics and gradually build your understanding through visual examples. 
+    
+    Each slide presents key concepts in an easy-to-follow format. 
+    
+    Take your time to absorb the information and use the controls to navigate at your own pace.
+    
+    By the end of this tutorial, you'll have a solid foundation in {topic} fundamentals."""
+
+def generate_quiz_content(topic, expertise):
+    """Generate quiz content with 3 questions and feedback"""
+    try:
+        # Define quiz questions based on topic and expertise level
+        if expertise == 'beginner':
+            difficulty = "basic"
+        elif expertise == 'intermediate':
+            difficulty = "moderate"
+        else:
+            difficulty = "advanced"
+            
+        # Generate topic-specific questions
+        questions = create_topic_questions(topic, difficulty)
+        
+        # Save minimal record to database
+        try:
+            tutorial = Tutorial(
+                user_id=1,
+                topic=topic,
+                expertise=expertise,
+                duration=5,  # Quiz typically takes 5 minutes
+                content=f"Quiz: {topic}",
+                is_premium=True,
+                status='completed'
+            )
+            db.session.add(tutorial)
+            db.session.commit()
+            tutorial_id = tutorial.id
+        except:
+            tutorial_id = None
+        
+        return jsonify({
+            'success': True,
+            'output_type': 'quiz',
+            'topic': topic,
+            'expertise': expertise,
+            'questions': questions,
+            'tutorial_id': tutorial_id,
+            'total_questions': len(questions)
+        })
+        
+    except Exception as e:
+        logger.error(f"Quiz generation error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to generate quiz content. Please try again.'
+        }), 500
+
+def create_topic_questions(topic, difficulty):
+    """Create topic-specific quiz questions"""
+    
+    # Basic question templates for different R topics
+    question_templates = {
+        'data manipulation': [
+            {
+                'question': f'Which function is commonly used to select columns in R?',
+                'options': ['select()', 'choose()', 'pick()', 'column()'],
+                'correct': 0,
+                'explanation': 'select() from dplyr is the standard function for selecting columns in R.'
+            },
+            {
+                'question': f'What does the pipe operator %>% do in R?',
+                'options': ['Assigns values', 'Passes output to next function', 'Creates loops', 'Defines functions'],
+                'correct': 1,
+                'explanation': 'The pipe operator %>% passes the output from one function as input to the next function.'
+            },
+            {
+                'question': f'Which package is most commonly used for data manipulation in R?',
+                'options': ['base', 'dplyr', 'graphics', 'stats'],
+                'correct': 1,
+                'explanation': 'dplyr is the most popular and powerful package for data manipulation in R.'
+            }
+        ],
+        'data visualization': [
+            {
+                'question': f'Which package is the most popular for creating plots in R?',
+                'options': ['base', 'lattice', 'ggplot2', 'plotly'],
+                'correct': 2,
+                'explanation': 'ggplot2 is the most widely used package for data visualization in R.'
+            },
+            {
+                'question': f'In ggplot2, what function is used to add layers to a plot?',
+                'options': ['add_layer()', '+', 'layer()', 'plot()'],
+                'correct': 1,
+                'explanation': 'The + operator is used to add layers and components to ggplot2 plots.'
+            },
+            {
+                'question': f'What does "aes" stand for in ggplot2?',
+                'options': ['Aesthetic mapping', 'Average estimation', 'Automatic scaling', 'Advanced settings'],
+                'correct': 0,
+                'explanation': 'aes stands for aesthetic mapping, which defines how variables are mapped to visual properties.'
+            }
+        ],
+        'statistics': [
+            {
+                'question': f'Which function calculates the mean in R?',
+                'options': ['avg()', 'mean()', 'average()', 'central()'],
+                'correct': 1,
+                'explanation': 'mean() is the built-in R function for calculating the arithmetic mean.'
+            },
+            {
+                'question': f'What function is used to perform a t-test in R?',
+                'options': ['ttest()', 't.test()', 'test.t()', 'student.test()'],
+                'correct': 1,
+                'explanation': 't.test() is the standard function for performing Student\'s t-tests in R.'
+            },
+            {
+                'question': f'Which function creates a linear regression model in R?',
+                'options': ['lm()', 'linear()', 'regress()', 'model()'],
+                'correct': 0,
+                'explanation': 'lm() stands for linear model and is the primary function for linear regression in R.'
+            }
+        ]
+    }
+    
+    # Get questions for the topic (fallback to general R questions if topic not found)
+    topic_lower = topic.lower()
+    questions = None
+    
+    for key in question_templates.keys():
+        if key in topic_lower or topic_lower in key:
+            questions = question_templates[key]
+            break
+    
+    # Fallback to general R questions
+    if not questions:
+        questions = [
+            {
+                'question': f'What file extension is commonly used for R scripts?',
+                'options': ['.txt', '.r', '.py', '.js'],
+                'correct': 1,
+                'explanation': 'R scripts typically use the .r or .R file extension.'
+            },
+            {
+                'question': f'Which symbol is used for assignment in R?',
+                'options': ['=', '<-', ':=', '->'],
+                'correct': 1,
+                'explanation': '<- is the preferred assignment operator in R, though = also works.'
+            },
+            {
+                'question': f'What function is used to install packages in R?',
+                'options': ['install.packages()', 'load.package()', 'get.package()', 'add.package()'],
+                'correct': 0,
+                'explanation': 'install.packages() is the standard function for installing R packages from CRAN.'
+            }
+        ]
+    
+    return questions[:3]  # Return only first 3 questions

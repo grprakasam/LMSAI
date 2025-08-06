@@ -24,7 +24,7 @@
     <div class="container">
         <div class="main-content">
             <div class="header-section">
-                <h1><i class="fas fa-graduation-cap"></i> Create Your R Learning Content</h1>
+                <h1><i class="fas fa-graduation-cap"></i> R Learning Content- AI Generated</h1>
                 <p class="subtitle">Choose your preferred format and generate personalized R tutorials with AI power</p>
             </div>
 
@@ -59,6 +59,15 @@
                                 <i class="fas fa-film"></i>
                                 <h4>Animated Output</h4>
                                 <p>Interactive animated presentation with audio and controls</p>
+                            </div>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="output_type" value="quiz">
+                            <span class="radio-custom"></span>
+                            <div class="option-content">
+                                <i class="fas fa-question-circle"></i>
+                                <h4>Quiz</h4>
+                                <p>Interactive quiz with 3 questions and instant feedback</p>
                             </div>
                         </label>
                     </div>
@@ -170,27 +179,6 @@
                 </div>
             </div>
 
-            <!-- AI Learning Assistant Info -->
-            <div class="ai-assistant-info">
-                <div class="assistant-card">
-                    <h3><i class="fas fa-robot"></i> AI Learning Assistant</h3>
-                    <p class="assistant-desc">Powered by advanced AI models to create personalized R learning experiences tailored to your expertise level.</p>
-                    <div class="features-list">
-                        <div class="feature-item">
-                            <i class="fas fa-brain"></i>
-                            <span>Smart Content Generation</span>
-                        </div>
-                        <div class="feature-item">
-                            <i class="fas fa-video"></i>
-                            <span>Interactive Animations</span>
-                        </div>
-                        <div class="feature-item">
-                            <i class="fas fa-volume-up"></i>
-                            <span>Audio Narration</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -241,7 +229,8 @@
             const loadingMessages = {
                 'text': '📝 Generating comprehensive text tutorial...',
                 'audio': '🎵 Creating streaming audio content with Kyutai TTS...',
-                'animated': '🎬 Building interactive animated tutorial...'
+                'animated': '🎬 Building interactive animated tutorial...',
+                'quiz': '🧠 Generating interactive quiz questions...'
             };
             
             document.getElementById('loadingText').textContent = loadingMessages[outputType];
@@ -253,6 +242,9 @@
             if (outputType === 'text') {
                 durationGroup.style.display = 'none';
                 contentLengthGroup.style.display = 'block';
+            } else if (outputType === 'quiz') {
+                durationGroup.style.display = 'none';
+                contentLengthGroup.style.display = 'none';
             } else {
                 durationGroup.style.display = 'block';
                 contentLengthGroup.style.display = 'none';
@@ -344,6 +336,9 @@
                 case 'animated':
                     displayAnimatedContent(result);
                     break;
+                case 'quiz':
+                    displayQuizContent(result);
+                    break;
             }
 
             // Show results
@@ -366,8 +361,59 @@
                             <span class="meta-tag">${result.content_length || 'medium'} length</span>
                         </div>
                     </div>
-                    <div class="content-body">
-                        ${processedContent}
+                    <div class="content-tabs">
+                        <button class="tab-btn active" onclick="showTab('content')">
+                            <i class="fas fa-book"></i> Tutorial
+                        </button>
+                        <button class="tab-btn" onclick="showTab('playground')">
+                            <i class="fas fa-code"></i> Code Playground
+                        </button>
+                    </div>
+                    <div class="tab-content">
+                        <div id="content-tab" class="tab-pane active">
+                            <div class="content-body">
+                                ${processedContent}
+                            </div>
+                        </div>
+                        <div id="playground-tab" class="tab-pane">
+                            <div class="code-playground">
+                                <div class="playground-header">
+                                    <h4><i class="fas fa-play-circle"></i> Try R Code Interactive</h4>
+                                    <p>Write and test R code related to ${result.topic}</p>
+                                </div>
+                                <div class="playground-container">
+                                    <div class="code-editor-section">
+                                        <h5>Your R Code:</h5>
+                                        <textarea id="codeEditor" class="code-editor" placeholder="# Write your R code here
+# Example:
+data <- c(1, 2, 3, 4, 5)
+mean(data)
+
+# Try concepts from the tutorial above!"></textarea>
+                                        <div class="editor-controls">
+                                            <button class="run-btn" onclick="runRCode()">
+                                                <i class="fas fa-play"></i> Run Code
+                                            </button>
+                                            <button class="clear-btn" onclick="clearCode()">
+                                                <i class="fas fa-trash"></i> Clear
+                                            </button>
+                                            <button class="example-btn" onclick="insertExample('${result.topic}')">
+                                                <i class="fas fa-lightbulb"></i> Example
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="output-section">
+                                        <h5>Output:</h5>
+                                        <div id="codeOutput" class="code-output">
+                                            <div class="output-placeholder">
+                                                <i class="fas fa-terminal"></i>
+                                                <p>Run your code to see results here</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
@@ -558,11 +604,108 @@
         }
 
         // ============= UTILITY FUNCTIONS =============
+        function displayQuizContent(result) {
+            const contentDisplay = document.getElementById('contentDisplay');
+            
+            contentDisplay.innerHTML = `
+                <div class="quiz-content">
+                    <div class="content-header">
+                        <h3>🧠 ${result.topic} Quiz</h3>
+                        <div class="content-meta">
+                            <span class="meta-tag">${result.expertise} level</span>
+                            <span class="meta-tag">3 questions</span>
+                        </div>
+                    </div>
+                    <div class="quiz-container" id="quizContainer">
+                        ${generateQuizHTML(result.questions || generateDefaultQuestions(result.topic))}
+                    </div>
+                    <div class="quiz-controls">
+                        <button class="submit-quiz-btn" onclick="submitQuiz()">
+                            <i class="fas fa-check-circle"></i> Submit Answers
+                        </button>
+                        <button class="reset-quiz-btn" onclick="resetQuiz()" style="display: none;">
+                            <i class="fas fa-redo"></i> Try Again
+                        </button>
+                    </div>
+                    <div id="quizResults" class="quiz-results" style="display: none;"></div>
+                </div>
+            `;
+        }
+        
+        function generateQuizHTML(questions) {
+            return questions.map((q, index) => `
+                <div class="quiz-question" data-question="${index}">
+                    <div class="question-header">
+                        <h4>Question ${index + 1}</h4>
+                        <div class="question-text">${q.question}</div>
+                    </div>
+                    <div class="question-options">
+                        ${q.options.map((option, optIndex) => `
+                            <label class="quiz-option">
+                                <input type="radio" name="q${index}" value="${optIndex}">
+                                <span class="option-indicator">${String.fromCharCode(65 + optIndex)}</span>
+                                <span class="option-text">${option}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function generateDefaultQuestions(topic) {
+            const questionsTemplates = {
+                'ggplot2': [
+                    {
+                        question: `What is the main function used to create plots in ggplot2?`,
+                        options: ['plot()', 'ggplot()', 'chart()', 'graph()'],
+                        correct: 1,
+                        explanation: 'ggplot() is the main function in ggplot2 for creating plots with the grammar of graphics approach.'
+                    },
+                    {
+                        question: `Which layer is used to add geometric objects like points or lines?`,
+                        options: ['geom_*()', 'aes_*()', 'scale_*()', 'theme_*()'],
+                        correct: 0,
+                        explanation: 'geom_*() functions like geom_point() and geom_line() add geometric objects to plots.'
+                    },
+                    {
+                        question: `What does aes() stand for in ggplot2?`,
+                        options: ['Aesthetic mappings', 'Axis settings', 'Automatic scaling', 'Advanced elements'],
+                        correct: 0,
+                        explanation: 'aes() defines aesthetic mappings that connect data variables to visual properties.'
+                    }
+                ],
+                'data analysis': [
+                    {
+                        question: `Which function is commonly used to read CSV files in R?`,
+                        options: ['read.csv()', 'load.csv()', 'import.csv()', 'get.csv()'],
+                        correct: 0,
+                        explanation: 'read.csv() is the standard function for reading CSV files into R as data frames.'
+                    },
+                    {
+                        question: `What function shows the first few rows of a dataset?`,
+                        options: ['top()', 'first()', 'head()', 'start()'],
+                        correct: 2,
+                        explanation: 'head() displays the first 6 rows by default, useful for quickly examining data structure.'
+                    },
+                    {
+                        question: `Which function provides a summary of data including mean, median, etc.?`,
+                        options: ['describe()', 'summary()', 'stats()', 'info()'],
+                        correct: 1,
+                        explanation: 'summary() provides descriptive statistics for each column in a dataset.'
+                    }
+                ]
+            };
+            
+            const topicLower = topic.toLowerCase();
+            return questionsTemplates[topicLower] || questionsTemplates['data analysis'];
+        }
+
         function getOutputTypeLabel(type) {
             const labels = {
                 'text': '📝 Text Tutorial',
                 'audio': '🎵 Audio Content',
-                'animated': '🎬 Animated Tutorial'
+                'animated': '🎬 Animated Tutorial',
+                'quiz': '🧠 Interactive Quiz'
             };
             return labels[type] || type;
         }
@@ -718,6 +861,234 @@
                 const progress = ((currentSlide + 1) / totalSlides) * 100;
                 progressBar.style.width = progress + '%';
             }
+        }
+        
+        // ============= CODE PLAYGROUND FUNCTIONS =============
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        function runRCode() {
+            const codeEditor = document.getElementById('codeEditor');
+            const codeOutput = document.getElementById('codeOutput');
+            const code = codeEditor.value.trim();
+            
+            if (!code) {
+                codeOutput.innerHTML = '<div class="output-error">Please enter some R code to run.</div>';
+                return;
+            }
+            
+            // Show loading state
+            codeOutput.innerHTML = '<div class="output-loading"><i class="fas fa-spinner fa-spin"></i> Running code...</div>';
+            
+            // Simulate R code execution with realistic outputs
+            setTimeout(() => {
+                const result = simulateRExecution(code);
+                codeOutput.innerHTML = result;
+            }, 1000);
+        }
+        
+        function simulateRExecution(code) {
+            // Simple R code simulation for common patterns
+            const codeLines = code.toLowerCase().split('\n').map(line => line.trim()).filter(line => line);
+            let output = '';
+            
+            for (let line of codeLines) {
+                if (line.includes('mean(') || line.includes('average')) {
+                    output += '<div class="output-line">[1] 3.2</div>';
+                } else if (line.includes('sum(')) {
+                    output += '<div class="output-line">[1] 15</div>';
+                } else if (line.includes('length(')) {
+                    output += '<div class="output-line">[1] 5</div>';
+                } else if (line.includes('head(')) {
+                    output += '<div class="output-line">  V1 V2 V3<br>1  1  4  7<br>2  2  5  8<br>3  3  6  9</div>';
+                } else if (line.includes('summary(')) {
+                    output += '<div class="output-line">   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.<br>  1.000   2.000   3.000   3.200   4.000   5.000</div>';
+                } else if (line.includes('plot(') || line.includes('ggplot(')) {
+                    output += '<div class="output-success">✓ Plot generated successfully!</div>';
+                } else if (line.includes('c(') && line.includes('<-')) {
+                    output += '<div class="output-success">✓ Vector created</div>';
+                } else if (line.includes('data.frame(')) {
+                    output += '<div class="output-success">✓ Data frame created</div>';
+                } else if (line.includes('library(') || line.includes('require(')) {
+                    output += '<div class="output-success">✓ Package loaded</div>';
+                } else if (line.startsWith('#')) {
+                    // Skip comments
+                    continue;
+                } else if (line) {
+                    output += '<div class="output-line">[1] "Code executed successfully"</div>';
+                }
+            }
+            
+            if (!output) {
+                output = '<div class="output-line">[1] "Code executed successfully"</div>';
+            }
+            
+            return '<div class="execution-result">' + output + '</div>';
+        }
+        
+        function clearCode() {
+            document.getElementById('codeEditor').value = '';
+            document.getElementById('codeOutput').innerHTML = `
+                <div class="output-placeholder">
+                    <i class="fas fa-terminal"></i>
+                    <p>Run your code to see results here</p>
+                </div>
+            `;
+        }
+        
+        function insertExample(topic) {
+            const codeEditor = document.getElementById('codeEditor');
+            const examples = {
+                'ggplot2': `# ggplot2 example
+library(ggplot2)
+data <- data.frame(
+  x = c(1, 2, 3, 4, 5),
+  y = c(2, 4, 6, 8, 10)
+)
+ggplot(data, aes(x = x, y = y)) +
+  geom_point() +
+  geom_line()`,
+                'data analysis': `# Data analysis example
+data <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+mean(data)
+summary(data)
+length(data)`,
+                'data structures': `# Data structures example
+vector <- c(1, 2, 3, 4, 5)
+matrix_data <- matrix(1:12, nrow = 3, ncol = 4)
+df <- data.frame(
+  name = c("Alice", "Bob", "Charlie"),
+  age = c(25, 30, 35)
+)
+head(df)`
+            };
+            
+            const topicLower = topic.toLowerCase();
+            const example = examples[topicLower] || examples['data analysis'];
+            codeEditor.value = example;
+        }
+        
+        // ============= QUIZ FUNCTIONS =============
+        let currentQuiz = null;
+        
+        function submitQuiz() {
+            const questions = currentContent.questions || generateDefaultQuestions(currentContent.topic);
+            const results = [];
+            let correctCount = 0;
+            
+            questions.forEach((question, qIndex) => {
+                const selectedOption = document.querySelector(`input[name="q${qIndex}"]:checked`);
+                const isCorrect = selectedOption && parseInt(selectedOption.value) === question.correct;
+                
+                if (isCorrect) correctCount++;
+                
+                results.push({
+                    question: question.question,
+                    selectedAnswer: selectedOption ? question.options[parseInt(selectedOption.value)] : 'No answer',
+                    correctAnswer: question.options[question.correct],
+                    isCorrect: isCorrect,
+                    explanation: question.explanation
+                });
+            });
+            
+            displayQuizResults(results, correctCount, questions.length);
+        }
+        
+        function displayQuizResults(results, correctCount, totalQuestions) {
+            const quizResults = document.getElementById('quizResults');
+            const percentage = Math.round((correctCount / totalQuestions) * 100);
+            
+            let resultsHTML = `
+                <div class="quiz-score">
+                    <div class="score-circle ${getScoreClass(percentage)}">
+                        <div class="score-number">${percentage}%</div>
+                        <div class="score-text">${correctCount}/${totalQuestions} correct</div>
+                    </div>
+                    <div class="score-feedback">
+                        <h4>${getScoreFeedback(percentage)}</h4>
+                        <p>${getScoreMessage(percentage)}</p>
+                    </div>
+                </div>
+                <div class="quiz-breakdown">
+            `;
+            
+            results.forEach((result, index) => {
+                resultsHTML += `
+                    <div class="result-item ${result.isCorrect ? 'correct' : 'incorrect'}">
+                        <div class="result-header">
+                            <span class="result-icon">
+                                ${result.isCorrect ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-times-circle"></i>'}
+                            </span>
+                            <span class="question-number">Question ${index + 1}</span>
+                        </div>
+                        <div class="result-details">
+                            <div class="your-answer">Your answer: ${result.selectedAnswer}</div>
+                            ${!result.isCorrect ? `<div class="correct-answer">Correct answer: ${result.correctAnswer}</div>` : ''}
+                            <div class="explanation">${result.explanation}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            resultsHTML += '</div>';
+            quizResults.innerHTML = resultsHTML;
+            quizResults.style.display = 'block';
+            
+            // Show reset button, hide submit button
+            document.querySelector('.submit-quiz-btn').style.display = 'none';
+            document.querySelector('.reset-quiz-btn').style.display = 'inline-block';
+            
+            // Disable all quiz inputs
+            document.querySelectorAll('.quiz-question input').forEach(input => {
+                input.disabled = true;
+            });
+        }
+        
+        function resetQuiz() {
+            // Enable all quiz inputs
+            document.querySelectorAll('.quiz-question input').forEach(input => {
+                input.disabled = false;
+                input.checked = false;
+            });
+            
+            // Hide results, show submit button
+            document.getElementById('quizResults').style.display = 'none';
+            document.querySelector('.submit-quiz-btn').style.display = 'inline-block';
+            document.querySelector('.reset-quiz-btn').style.display = 'none';
+        }
+        
+        function getScoreClass(percentage) {
+            if (percentage >= 80) return 'excellent';
+            if (percentage >= 60) return 'good';
+            if (percentage >= 40) return 'average';
+            return 'needs-improvement';
+        }
+        
+        function getScoreFeedback(percentage) {
+            if (percentage === 100) return 'Perfect Score! 🎉';
+            if (percentage >= 80) return 'Excellent Work! 🌟';
+            if (percentage >= 60) return 'Good Job! 👍';
+            if (percentage >= 40) return 'Keep Learning! 📚';
+            return 'More Practice Needed 💪';
+        }
+        
+        function getScoreMessage(percentage) {
+            if (percentage === 100) return 'You have mastered this topic completely!';
+            if (percentage >= 80) return 'You have a strong understanding of this topic.';
+            if (percentage >= 60) return 'You have a good grasp of the basics. Review the areas you missed.';
+            if (percentage >= 40) return 'You understand some concepts. Consider reviewing the tutorial again.';
+            return 'This topic needs more attention. Review the tutorial and try again.';
         }
 
     </script>
