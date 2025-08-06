@@ -89,17 +89,40 @@
                             </label>
                             <select id="expertise" name="expertise" class="form-control" required>
                                 <option value="">Select your level</option>
-                                <option value="beginner">🌱 Beginner</option>
+                                <option value="beginner" selected>🌱 Beginner</option>
                                 <option value="intermediate">🌿 Intermediate</option>
                                 <option value="expert">🌳 Expert</option>
                             </select>
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group" id="durationGroup">
                             <label for="duration">
                                 <i class="fas fa-clock"></i> Duration: <span id="durationDisplay">5</span> min
                             </label>
                             <input type="range" id="duration" name="duration" min="2" max="15" value="5" class="form-control slider">
+                        </div>
+
+                        <div class="form-group" id="contentLengthGroup" style="display: none;">
+                            <label>
+                                <i class="fas fa-text-width"></i> Content Length
+                            </label>
+                            <div class="radio-group-inline">
+                                <label class="radio-option-inline">
+                                    <input type="radio" name="content_length" value="short" checked>
+                                    <span class="radio-custom-inline"></span>
+                                    <span class="option-text">Short Content</span>
+                                </label>
+                                <label class="radio-option-inline">
+                                    <input type="radio" name="content_length" value="medium">
+                                    <span class="radio-custom-inline"></span>
+                                    <span class="option-text">Medium Content</span>
+                                </label>
+                                <label class="radio-option-inline">
+                                    <input type="radio" name="content_length" value="lengthy">
+                                    <span class="radio-custom-inline"></span>
+                                    <span class="option-text">Lengthy Content</span>
+                                </label>
+                            </div>
                         </div>
                     </div>
 
@@ -180,6 +203,8 @@
         document.addEventListener('DOMContentLoaded', function() {
             initializeEventListeners();
             loadRecentContent();
+            // Initialize UI for default text output
+            updateUIForOutputType('text');
         });
 
         function initializeEventListeners() {
@@ -221,6 +246,18 @@
             };
             
             document.getElementById('loadingText').textContent = loadingMessages[outputType];
+            
+            // Show/hide appropriate controls based on output type
+            const durationGroup = document.getElementById('durationGroup');
+            const contentLengthGroup = document.getElementById('contentLengthGroup');
+            
+            if (outputType === 'text') {
+                durationGroup.style.display = 'none';
+                contentLengthGroup.style.display = 'block';
+            } else {
+                durationGroup.style.display = 'block';
+                contentLengthGroup.style.display = 'none';
+            }
         }
 
         // ============= FORM HANDLING =============
@@ -232,7 +269,8 @@
                 topic: formData.get('topic'),
                 expertise: formData.get('expertise'),
                 duration: parseInt(formData.get('duration')),
-                output_type: formData.get('output_type')
+                output_type: formData.get('output_type'),
+                content_length: formData.get('content_length')
             };
 
             if (!contentData.topic || !contentData.expertise) {
@@ -317,20 +355,56 @@
 
         function displayTextContent(result) {
             const contentDisplay = document.getElementById('contentDisplay');
+            
+            // Process content to render markdown properly
+            const processedContent = renderMarkdownContent(result.content);
+            
             contentDisplay.innerHTML = `
-                <div class="text-content">
+                <div class="text-content markdown-content">
                     <div class="content-header">
                         <h3>${result.topic}</h3>
                         <div class="content-meta">
                             <span class="meta-tag">${result.expertise} level</span>
-                            <span class="meta-tag">${result.duration} min read</span>
+                            <span class="meta-tag">${result.content_length || 'medium'} length</span>
                         </div>
                     </div>
                     <div class="content-body">
-                        ${result.content}
+                        ${processedContent}
                     </div>
                 </div>
             `;
+        }
+        
+        function renderMarkdownContent(content) {
+            // Simple markdown-to-HTML converter for better readability
+            let html = content
+                // Headers
+                .replace(/^### (.*$)/gim, '<h3 class="content-h3">$1</h3>')
+                .replace(/^## (.*$)/gim, '<h2 class="content-h2">$1</h2>')
+                .replace(/^# (.*$)/gim, '<h1 class="content-h1">$1</h1>')
+                // Code blocks
+                .replace(/```r\n([\s\S]*?)```/g, '<div class="code-block r-code"><pre><code>$1</code></pre></div>')
+                .replace(/```([\s\S]*?)```/g, '<div class="code-block"><pre><code>$1</code></pre></div>')
+                // Inline code
+                .replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>')
+                // Bold
+                .replace(/\*\*(.*?)\*\*/g, '<strong class="content-bold">$1</strong>')
+                // Italic
+                .replace(/\*(.*?)\*/g, '<em class="content-italic">$1</em>')
+                // Lists
+                .replace(/^\* (.*$)/gim, '<li class="list-item">$1</li>')
+                .replace(/^- (.*$)/gim, '<li class="list-item">$1</li>')
+                // Line breaks
+                .replace(/\n\n/g, '</p><p class="content-paragraph">')
+                .replace(/\n/g, '<br>');
+            
+            // Wrap in paragraph tags and handle lists
+            html = '<p class="content-paragraph">' + html + '</p>';
+            html = html.replace(/(<li class="list-item">.*<\/li>)/gs, function(match) {
+                return '<ul class="content-list">' + match + '</ul>';
+            });
+            
+            return html;
         }
 
         function displayAudioContent(result) {

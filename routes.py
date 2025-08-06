@@ -22,6 +22,159 @@ from config import PLANS, MODEL_CONFIGS, AUDIO_MODEL_CONFIGS
 import logging
 logger = logging.getLogger(__name__)
 
+# Helper function for enhancing markdown content
+def enhance_markdown_content(content: str, topic: str, expertise: str, content_length: str) -> str:
+    """Enhance content with better markdown formatting, colors, and structure"""
+    if not content:
+        return content
+    
+    # Create a comprehensive, well-structured tutorial
+    enhanced_sections = []
+    
+    # Add a compelling introduction
+    intro = f"""# 🎯 {topic} Tutorial for {expertise.title()} Level
+
+## 📖 Overview
+Welcome to this comprehensive tutorial on **{topic}**! This {"detailed" if content_length == "lengthy" else "concise" if content_length == "short" else "practical"} guide will help you master the fundamentals and apply them effectively.
+
+### 🎯 Learning Objectives
+By the end of this tutorial, you will:
+* Understand the core concepts of {topic}
+* Know how to implement practical solutions
+* Be able to troubleshoot common issues
+* Have hands-on experience with real examples
+
+---
+"""
+    enhanced_sections.append(intro)
+    
+    # Process the original content and enhance it
+    lines = content.split('\n')
+    current_section = []
+    section_count = 0
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        # Detect and enhance headers
+        if line.startswith('#'):
+            if current_section:
+                enhanced_sections.append('\n'.join(current_section))
+                current_section = []
+            
+            section_count += 1
+            # Add icons and better formatting to headers
+            header_icons = ['🚀', '⚙️', '💡', '🔧', '📊', '🎨', '🔍', '✨']
+            icon = header_icons[section_count % len(header_icons)]
+            
+            # Ensure proper header levels
+            if line.count('#') == 1:
+                current_section.append(f"## {icon} {line[1:].strip()}")
+            elif line.count('#') == 2:
+                current_section.append(f"### {icon} {line[2:].strip()}")
+            else:
+                current_section.append(f"#### {icon} {line[3:].strip()}")
+        else:
+            current_section.append(line)
+    
+    # Add the last section
+    if current_section:
+        enhanced_sections.append('\n'.join(current_section))
+    
+    # Add practical examples section
+    examples_section = f"""
+## 💻 Practical Examples
+
+Here are some hands-on examples to help you apply what you've learned:
+
+### Example 1: Basic Implementation
+```r
+# Basic {topic} example
+library(base)
+
+# Sample data
+data <- c(1, 2, 3, 4, 5)
+result <- mean(data)
+print(result)
+```
+
+### Example 2: Advanced Usage
+```r
+# More advanced {topic} techniques
+library(dplyr)
+
+# Complex operation
+processed_data <- data %>%
+    filter(!is.na(.)) %>%
+    mutate(scaled = scale(.)) %>%
+    summarize(mean_val = mean(scaled))
+
+print(processed_data)
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues and Solutions
+
+**Issue 1: Error loading libraries**
+```r
+# Solution: Install missing packages
+if (!require(dplyr)) install.packages("dplyr")
+library(dplyr)
+```
+
+**Issue 2: Data type problems**
+```r
+# Solution: Check and convert data types
+str(your_data)
+your_data$column <- as.numeric(your_data$column)
+```
+
+---
+
+## 📝 Summary and Next Steps
+
+### Key Takeaways
+* **{topic}** is essential for effective R programming
+* Practice with real data to build confidence
+* Use the examples provided as starting points
+* Don't hesitate to experiment and explore
+
+### Recommended Next Steps
+1. **Practice**: Try the examples with your own data
+2. **Explore**: Look into advanced {topic} techniques
+3. **Build**: Create a project using these concepts
+4. **Share**: Discuss your results with the R community
+
+### Additional Resources
+* [R Documentation](https://www.r-project.org/help.html)
+* [RStudio Resources](https://www.rstudio.com/resources/)
+* [R for Data Science](https://r4ds.had.co.nz/)
+
+---
+
+**Happy coding! 🎉**
+
+*This tutorial was generated to provide you with a comprehensive understanding of {topic}. Keep practicing and exploring!*
+"""
+    
+    # Add examples section based on content length
+    if content_length in ['medium', 'lengthy']:
+        enhanced_sections.append(examples_section)
+    
+    # Join all sections
+    final_content = '\n\n'.join(enhanced_sections)
+    
+    # Clean up and optimize the content
+    final_content = final_content.replace('\n\n\n', '\n\n')  # Remove excessive line breaks
+    final_content = final_content.strip()
+    
+    return final_content
+
 # Helper function for audio text processing
 def _prepare_text_for_audio(content: str) -> str:
     """Prepare tutorial content for TTS by removing markdown and optimizing for speech"""
@@ -307,6 +460,7 @@ def generate_content():
         expertise = data.get('expertise', '').strip()
         duration = data.get('duration', 5)
         output_type = data.get('output_type', 'text').strip()
+        content_length = data.get('content_length', 'medium').strip()
         
         # Validate input
         is_valid, error_message = validate_tutorial_input(topic, expertise, duration)
@@ -318,7 +472,7 @@ def generate_content():
         
         # Generate content based on type
         if output_type == 'text':
-            return generate_text_content(topic, expertise, duration)
+            return generate_text_content(topic, expertise, duration, content_length)
         elif output_type == 'audio':
             return generate_audio_content(topic, expertise, duration)
         elif output_type == 'animated':
@@ -331,25 +485,48 @@ def generate_content():
             'error': 'Content generation failed. Please try again.'
         }), 500
 
-def generate_text_content(topic, expertise, duration):
-    """Generate comprehensive text tutorial"""
+def generate_text_content(topic, expertise, duration, content_length='medium'):
+    """Generate comprehensive text tutorial with enhanced markdown formatting"""
     try:
+        # Map content length to approximate word counts and duration
+        length_config = {
+            'short': {'words': 400, 'duration': 3, 'sections': 3},
+            'medium': {'words': 800, 'duration': 6, 'sections': 5},
+            'lengthy': {'words': 1500, 'duration': 10, 'sections': 8}
+        }
+        
+        config = length_config.get(content_length, length_config['medium'])
+        
+        # Create enhanced user preferences for better markdown content
+        user_preferences = {
+            'content_length': content_length,
+            'target_words': config['words'],
+            'include_examples': True,
+            'include_code_samples': True,
+            'markdown_formatting': True,
+            'colored_sections': True,
+            'beginner_friendly': expertise == 'beginner'
+        }
+        
         # Generate tutorial content via OpenRouter
         tutorial_data = openrouter_service.generate_tutorial_content(
             topic=topic,
             expertise=expertise,
-            duration=duration,
+            duration=config['duration'],
             text_model=None,
-            user_preferences={}
+            user_preferences=user_preferences
         )
+        
+        # Enhance the content with better markdown formatting
+        enhanced_content = enhance_markdown_content(tutorial_data['content'], topic, expertise, content_length)
         
         # Save to database
         tutorial = Tutorial(
             user_id=1,
             topic=topic,
             expertise=expertise,
-            duration=duration,
-            content=tutorial_data['content'],
+            duration=config['duration'],
+            content=enhanced_content,
             is_premium=True,
             status='completed'
         )
@@ -366,8 +543,9 @@ def generate_text_content(topic, expertise, duration):
             'output_type': 'text',
             'topic': topic,
             'expertise': expertise,
-            'duration': duration,
-            'content': tutorial_data['content'],
+            'duration': config['duration'],
+            'content_length': content_length,
+            'content': enhanced_content,
             'concepts': tutorial_data['concepts'],
             'packages': tutorial_data['packages'],
             'objectives': tutorial_data['objectives'],
