@@ -24,7 +24,7 @@
     <div class="container">
         <div class="main-content">
             <div class="header-section">
-                <h1><i class="fas fa-graduation-cap"></i> R Learning Content- AI Generated</h1>
+                <h1><i class="fas fa-graduation-cap"></i> R Learning- AI powered</h1>
                 <p class="subtitle">Choose your preferred format and generate personalized R tutorials with AI power</p>
             </div>
 
@@ -33,7 +33,7 @@
                 <div class="input-section">
                     <div class="form-group">
                         <label for="topic">
-                            <i class="fas fa-book"></i> R Programming Topic
+                            <i class="fas fa-book"></i> Enter the Topic to learn Today...
                         </label>
                         <input type="text" id="topic" name="topic" class="form-control" 
                                placeholder="e.g., ggplot2 visualization, machine learning with caret, data manipulation..." required>
@@ -49,15 +49,26 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="expertise">
+                            <label>
                                 <i class="fas fa-user-graduate"></i> Expertise Level
                             </label>
-                            <select id="expertise" name="expertise" class="form-control" required>
-                                <option value="">Select your level</option>
-                                <option value="beginner" selected>🌱 Beginner</option>
-                                <option value="intermediate">🌿 Intermediate</option>
-                                <option value="expert">🌳 Expert</option>
-                            </select>
+                            <div class="radio-group-inline">
+                                <label class="radio-option-inline">
+                                    <input type="radio" name="expertise" value="beginner" checked>
+                                    <span class="radio-custom-inline"></span>
+                                    <span class="option-text">🌱 Beginner</span>
+                                </label>
+                                <label class="radio-option-inline">
+                                    <input type="radio" name="expertise" value="intermediate">
+                                    <span class="radio-custom-inline"></span>
+                                    <span class="option-text">🌿 Intermediate</span>
+                                </label>
+                                <label class="radio-option-inline">
+                                    <input type="radio" name="expertise" value="expert">
+                                    <span class="radio-custom-inline"></span>
+                                    <span class="option-text">🌳 Expert</span>
+                                </label>
+                            </div>
                         </div>
 
                         <div class="form-group" id="durationGroup">
@@ -127,9 +138,11 @@
                     </div>
                 </div>
 
-                <button type="submit" id="generateBtn" class="btn btn-primary btn-generate">
-                    <i class="fas fa-magic"></i> Generate Content
-                </button>
+                <div style="display: flex; justify-content: center;">
+                    <button type="submit" id="generateBtn" class="btn btn-primary btn-generate">
+                        <i class="fas fa-magic"></i> Generate Content
+                    </button>
+                </div>
 
                 <!-- Test Your Learning Section -->
                 <div class="test-learning-section">
