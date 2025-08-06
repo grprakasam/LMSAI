@@ -2163,7 +2163,7 @@ def generate_quiz_content(topic, expertise):
 def create_topic_questions(topic, difficulty):
     """Create topic-specific quiz questions"""
     
-    # Basic question templates for different R topics
+    # Comprehensive question templates for different R topics
     question_templates = {
         'data manipulation': [
             {
@@ -2205,6 +2205,26 @@ def create_topic_questions(topic, difficulty):
                 'explanation': 'aes stands for aesthetic mapping, which defines how variables are mapped to visual properties.'
             }
         ],
+        'ggplot2': [
+            {
+                'question': f'What is the main function used to create plots in ggplot2?',
+                'options': ['plot()', 'ggplot()', 'chart()', 'graph()'],
+                'correct': 1,
+                'explanation': 'ggplot() is the main function in ggplot2 for creating plots with the grammar of graphics approach.'
+            },
+            {
+                'question': f'Which layer is used to add geometric objects like points or lines?',
+                'options': ['geom_*()', 'aes_*()', 'scale_*()', 'theme_*()'],
+                'correct': 0,
+                'explanation': 'geom_*() functions like geom_point() and geom_line() add geometric objects to plots.'
+            },
+            {
+                'question': f'What does aes() stand for in ggplot2?',
+                'options': ['Aesthetic mappings', 'Axis settings', 'Automatic scaling', 'Advanced elements'],
+                'correct': 0,
+                'explanation': 'aes() defines aesthetic mappings that connect data variables to visual properties.'
+            }
+        ],
         'statistics': [
             {
                 'question': f'Which function calculates the mean in R?',
@@ -2224,17 +2244,122 @@ def create_topic_questions(topic, difficulty):
                 'correct': 0,
                 'explanation': 'lm() stands for linear model and is the primary function for linear regression in R.'
             }
+        ],
+        'machine learning': [
+            {
+                'question': f'Which package is commonly used for machine learning in R?',
+                'options': ['base', 'caret', 'graphics', 'utils'],
+                'correct': 1,
+                'explanation': 'caret (Classification And REgression Training) is a popular package for machine learning in R.'
+            },
+            {
+                'question': f'What does cross-validation help prevent in machine learning?',
+                'options': ['Underfitting', 'Overfitting', 'Data loss', 'Slow processing'],
+                'correct': 1,
+                'explanation': 'Cross-validation helps prevent overfitting by testing model performance on unseen data.'
+            },
+            {
+                'question': f'Which function is used to split data into training and testing sets?',
+                'options': ['split()', 'createDataPartition()', 'divide()', 'separate()'],
+                'correct': 1,
+                'explanation': 'createDataPartition() from caret is commonly used to split data for training and testing.'
+            }
+        ],
+        'data analysis': [
+            {
+                'question': f'Which function is commonly used to read CSV files in R?',
+                'options': ['read.csv()', 'load.csv()', 'import.csv()', 'get.csv()'],
+                'correct': 0,
+                'explanation': 'read.csv() is the standard function for reading CSV files into R as data frames.'
+            },
+            {
+                'question': f'What function shows the first few rows of a dataset?',
+                'options': ['top()', 'first()', 'head()', 'start()'],
+                'correct': 2,
+                'explanation': 'head() displays the first 6 rows by default, useful for quickly examining data structure.'
+            },
+            {
+                'question': f'Which function provides a summary of data including mean, median, etc.?',
+                'options': ['describe()', 'summary()', 'stats()', 'info()'],
+                'correct': 1,
+                'explanation': 'summary() provides descriptive statistics for each column in a dataset.'
+            }
+        ],
+        'data structures': [
+            {
+                'question': f'Which data structure stores elements of the same type in R?',
+                'options': ['list', 'vector', 'data.frame', 'matrix'],
+                'correct': 1,
+                'explanation': 'Vectors are the simplest data structure in R and store elements of the same type.'
+            },
+            {
+                'question': f'What function creates a data frame in R?',
+                'options': ['data.frame()', 'create.df()', 'make.table()', 'new.data()'],
+                'correct': 0,
+                'explanation': 'data.frame() is the primary function for creating data frames in R.'
+            },
+            {
+                'question': f'Which data structure can store elements of different types?',
+                'options': ['vector', 'matrix', 'list', 'array'],
+                'correct': 2,
+                'explanation': 'Lists can store elements of different types and are very flexible in R.'
+            }
+        ],
+        'shiny': [
+            {
+                'question': f'What is the main purpose of Shiny in R?',
+                'options': ['Data analysis', 'Web applications', 'Package management', 'File handling'],
+                'correct': 1,
+                'explanation': 'Shiny is an R package for building interactive web applications directly from R.'
+            },
+            {
+                'question': f'Which function defines the user interface in a Shiny app?',
+                'options': ['ui()', 'fluidPage()', 'interface()', 'layout()'],
+                'correct': 1,
+                'explanation': 'fluidPage() is commonly used to define the user interface layout in Shiny apps.'
+            },
+            {
+                'question': f'What function runs a Shiny application?',
+                'options': ['runApp()', 'startApp()', 'launchApp()', 'executeApp()'],
+                'correct': 0,
+                'explanation': 'runApp() is the function used to launch and run Shiny applications.'
+            }
         ]
     }
     
-    # Get questions for the topic (fallback to general R questions if topic not found)
+    # Enhanced topic matching for better question selection
     topic_lower = topic.lower()
     questions = None
     
-    for key in question_templates.keys():
-        if key in topic_lower or topic_lower in key:
-            questions = question_templates[key]
-            break
+    # Topic aliases and keywords for better matching
+    topic_aliases = {
+        'ggplot2': ['ggplot', 'visualization', 'plotting', 'charts', 'graphs'],
+        'data manipulation': ['dplyr', 'tidyverse', 'data wrangling', 'data cleaning', 'mutate', 'filter', 'select'],
+        'data visualization': ['ggplot2', 'plotting', 'charts', 'graphs', 'visualization'],
+        'statistics': ['statistical', 'modeling', 'regression', 'correlation', 'hypothesis', 'testing'],
+        'machine learning': ['ml', 'caret', 'prediction', 'classification', 'clustering', 'neural'],
+        'data analysis': ['analysis', 'exploration', 'eda', 'exploratory'],
+        'data structures': ['structures', 'vectors', 'lists', 'matrices', 'dataframe', 'data.frame'],
+        'shiny': ['shiny applications', 'web app', 'interactive', 'dashboard']
+    }
+    
+    # First try exact key match
+    if topic_lower in question_templates:
+        questions = question_templates[topic_lower]
+    else:
+        # Try matching with aliases and keywords
+        for key, aliases in topic_aliases.items():
+            if any(alias in topic_lower for alias in aliases) or any(topic_lower in alias for alias in aliases):
+                if key in question_templates:
+                    questions = question_templates[key]
+                    break
+        
+        # If still no match, try broader matching
+        if not questions:
+            for key in question_templates.keys():
+                if key in topic_lower or topic_lower in key:
+                    questions = question_templates[key]
+                    break
     
     # Fallback to general R questions
     if not questions:

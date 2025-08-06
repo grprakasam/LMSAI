@@ -28,52 +28,8 @@
                 <p class="subtitle">Choose your preferred format and generate personalized R tutorials with AI power</p>
             </div>
 
-            <!-- Single Form with Radio Button Selection -->
+            <!-- Content Input Section -->
             <form id="contentForm" class="content-form">
-                <!-- Output Type Selection -->
-                <div class="output-type-section">
-                    <h3><i class="fas fa-list-ul"></i> Choose Output Format</h3>
-                    <div class="radio-group">
-                        <label class="radio-option">
-                            <input type="radio" name="output_type" value="text" checked>
-                            <span class="radio-custom"></span>
-                            <div class="option-content">
-                                <i class="fas fa-file-text"></i>
-                                <h4>Text Output</h4>
-                                <p>Comprehensive written tutorial with examples</p>
-                            </div>
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="output_type" value="audio">
-                            <span class="radio-custom"></span>
-                            <div class="option-content">
-                                <i class="fas fa-volume-up"></i>
-                                <h4>Audio Output</h4>
-                                <p>Streaming narrated content with Kyutai TTS</p>
-                            </div>
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="output_type" value="animated">
-                            <span class="radio-custom"></span>
-                            <div class="option-content">
-                                <i class="fas fa-film"></i>
-                                <h4>Animated Output</h4>
-                                <p>Interactive animated presentation with audio and controls</p>
-                            </div>
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="output_type" value="quiz">
-                            <span class="radio-custom"></span>
-                            <div class="option-content">
-                                <i class="fas fa-question-circle"></i>
-                                <h4>Quiz</h4>
-                                <p>Interactive quiz with 3 questions and instant feedback</p>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Content Input Section -->
                 <div class="input-section">
                     <div class="form-group">
                         <label for="topic">
@@ -138,6 +94,57 @@
                     <button type="submit" id="generateBtn" class="btn btn-primary btn-generate">
                         <i class="fas fa-magic"></i> Generate Content
                     </button>
+                </div>
+
+                <!-- Mode of Learning Section -->
+                <div class="mode-learning-section">
+                    <h3><i class="fas fa-graduation-cap"></i> Mode of Learning:</h3>
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio" name="output_type" value="text" checked>
+                            <span class="radio-custom"></span>
+                            <div class="option-content">
+                                <i class="fas fa-file-text"></i>
+                                <h4>Text Output</h4>
+                                <p>Comprehensive written tutorial with examples</p>
+                            </div>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="output_type" value="audio">
+                            <span class="radio-custom"></span>
+                            <div class="option-content">
+                                <i class="fas fa-volume-up"></i>
+                                <h4>Audio Output</h4>
+                                <p>Streaming narrated content with Kyutai TTS</p>
+                            </div>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="output_type" value="animated">
+                            <span class="radio-custom"></span>
+                            <div class="option-content">
+                                <i class="fas fa-film"></i>
+                                <h4>Animated Output</h4>
+                                <p>Interactive animated presentation with audio and controls</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Quiz Section -->
+                <div class="quiz-section">
+                    <h3><i class="fas fa-brain"></i> Quiz:</h3>
+                    <div class="quiz-description">
+                        <p>Test your knowledge with 3 interactive questions based on your selected R Programming Topic.</p>
+                        <label class="quiz-option">
+                            <input type="radio" name="output_type" value="quiz">
+                            <span class="radio-custom"></span>
+                            <div class="option-content">
+                                <i class="fas fa-question-circle"></i>
+                                <h4>Generate Quiz</h4>
+                                <p>Interactive quiz with 3 questions and instant feedback based on your topic</p>
+                            </div>
+                        </label>
+                    </div>
                 </div>
 
             </form>
