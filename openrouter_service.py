@@ -730,7 +730,7 @@ Begin the tutorial now with a warm, engaging introduction:"""
         return 'general'
     
     def _get_topic_specific_content(self, topic: str, expertise: str, config: Dict):
-        \"\"\"Generate topic-specific content details\"\"\"
+        """Generate topic-specific content details"""
         topic_lower = topic.lower()
         
         # Topic-specific introductions and content
@@ -739,7 +739,176 @@ Begin the tutorial now with a warm, engaging introduction:"""
                 'intro': 'data visualization with ggplot2',
                 'packages': ['ggplot2', 'dplyr', 'scales', 'RColorBrewer'],
                 'concepts': ['Grammar of Graphics', 'Aesthetic mappings', 'Layers and geoms', 'Themes and customization'],
-                'code_example': '''# Creating a scatter plot with ggplot2\nlibrary(ggplot2)\n\n# Sample data\ndata(mtcars)\n\n# Create visualization\nggplot(mtcars, aes(x = wt, y = mpg, color = factor(cyl))) +\n  geom_point(size = 3) +\n  geom_smooth(method = \"lm\", se = FALSE) +\n  labs(title = \"Car Weight vs Fuel Efficiency\",\n       x = \"Weight (1000 lbs)\",\n       y = \"Miles per gallon\",\n       color = \"Cylinders\") +\n  theme_minimal()''',\n                'use_cases': ['Business dashboards', 'Scientific publications', 'Exploratory data analysis'],\n                'common_issues': ['Overplotting with large datasets', 'Color accessibility', 'Aspect ratio optimization']\n            }\n        elif 'machine learning' in topic_lower or 'ml' in topic_lower:\n            return {\n                'intro': 'machine learning techniques in R',\n                'packages': ['caret', 'randomForest', 'e1071', 'glmnet'],\n                'concepts': ['Training and testing', 'Cross-validation', 'Feature selection', 'Model evaluation'],\n                'code_example': '''# Building a simple classification model\nlibrary(caret)\nlibrary(randomForest)\n\n# Load and prepare data\ndata(iris)\nset.seed(123)\n\n# Split data\ntrainIndex <- createDataPartition(iris$Species, p = 0.7, list = FALSE)\ntrain_data <- iris[trainIndex, ]\ntest_data <- iris[-trainIndex, ]\n\n# Train random forest model\nmodel <- randomForest(Species ~ ., data = train_data)\n\n# Make predictions\npredictions <- predict(model, test_data)\n\n# Evaluate performance\nconfusionMatrix(predictions, test_data$Species)''',\n                'use_cases': ['Predictive analytics', 'Classification tasks', 'Feature importance analysis'],\n                'common_issues': ['Overfitting', 'Class imbalance', 'Feature scaling']\n            }\n        elif 'data' in topic_lower and ('manipulation' in topic_lower or 'wrangling' in topic_lower):\n            return {\n                'intro': 'data manipulation with dplyr and tidyr',\n                'packages': ['dplyr', 'tidyr', 'readr', 'stringr'],\n                'concepts': ['Filtering and selecting', 'Grouping and summarizing', 'Joins and merging', 'Reshaping data'],\n                'code_example': '''# Data manipulation with dplyr\nlibrary(dplyr)\nlibrary(tidyr)\n\n# Sample data manipulation\ndata(mtcars)\n\n# Add car names as column\nmtcars_clean <- mtcars %>%\n  rownames_to_column(\"car_name\") %>%\n  # Filter for cars with good fuel efficiency\n  filter(mpg > 20) %>%\n  # Group by number of cylinders\n  group_by(cyl) %>%\n  # Calculate summary statistics\n  summarise(\n    avg_mpg = mean(mpg),\n    avg_hp = mean(hp),\n    car_count = n(),\n    .groups = \"drop\"\n  ) %>%\n  # Arrange by average MPG\n  arrange(desc(avg_mpg))\n\nprint(mtcars_clean)''',\n                'use_cases': ['Data cleaning', 'Exploratory data analysis', 'Report generation'],\n                'common_issues': ['Missing values handling', 'Data type conversions', 'Memory efficiency']\n            }\n        elif 'shiny' in topic_lower or 'app' in topic_lower:\n            return {\n                'intro': 'interactive web applications with Shiny',\n                'packages': ['shiny', 'shinydashboard', 'DT', 'plotly'],\n                'concepts': ['UI and Server logic', 'Reactivity', 'Input widgets', 'Output rendering'],\n                'code_example': '''# Simple Shiny app\nlibrary(shiny)\n\n# Define UI\nui <- fluidPage(\n  titlePanel(\"Simple Data Explorer\"),\n  \n  sidebarLayout(\n    sidebarPanel(\n      selectInput(\"variable\", \"Choose variable:\",\n                  choices = names(mtcars)),\n      sliderInput(\"bins\", \"Number of bins:\",\n                  min = 5, max = 50, value = 30)\n    ),\n    \n    mainPanel(\n      plotOutput(\"histogram\")\n    )\n  )\n)\n\n# Define server logic\nserver <- function(input, output) {\n  output$histogram <- renderPlot({\n    hist(mtcars[[input$variable]], \n         breaks = input$bins,\n         main = paste(\"Histogram of\", input$variable))\n  })\n}\n\n# Run the application\nshinyApp(ui = ui, server = server)''',\n                'use_cases': ['Interactive dashboards', 'Data exploration tools', 'Decision support systems'],\n                'common_issues': ['Performance optimization', 'User input validation', 'Deployment considerations']\n            }\n        elif 'statistic' in topic_lower or 'analysis' in topic_lower:\n            return {\n                'intro': 'statistical analysis and modeling in R',\n                'packages': ['stats', 'car', 'lmtest', 'broom'],\n                'concepts': ['Hypothesis testing', 'Linear modeling', 'ANOVA', 'Model diagnostics'],\n                'code_example': '''# Statistical analysis example\n# Load built-in dataset\ndata(mtcars)\n\n# Exploratory analysis\nsummary(mtcars)\n\n# Correlation analysis\ncor_matrix <- cor(mtcars[, c(\"mpg\", \"hp\", \"wt\")])\nprint(cor_matrix)\n\n# Linear regression\nmodel <- lm(mpg ~ hp + wt + factor(cyl), data = mtcars)\nsummary(model)\n\n# Model diagnostics\nplot(model)  # Diagnostic plots\n\n# ANOVA\nanova(model)\n\n# Confidence intervals\nconfint(model)''',\n                'use_cases': ['Research analysis', 'Quality control', 'A/B testing'],\n                'common_issues': ['Assumption violations', 'Multicollinearity', 'Sample size considerations']\n            }\n        else:\n            # Generic content for other topics\n            return {\n                'intro': f'{topic} in R programming',\n                'packages': ['base', 'utils', 'stats'],\n                'concepts': ['Basic concepts', 'Implementation', 'Best practices', 'Troubleshooting'],\n                'code_example': f'''# Working with {topic}\n# Basic setup\nlibrary(base)\n\n# Sample data\nsample_data <- c(1, 2, 3, 4, 5)\n\n# Basic operations\nresult <- mean(sample_data)\nprint(paste(\"Result:\", result))''',\n                'use_cases': ['General analysis', 'Data processing', 'Custom solutions'],\n                'common_issues': ['Syntax errors', 'Data type mismatches', 'Performance optimization']\n            }
+                'code_example': '''# Creating a scatter plot with ggplot2
+library(ggplot2)
+
+# Sample data
+data(mtcars)
+
+# Create visualization
+ggplot(mtcars, aes(x = wt, y = mpg, color = factor(cyl))) +
+  geom_point(size = 3) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Car Weight vs Fuel Efficiency",
+       x = "Weight (1000 lbs)",
+       y = "Miles per gallon",
+       color = "Cylinders") +
+  theme_minimal()''',
+                'use_cases': ['Business dashboards', 'Scientific publications', 'Exploratory data analysis'],
+                'common_issues': ['Overplotting with large datasets', 'Color accessibility', 'Aspect ratio optimization']
+            }
+        elif 'machine learning' in topic_lower or 'ml' in topic_lower:
+            return {
+                'intro': 'machine learning techniques in R',
+                'packages': ['caret', 'randomForest', 'e1071', 'glmnet'],
+                'concepts': ['Training and testing', 'Cross-validation', 'Feature selection', 'Model evaluation'],
+                'code_example': '''# Building a simple classification model
+library(caret)
+library(randomForest)
+
+# Load and prepare data
+data(iris)
+set.seed(123)
+
+# Split data
+trainIndex <- createDataPartition(iris$Species, p = 0.7, list = FALSE)
+train_data <- iris[trainIndex, ]
+test_data <- iris[-trainIndex, ]
+
+# Train random forest model
+model <- randomForest(Species ~ ., data = train_data)
+
+# Make predictions
+predictions <- predict(model, test_data)
+
+# Evaluate performance
+confusionMatrix(predictions, test_data$Species)''',
+                'use_cases': ['Predictive analytics', 'Classification tasks', 'Feature importance analysis'],
+                'common_issues': ['Overfitting', 'Class imbalance', 'Feature scaling']
+            }
+        elif 'data' in topic_lower and ('manipulation' in topic_lower or 'wrangling' in topic_lower):
+            return {
+                'intro': 'data manipulation with dplyr and tidyr',
+                'packages': ['dplyr', 'tidyr', 'readr', 'stringr'],
+                'concepts': ['Filtering and selecting', 'Grouping and summarizing', 'Joins and merging', 'Reshaping data'],
+                'code_example': '''# Data manipulation with dplyr
+library(dplyr)
+library(tidyr)
+
+# Sample data manipulation
+data(mtcars)
+
+# Add car names as column
+mtcars_clean <- mtcars %>%
+  rownames_to_column("car_name") %>%
+  # Filter for cars with good fuel efficiency
+  filter(mpg > 20) %>%
+  # Group by number of cylinders
+  group_by(cyl) %>%
+  # Calculate summary statistics
+  summarise(
+    avg_mpg = mean(mpg),
+    avg_hp = mean(hp),
+    car_count = n(),
+    .groups = "drop"
+  ) %>%
+  # Arrange by average MPG
+  arrange(desc(avg_mpg))
+
+print(mtcars_clean)''',
+                'use_cases': ['Data cleaning', 'Exploratory data analysis', 'Report generation'],
+                'common_issues': ['Missing values handling', 'Data type conversions', 'Memory efficiency']
+            }
+        elif 'shiny' in topic_lower or 'app' in topic_lower:
+            return {
+                'intro': 'interactive web applications with Shiny',
+                'packages': ['shiny', 'shinydashboard', 'DT', 'plotly'],
+                'concepts': ['UI and Server logic', 'Reactivity', 'Input widgets', 'Output rendering'],
+                'code_example': '''# Simple Shiny app
+library(shiny)
+
+# Define UI
+ui <- fluidPage(
+  titlePanel("Simple Data Explorer"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("variable", "Choose variable:",
+                  choices = names(mtcars)),
+      sliderInput("bins", "Number of bins:",
+                  min = 5, max = 50, value = 30)
+    ),
+    
+    mainPanel(
+      plotOutput("histogram")
+    )
+  )
+)
+
+# Define server logic
+server <- function(input, output) {
+  output$histogram <- renderPlot({
+    hist(mtcars[[input$variable]], 
+         breaks = input$bins,
+         main = paste("Histogram of", input$variable))
+  })
+}
+
+# Run the application
+shinyApp(ui = ui, server = server)''',
+                'use_cases': ['Interactive dashboards', 'Data exploration tools', 'Decision support systems'],
+                'common_issues': ['Performance optimization', 'User input validation', 'Deployment considerations']
+            }
+        elif 'statistic' in topic_lower or 'analysis' in topic_lower:
+            return {
+                'intro': 'statistical analysis and modeling in R',
+                'packages': ['stats', 'car', 'lmtest', 'broom'],
+                'concepts': ['Hypothesis testing', 'Linear modeling', 'ANOVA', 'Model diagnostics'],
+                'code_example': '''# Statistical analysis example
+# Load built-in dataset
+data(mtcars)
+
+# Exploratory analysis
+summary(mtcars)
+
+# Correlation analysis
+cor_matrix <- cor(mtcars[, c("mpg", "hp", "wt")])
+print(cor_matrix)
+
+# Linear regression
+model <- lm(mpg ~ hp + wt + factor(cyl), data = mtcars)
+summary(model)
+
+# Model diagnostics
+plot(model)  # Diagnostic plots
+
+# ANOVA
+anova(model)
+
+# Confidence intervals
+confint(model)''',
+                'use_cases': ['Research analysis', 'Quality control', 'A/B testing'],
+                'common_issues': ['Assumption violations', 'Multicollinearity', 'Sample size considerations']
+            }
+        else:
+            # Generic content for other topics
+            return {
+                'intro': f'{topic} in R programming',
+                'packages': ['base', 'utils', 'stats'],
+                'concepts': ['Basic concepts', 'Implementation', 'Best practices', 'Troubleshooting'],
+                'code_example': f'''# Working with {topic}
+# Basic setup
+library(base)
+
+# Sample data
+sample_data <- c(1, 2, 3, 4, 5)
+
+# Basic operations
+result <- mean(sample_data)
+print(paste("Result:", result))''',
+                'use_cases': ['General analysis', 'Data processing', 'Custom solutions'],
+                'common_issues': ['Syntax errors', 'Data type mismatches', 'Performance optimization']
+            }
     
     def _generate_fallback_content(self, topic: str, expertise: str, duration: int, content_length: str = 'medium'):
         """Generate high-quality fallback content optimized for audio when API is unavailable"""
