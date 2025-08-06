@@ -15,6 +15,9 @@
         <div class="nav-right">
             <div class="user-menu">
                 <span>Welcome back!</span>
+                <a href="/settings" class="btn btn-sm">
+                    <i class="fas fa-cog"></i> Settings
+                </a>
                 <a href="/admin" class="btn btn-sm">Admin</a>
                 <a href="/logout" class="btn btn-sm">Logout</a>
             </div>
@@ -221,6 +224,7 @@
         // ============= INITIALIZATION =============
         document.addEventListener('DOMContentLoaded', function() {
             initializeEventListeners();
+            loadUserSettings();
             // Initialize UI for default text output
             updateUIForOutputType('text');
         });
@@ -404,6 +408,56 @@
                 </div>
             `;
             interactiveContent.style.display = 'block';
+        }
+
+        // ============= SETTINGS INTEGRATION =============
+        async function loadUserSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    const settings = result.data;
+                    
+                    // Update topic suggestions if available
+                    if (settings.topicSuggestions) {
+                        updateTopicSuggestions(settings.topicSuggestions);
+                    }
+                    
+                    // Update duration defaults
+                    if (settings.defaultDuration) {
+                        const durationSlider = document.getElementById('duration');
+                        const durationDisplay = document.getElementById('durationDisplay');
+                        if (durationSlider && durationDisplay) {
+                            durationSlider.value = settings.defaultDuration;
+                            durationDisplay.textContent = settings.defaultDuration;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log('Could not load user settings, using defaults');
+            }
+        }
+        
+        function updateTopicSuggestions(topics) {
+            const suggestionsContainer = document.querySelector('.topic-suggestions');
+            if (!suggestionsContainer || !topics || topics.length === 0) return;
+            
+            // Clear existing suggestions
+            suggestionsContainer.innerHTML = '';
+            
+            // Add new suggestions from user settings
+            topics.forEach(topic => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'suggestion-btn';
+                btn.dataset.topic = topic;
+                btn.textContent = topic;
+                btn.addEventListener('click', function() {
+                    document.getElementById('topic').value = this.dataset.topic;
+                });
+                suggestionsContainer.appendChild(btn);
+            });
         }
 
         // ============= FORM HANDLING =============

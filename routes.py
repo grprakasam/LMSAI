@@ -18,15 +18,20 @@ from utils import (
     validate_email, check_system_health
 )
 from config import PLANS, MODEL_CONFIGS, AUDIO_MODEL_CONFIGS
+from settings_manager import SettingsManager
 
 import logging
 logger = logging.getLogger(__name__)
 
 # Helper function for enhancing markdown content
-def enhance_markdown_content(content: str, topic: str, expertise: str, content_length: str) -> str:
+def enhance_markdown_content(content: str, topic: str, expertise: str, content_length: str, user_id=None) -> str:
     """Enhance content with better markdown formatting, colors, and structure"""
     if not content:
         return content
+    
+    # Get target word count from user settings
+    target_word_count = SettingsManager.get_content_word_count(content_length, user_id)
+    current_word_count = len(content.split())
     
     # Create a comprehensive, well-structured tutorial
     enhanced_sections = []
@@ -307,6 +312,97 @@ def admin():
     """Admin page"""
     return render_template('admin.html')
 
+@main_bp.route('/settings')
+@login_required
+def settings():
+    """User settings page"""
+    return render_template('settings.html')
+
+@main_bp.route('/api/settings', methods=['GET'])
+@login_required
+def get_settings():
+    """Get user settings"""
+    try:
+        user_settings = SettingsManager.load_settings(current_user.id)
+        return jsonify({
+            'success': True,
+            'data': user_settings
+        })
+    except Exception as e:
+        logger.error(f"Error loading settings for user {current_user.id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to load settings'
+        }), 500
+
+@main_bp.route('/api/settings', methods=['POST'])
+@login_required
+def save_settings():
+    """Save user settings"""
+    try:
+        settings_data = request.get_json()
+        
+        if not settings_data:
+            return jsonify({
+                'success': False,
+                'error': 'No settings data provided'
+            }), 400
+        
+        # Validate settings
+        validation_errors = SettingsManager.validate_settings(settings_data)
+        if validation_errors:
+            return jsonify({
+                'success': False,
+                'error': 'Validation failed',
+                'validation_errors': validation_errors
+            }), 400
+        
+        # Save settings
+        success = SettingsManager.save_settings(settings_data, current_user.id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Settings saved successfully'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to save settings'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Error saving settings for user {current_user.id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
+@main_bp.route('/api/settings/reset', methods=['POST'])
+@login_required
+def reset_settings():
+    """Reset user settings to defaults"""
+    try:
+        success = SettingsManager.reset_to_defaults(current_user.id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Settings reset to defaults successfully'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to reset settings'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Error resetting settings for user {current_user.id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
 @main_bp.route('/tutorial/<int:tutorial_id>')
 def view_tutorial(tutorial_id):
     """View a specific tutorial with audio playback - no authentication required"""
@@ -517,11 +613,21 @@ def generate_content():
 def generate_text_content(topic, expertise, duration, content_length='medium'):
     """Generate comprehensive text tutorial with enhanced markdown formatting"""
     try:
+        # Get user settings if authenticated
+        user_id = current_user.id if current_user.is_authenticated else None
+        
+        # Get word count from user settings
+        target_words = SettingsManager.get_content_word_count(content_length, user_id)
+        
+        # Map content length to appropriate target words from settings
+        if content_length == 'lengthy':
+            target_words = SettingsManager.get_content_word_count('lengthy', user_id)
+        
         # Map content length to approximate word counts and duration
         length_config = {
-            'short': {'words': 400, 'duration': 3, 'sections': 3},
-            'medium': {'words': 800, 'duration': 6, 'sections': 5},
-            'lengthy': {'words': 1500, 'duration': 10, 'sections': 8}
+            'short': {'words': target_words, 'duration': 3, 'sections': 3},
+            'medium': {'words': target_words, 'duration': 6, 'sections': 5},
+            'lengthy': {'words': target_words, 'duration': 10, 'sections': 8}
         }
         
         config = length_config.get(content_length, length_config['medium'])
@@ -548,7 +654,7 @@ def generate_text_content(topic, expertise, duration, content_length='medium'):
         )
         
         # Enhance the content with better markdown formatting
-        enhanced_content = enhance_markdown_content(tutorial_data['content'], topic, expertise, content_length)
+        enhanced_content = enhance_markdown_content(tutorial_data['content'], topic, expertise, content_length, user_id)
         
         # Save to database
         tutorial = Tutorial(
@@ -2116,18 +2222,30 @@ def create_simple_narration(topic, expertise):
     By the end of this tutorial, you'll have a solid foundation in {topic} fundamentals."""
 
 def generate_quiz_content(topic, expertise):
-    """Generate quiz content with 3 questions and feedback"""
+    """Generate quiz content with configurable number of questions and difficulty"""
     try:
-        # Define quiz questions based on topic and expertise level
-        if expertise == 'beginner':
-            difficulty = "basic"
-        elif expertise == 'intermediate':
-            difficulty = "moderate"
+        # Get user settings if authenticated
+        user_id = current_user.id if current_user.is_authenticated else None
+        quiz_settings = SettingsManager.get_quiz_settings(user_id)
+        
+        # Determine difficulty based on settings or expertise
+        if quiz_settings['difficulty'] == 'adaptive':
+            if expertise == 'beginner':
+                difficulty = "basic"
+            elif expertise == 'intermediate':
+                difficulty = "moderate"
+            else:
+                difficulty = "advanced"
         else:
-            difficulty = "advanced"
+            difficulty_map = {
+                'easy': 'basic',
+                'medium': 'moderate', 
+                'hard': 'advanced'
+            }
+            difficulty = difficulty_map.get(quiz_settings['difficulty'], 'moderate')
             
-        # Generate topic-specific questions
-        questions = create_topic_questions(topic, difficulty)
+        # Generate topic-specific questions based on user's preferred count
+        questions = create_topic_questions(topic, difficulty, quiz_settings['questions'])
         
         # Save minimal record to database
         try:
@@ -2182,8 +2300,8 @@ def generate_playground_content(topic, expertise):
             'error': 'Failed to generate playground content. Please try again.'
         }), 500
 
-def create_topic_questions(topic, difficulty):
-    """Create topic-specific quiz questions"""
+def create_topic_questions(topic, difficulty, num_questions=3):
+    """Create topic-specific quiz questions with configurable count"""
     
     # Comprehensive question templates for different R topics
     question_templates = {
@@ -2406,4 +2524,4 @@ def create_topic_questions(topic, difficulty):
             }
         ]
     
-    return questions[:3]  # Return only first 3 questions
+    return questions[:num_questions]  # Return user-configured number of questions
