@@ -175,6 +175,31 @@ your_data$column <- as.numeric(your_data$column)
     
     return final_content
 
+# Helper functions for animated content
+def create_enhanced_animation_slides(topic, expertise, content):
+    """Create enhanced interactive animation slides"""
+    # This will be handled by the frontend JavaScript createAnimationSlides function
+    # Return a placeholder that indicates slides should be generated client-side
+    return '<div class="slide-placeholder">Slides will be generated dynamically</div>'
+
+def create_slide_narration(topic, expertise):
+    """Create narration text for animation slides"""
+    return f"""
+    Welcome to this interactive tutorial on {topic}, designed for {expertise} level learners.
+    
+    In this presentation, we'll explore the fundamental concepts step by step.
+    
+    First, we'll set up your R environment and load the necessary packages for {topic}.
+    
+    Next, we'll dive into the key concepts and understand the workflow for data processing.
+    
+    Then, we'll see practical applications and how to apply {topic} techniques to solve real-world problems.
+    
+    Finally, we'll summarize what you've learned and provide next steps for your journey.
+    
+    Use the controls below to navigate through the slides at your own pace, or press play for automatic progression.
+    """
+
 # Helper function for audio text processing
 def _prepare_text_for_audio(content: str) -> str:
     """Prepare tutorial content for TTS by removing markdown and optimizing for speech"""
@@ -631,7 +656,7 @@ def generate_audio_content(topic, expertise, duration):
         raise e
 
 def generate_animated_content(topic, expertise, duration):
-    """Generate interactive animated tutorial"""
+    """Generate interactive animated tutorial with audio narration"""
     try:
         # Generate base content
         tutorial_data = openrouter_service.generate_tutorial_content(
@@ -639,11 +664,37 @@ def generate_animated_content(topic, expertise, duration):
             expertise=expertise,
             duration=duration,
             text_model=None,
-            user_preferences={}
+            user_preferences={
+                'animation_focused': True,
+                'slide_based': True,
+                'visual_learning': True
+            }
         )
         
-        # Create animation HTML based on topic
-        animation_html = create_animation_html(topic, expertise, tutorial_data['content'])
+        # Create enhanced animation HTML with slides
+        animation_html = create_enhanced_animation_slides(topic, expertise, tutorial_data['content'])
+        
+        # Generate audio narration for the slides
+        narration_text = create_slide_narration(topic, expertise)
+        audio_text = _prepare_text_for_audio(narration_text)
+        
+        # Generate streaming audio URL with Kyutai TTS for narration
+        from kyutai_tts_service import kyutai_service
+        import uuid
+        
+        stream_id = str(uuid.uuid4())
+        
+        kyutai_service.active_streams[stream_id] = {
+            'text': audio_text,
+            'voice': "default",
+            'language': "en",
+            'speed': 0.9,  # Slightly slower for educational content
+            'format': "mp3",
+            'created_at': time.time(),
+            'status': 'ready'
+        }
+        
+        audio_stream_url = f"/api/kyutai-stream/{stream_id}"
         
         # Save to database
         tutorial = Tutorial(
@@ -652,6 +703,7 @@ def generate_animated_content(topic, expertise, duration):
             expertise=expertise,
             duration=duration,
             content=tutorial_data['content'],
+            audio_url=audio_stream_url,
             is_premium=True,
             status='completed'
         )
@@ -663,6 +715,9 @@ def generate_animated_content(topic, expertise, duration):
         db.session.add(tutorial)
         db.session.commit()
         
+        # Store narration text for streaming
+        _store_streaming_audio_content(stream_id, audio_text)
+        
         return jsonify({
             'success': True,
             'output_type': 'animated',
@@ -671,6 +726,8 @@ def generate_animated_content(topic, expertise, duration):
             'duration': duration,
             'content': tutorial_data['content'],
             'animation_html': animation_html,
+            'audio_stream_url': audio_stream_url,
+            'has_narration': True,
             'tutorial_id': tutorial.id
         })
         

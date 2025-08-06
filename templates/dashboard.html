@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>R Tutor Pro - Dashboard</title>
+    <title>R Learning- AI powered</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
 </head>
 <body>
     <nav class="navbar">
         <div class="logo">
-            <i class="fab fa-r-project"></i> R Tutor Pro
+            <i class="fab fa-r-project"></i> R Learning- AI powered
         </div>
         <div class="nav-right">
             <div class="user-menu">
@@ -25,7 +25,7 @@
         <div class="main-content">
             <div class="header-section">
                 <h1><i class="fas fa-graduation-cap"></i> Create Your R Learning Content</h1>
-                <p class="subtitle">Choose your preferred format and generate personalized R tutorials instantly</p>
+                <p class="subtitle">Choose your preferred format and generate personalized R tutorials with AI power</p>
             </div>
 
             <!-- Single Form with Radio Button Selection -->
@@ -58,7 +58,7 @@
                             <div class="option-content">
                                 <i class="fas fa-film"></i>
                                 <h4>Animated Output</h4>
-                                <p>Interactive visual animations and demos</p>
+                                <p>Interactive animated presentation with audio and controls</p>
                             </div>
                         </label>
                     </div>
@@ -170,24 +170,24 @@
                 </div>
             </div>
 
-            <!-- Stats and Recent Content -->
-            <div class="sidebar-info">
-                <div class="stats-card">
-                    <h3><i class="fas fa-chart-bar"></i> Usage Stats</h3>
-                    <div class="stat-item">
-                        <span class="stat-number">{{ stats.monthly_usage }}</span>
-                        <span class="stat-label">This Month</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number">{{ stats.total_tutorials }}</span>
-                        <span class="stat-label">Total Created</span>
-                    </div>
-                </div>
-
-                <div class="recent-content">
-                    <h3><i class="fas fa-history"></i> Recent Content</h3>
-                    <div id="recentList">
-                        <!-- Recent content will be loaded here -->
+            <!-- AI Learning Assistant Info -->
+            <div class="ai-assistant-info">
+                <div class="assistant-card">
+                    <h3><i class="fas fa-robot"></i> AI Learning Assistant</h3>
+                    <p class="assistant-desc">Powered by advanced AI models to create personalized R learning experiences tailored to your expertise level.</p>
+                    <div class="features-list">
+                        <div class="feature-item">
+                            <i class="fas fa-brain"></i>
+                            <span>Smart Content Generation</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-video"></i>
+                            <span>Interactive Animations</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-volume-up"></i>
+                            <span>Audio Narration</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -202,7 +202,6 @@
         // ============= INITIALIZATION =============
         document.addEventListener('DOMContentLoaded', function() {
             initializeEventListeners();
-            loadRecentContent();
             // Initialize UI for default text output
             updateUIForOutputType('text');
         });
@@ -306,7 +305,6 @@
                 if (result.success) {
                     currentContent = result;
                     displayResults(result);
-                    loadRecentContent();
                 } else {
                     alert(result.error || 'Failed to generate content');
                 }
@@ -442,25 +440,55 @@
 
         function displayAnimatedContent(result) {
             const contentDisplay = document.getElementById('contentDisplay');
+            const audioPlayer = document.getElementById('audioPlayer');
+            
             contentDisplay.innerHTML = `
                 <div class="animated-content">
                     <div class="content-header">
                         <h3>🎬 ${result.topic}</h3>
-                        <p class="animation-desc">Interactive animated tutorial</p>
+                        <p class="animation-desc">Interactive animated presentation with audio narration</p>
                     </div>
-                    <div class="animation-container">
-                        ${result.animation_html || '<p>Animation content loading...</p>'}
+                    <div class="animation-presentation">
+                        <div class="slide-container" id="slideContainer">
+                            ${result.animation_html || createAnimationSlides(result.topic, result.expertise)}
+                        </div>
+                        <div class="slide-progress">
+                            <div class="progress-bar" id="progressBar"></div>
+                        </div>
                     </div>
-                    <div class="animation-controls" style="margin-top: 1rem;">
+                    <div class="animation-controls">
+                        <button class="control-btn" id="prevBtn" onclick="previousSlide()">
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </button>
+                        <button class="control-btn" id="playPauseBtn" onclick="togglePlayPause()">
+                            <i class="fas fa-play"></i> Play
+                        </button>
+                        <button class="control-btn" id="nextBtn" onclick="nextSlide()">
+                            <i class="fas fa-chevron-right"></i> Next
+                        </button>
                         <button class="control-btn" onclick="restartAnimation()">
                             <i class="fas fa-redo"></i> Restart
-                        </button>
-                        <button class="control-btn" onclick="togglePlayPause()">
-                            <i class="fas fa-play"></i> Play
                         </button>
                     </div>
                 </div>
             `;
+            
+            // Set up audio narration
+            if (result.audio_stream_url) {
+                audioPlayer.innerHTML = `
+                    <div class="narration-player">
+                        <h4><i class="fas fa-microphone"></i> Audio Narration</h4>
+                        <audio controls id="narrationAudio" style="width: 100%;">
+                            <source src="${result.audio_stream_url}" type="audio/mpeg">
+                            Your browser does not support audio playback.
+                        </audio>
+                    </div>
+                `;
+                audioPlayer.style.display = 'block';
+            }
+            
+            // Initialize animation state
+            initializeAnimationPresentation();
         }
 
         // ============= ACTION HANDLERS =============
@@ -539,45 +567,157 @@
             return labels[type] || type;
         }
 
-        async function loadRecentContent() {
-            try {
-                const response = await fetch('/api/recent-content');
-                const data = await response.json();
-                
-                const recentList = document.getElementById('recentList');
-                if (data.length === 0) {
-                    recentList.innerHTML = '<p>No content created yet.</p>';
-                    return;
-                }
-
-                recentList.innerHTML = data.map(item => `
-                    <div class="recent-item">
-                        <div class="recent-title">${item.topic}</div>
-                        <div class="recent-meta">
-                            ${getOutputTypeLabel(item.output_type)} • ${item.expertise}
-                            <br><small>${new Date(item.created_at).toLocaleDateString()}</small>
-                        </div>
-                    </div>
-                `).join('');
-            } catch (error) {
-                console.error('Failed to load recent content:', error);
-            }
-        }
+        // Recent content loading removed for cleaner interface
 
         // ============= ANIMATION CONTROLS =============
-        function restartAnimation() {
-            const animationContainer = document.querySelector('.animation-container');
-            if (animationContainer) {
-                // Reset animations
-                animationContainer.style.animation = 'none';
-                animationContainer.offsetHeight; // Trigger reflow
-                animationContainer.style.animation = null;
+        let currentSlide = 0;
+        let totalSlides = 0;
+        let isPlaying = false;
+        let slideInterval = null;
+        
+        function initializeAnimationPresentation() {
+            const slides = document.querySelectorAll('.animation-slide');
+            totalSlides = slides.length;
+            currentSlide = 0;
+            
+            if (totalSlides > 0) {
+                showSlide(0);
+                updateProgressBar();
             }
         }
-
+        
+        function createAnimationSlides(topic, expertise) {
+            return `
+                <div class="animation-slide active" data-slide="0">
+                    <div class="slide-content">
+                        <h2>🎯 Welcome to ${topic}</h2>
+                        <div class="slide-visual">
+                            <div class="animated-icon">
+                                <i class="fab fa-r-project" style="font-size: 4rem; color: #276DC3;"></i>
+                            </div>
+                        </div>
+                        <p class="slide-text">Let's explore ${topic} concepts step by step for ${expertise} level learners.</p>
+                    </div>
+                </div>
+                <div class="animation-slide" data-slide="1">
+                    <div class="slide-content">
+                        <h2>🚀 Getting Started</h2>
+                        <div class="slide-visual">
+                            <div class="code-animation">
+                                <div class="code-line animate-typing">library(${topic.toLowerCase().replace(/\s+/g, '')})</div>
+                                <div class="code-line animate-typing">data <- read.csv("sample.csv")</div>
+                                <div class="code-line animate-typing">head(data)</div>
+                            </div>
+                        </div>
+                        <p class="slide-text">Setting up your R environment and loading the necessary packages.</p>
+                    </div>
+                </div>
+                <div class="animation-slide" data-slide="2">
+                    <div class="slide-content">
+                        <h2>📊 Key Concepts</h2>
+                        <div class="slide-visual">
+                            <div class="concept-flow">
+                                <div class="concept-box">Input</div>
+                                <div class="flow-arrow">→</div>
+                                <div class="concept-box">Process</div>
+                                <div class="flow-arrow">→</div>
+                                <div class="concept-box">Output</div>
+                            </div>
+                        </div>
+                        <p class="slide-text">Understanding the fundamental workflow and data processing concepts.</p>
+                    </div>
+                </div>
+                <div class="animation-slide" data-slide="3">
+                    <div class="slide-content">
+                        <h2>💡 Practical Application</h2>
+                        <div class="slide-visual">
+                            <div class="result-display">
+                                <div class="result-item animate-fadeIn">✓ Data loaded successfully</div>
+                                <div class="result-item animate-fadeIn">✓ Analysis completed</div>
+                                <div class="result-item animate-fadeIn">✓ Results visualized</div>
+                            </div>
+                        </div>
+                        <p class="slide-text">Applying ${topic} techniques to solve real-world problems.</p>
+                    </div>
+                </div>
+                <div class="animation-slide" data-slide="4">
+                    <div class="slide-content">
+                        <h2>🎉 Summary</h2>
+                        <div class="slide-visual">
+                            <div class="success-animation">
+                                <i class="fas fa-check-circle" style="font-size: 4rem; color: #38a169;"></i>
+                            </div>
+                        </div>
+                        <p class="slide-text">Congratulations! You've mastered the basics of ${topic}. Keep practicing!</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function showSlide(index) {
+            const slides = document.querySelectorAll('.animation-slide');
+            slides.forEach((slide, i) => {
+                slide.classList.toggle('active', i === index);
+            });
+            currentSlide = index;
+            updateProgressBar();
+        }
+        
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                showSlide(currentSlide + 1);
+            } else {
+                showSlide(0); // Loop back to start
+            }
+        }
+        
+        function previousSlide() {
+            if (currentSlide > 0) {
+                showSlide(currentSlide - 1);
+            } else {
+                showSlide(totalSlides - 1); // Loop to end
+            }
+        }
+        
         function togglePlayPause() {
-            // Animation play/pause logic would go here
-            console.log('Toggle play/pause animation');
+            const playPauseBtn = document.getElementById('playPauseBtn');
+            const narrationAudio = document.getElementById('narrationAudio');
+            
+            if (isPlaying) {
+                // Pause
+                clearInterval(slideInterval);
+                if (narrationAudio) narrationAudio.pause();
+                playPauseBtn.innerHTML = '<i class="fas fa-play"></i> Play';
+                isPlaying = false;
+            } else {
+                // Play
+                slideInterval = setInterval(nextSlide, 3000); // Auto-advance every 3 seconds
+                if (narrationAudio) narrationAudio.play();
+                playPauseBtn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+                isPlaying = true;
+            }
+        }
+        
+        function restartAnimation() {
+            clearInterval(slideInterval);
+            isPlaying = false;
+            showSlide(0);
+            const playPauseBtn = document.getElementById('playPauseBtn');
+            const narrationAudio = document.getElementById('narrationAudio');
+            
+            if (playPauseBtn) playPauseBtn.innerHTML = '<i class="fas fa-play"></i> Play';
+            if (narrationAudio) {
+                narrationAudio.currentTime = 0;
+                narrationAudio.pause();
+            }
+        }
+        
+        function updateProgressBar() {
+            const progressBar = document.getElementById('progressBar');
+            if (progressBar && totalSlides > 0) {
+                const progress = ((currentSlide + 1) / totalSlides) * 100;
+                progressBar.style.width = progress + '%';
+            }
         }
 
     </script>
