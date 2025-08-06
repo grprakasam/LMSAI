@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - R Learning AI Powered</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='settings.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <i class="fab fa-r-project"></i> R Learning- AI powered
+        </div>
+        <div class="nav-right">
+            <div class="user-menu">
+                <a href="/dashboard" class="btn btn-sm">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+                <a href="/admin" class="btn btn-sm">Admin</a>
+                <a href="/logout" class="btn btn-sm">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="settings-header">
+            <h1><i class="fas fa-cog"></i> Learning Settings</h1>
+            <p class="subtitle">Configure your personalized learning experience</p>
+        </div>
+
+        <form id="settingsForm" class="settings-form">
+            <!-- Content Generation Settings -->
+            <div class="settings-section">
+                <h2><i class="fas fa-file-text"></i> Content Generation Settings</h2>
+                
+                <div class="setting-group">
+                    <label><i class="fas fa-text-width"></i> Content Length (Word Count)</label>
+                    <div class="setting-row">
+                        <div class="setting-item">
+                            <label for="shortWordCount">Short Content</label>
+                            <input type="number" id="shortWordCount" name="shortWordCount" min="100" max="800" value="400">
+                            <span class="setting-hint">Recommended: 300-500 words</span>
+                        </div>
+                        <div class="setting-item">
+                            <label for="mediumWordCount">Medium Content</label>
+                            <input type="number" id="mediumWordCount" name="mediumWordCount" min="400" max="1200" value="700">
+                            <span class="setting-hint">Recommended: 500-800 words</span>
+                        </div>
+                        <div class="setting-item">
+                            <label for="lengthyWordCount">Lengthy Content</label>
+                            <input type="number" id="lengthyWordCount" name="lengthyWordCount" min="600" max="2000" value="1000">
+                            <span class="setting-hint">Recommended: 800-1200 words</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label><i class="fas fa-clock"></i> Duration Settings (Minutes)</label>
+                    <div class="setting-row">
+                        <div class="setting-item">
+                            <label for="minDuration">Minimum Duration</label>
+                            <input type="number" id="minDuration" name="minDuration" min="1" max="5" value="2">
+                        </div>
+                        <div class="setting-item">
+                            <label for="maxDuration">Maximum Duration</label>
+                            <input type="number" id="maxDuration" name="maxDuration" min="30" max="120" value="60">
+                        </div>
+                        <div class="setting-item">
+                            <label for="defaultDuration">Default Duration</label>
+                            <input type="number" id="defaultDuration" name="defaultDuration" min="1" max="15" value="5">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Learning Settings -->
+            <div class="settings-section">
+                <h2><i class="fas fa-graduation-cap"></i> Interactive Learning Settings</h2>
+                
+                <div class="setting-group">
+                    <label><i class="fas fa-question-circle"></i> Quiz Configuration</label>
+                    <div class="setting-row">
+                        <div class="setting-item">
+                            <label for="quizQuestions">Number of Quiz Questions</label>
+                            <input type="number" id="quizQuestions" name="quizQuestions" min="1" max="20" value="3">
+                            <span class="setting-hint">Recommended: 3-5 questions</span>
+                        </div>
+                        <div class="setting-item">
+                            <label for="quizDifficulty">Quiz Difficulty</label>
+                            <select id="quizDifficulty" name="quizDifficulty">
+                                <option value="adaptive">Adaptive (matches user expertise)</option>
+                                <option value="easy">Always Easy</option>
+                                <option value="medium">Always Medium</option>
+                                <option value="hard">Always Hard</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label for="quizTimeout">Time per Question (seconds)</label>
+                            <input type="number" id="quizTimeout" name="quizTimeout" min="15" max="300" value="60">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label><i class="fas fa-film"></i> Animation Settings</label>
+                    <div class="setting-row">
+                        <div class="setting-item">
+                            <label for="animationSlides">Slides per Animation</label>
+                            <input type="number" id="animationSlides" name="animationSlides" min="3" max="10" value="5">
+                        </div>
+                        <div class="setting-item">
+                            <label for="slideTransition">Auto-advance Time (seconds)</label>
+                            <input type="number" id="slideTransition" name="slideTransition" min="1" max="10" value="3">
+                        </div>
+                        <div class="setting-item">
+                            <label for="animationStyle">Animation Style</label>
+                            <select id="animationStyle" name="animationStyle">
+                                <option value="slide">Slide Transition</option>
+                                <option value="fade">Fade Transition</option>
+                                <option value="zoom">Zoom Effect</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Model Settings -->
+            <div class="settings-section">
+                <h2><i class="fas fa-robot"></i> AI Model Settings</h2>
+                
+                <div class="setting-group">
+                    <label><i class="fas fa-brain"></i> Text Generation Models</label>
+                    <div class="setting-row">
+                        <div class="setting-item">
+                            <label for="defaultTextModel">Preferred Text Model</label>
+                            <select id="defaultTextModel" name="defaultTextModel">
+                                <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet (Recommended)</option>
+                                <option value="anthropic/claude-3-haiku">Claude 3 Haiku (Fast)</option>
+                                <option value="openai/gpt-4-turbo">GPT-4 Turbo (Premium)</option>
+                                <option value="openai/gpt-3.5-turbo">GPT-3.5 Turbo (Economical)</option>
+                                <option value="meta-llama/llama-3.1-8b-instruct">Llama 3.1 8B (Open Source)</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label for="temperature">Creativity Level (Temperature)</label>
+                            <input type="range" id="temperature" name="temperature" min="0.1" max="1.0" step="0.1" value="0.7">
+                            <span class="range-value" id="temperatureValue">0.7</span>
+                            <span class="setting-hint">0.1 = Focused, 1.0 = Creative</span>
+                        </div>
+                        <div class="setting-item">
+                            <label for="maxTokens">Max Response Length (Tokens)</label>
+                            <input type="number" id="maxTokens" name="maxTokens" min="1000" max="8000" step="100" value="4000">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label><i class="fas fa-volume-up"></i> Audio Generation Settings</label>
+                    <div class="setting-row">
+                        <div class="setting-item">
+                            <label for="audioModel">Audio Model</label>
+                            <select id="audioModel" name="audioModel">
+                                <option value="openai/tts-1">OpenAI TTS Standard</option>
+                                <option value="openai/tts-1-hd">OpenAI TTS HD (Premium)</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label for="audioVoice">Voice Selection</label>
+                            <select id="audioVoice" name="audioVoice">
+                                <option value="alloy">Alloy (Neutral)</option>
+                                <option value="echo">Echo (Male)</option>
+                                <option value="fable">Fable (British)</option>
+                                <option value="onyx">Onyx (Deep)</option>
+                                <option value="nova">Nova (Female)</option>
+                                <option value="shimmer">Shimmer (Soft)</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label for="audioSpeed">Narration Speed</label>
+                            <input type="range" id="audioSpeed" name="audioSpeed" min="0.5" max="2.0" step="0.1" value="1.0">
+                            <span class="range-value" id="audioSpeedValue">1.0x</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Learning Preferences -->
+            <div class="settings-section">
+                <h2><i class="fas fa-user-graduate"></i> Learning Preferences</h2>
+                
+                <div class="setting-group">
+                    <label><i class="fas fa-lightbulb"></i> Topic Suggestions</label>
+                    <div class="topic-suggestions-container">
+                        <div class="topic-list" id="topicList">
+                            <div class="topic-item">
+                                <input type="text" class="topic-input" value="Data Structures" placeholder="Enter topic">
+                                <button type="button" class="remove-topic" onclick="removeTopic(this)">×</button>
+                            </div>
+                            <div class="topic-item">
+                                <input type="text" class="topic-input" value="ggplot2 Visualization" placeholder="Enter topic">
+                                <button type="button" class="remove-topic" onclick="removeTopic(this)">×</button>
+                            </div>
+                            <div class="topic-item">
+                                <input type="text" class="topic-input" value="Machine Learning" placeholder="Enter topic">
+                                <button type="button" class="remove-topic" onclick="removeTopic(this)">×</button>
+                            </div>
+                        </div>
+                        <button type="button" class="add-topic-btn" onclick="addTopic()">
+                            <i class="fas fa-plus"></i> Add Topic
+                        </button>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label><i class="fas fa-chart-line"></i> Learning Analytics</label>
+                    <div class="setting-row">
+                        <div class="setting-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="trackProgress" name="trackProgress" checked>
+                                <span class="checkmark"></span>
+                                Track Learning Progress
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="saveHistory" name="saveHistory" checked>
+                                <span class="checkmark"></span>
+                                Save Tutorial History
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="enableRecommendations" name="enableRecommendations" checked>
+                                <span class="checkmark"></span>
+                                Enable Smart Recommendations
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export & Sharing Settings -->
+            <div class="settings-section">
+                <h2><i class="fas fa-download"></i> Export & Sharing Settings</h2>
+                
+                <div class="setting-group">
+                    <label><i class="fas fa-file-export"></i> Default Export Format</label>
+                    <div class="setting-row">
+                        <div class="setting-item">
+                            <label>
+                                <input type="radio" name="exportFormat" value="txt" checked>
+                                <span class="radio-custom"></span>
+                                Text (.txt)
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label>
+                                <input type="radio" name="exportFormat" value="md">
+                                <span class="radio-custom"></span>
+                                Markdown (.md)
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label>
+                                <input type="radio" name="exportFormat" value="pdf">
+                                <span class="radio-custom"></span>
+                                PDF (.pdf)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Save Settings Button -->
+            <div class="settings-actions">
+                <button type="button" class="btn btn-secondary" onclick="resetToDefaults()">
+                    <i class="fas fa-undo"></i> Reset to Defaults
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Settings
+                </button>
+            </div>
+        </form>
+
+        <!-- Success Message -->
+        <div id="successMessage" class="success-message" style="display: none;">
+            <i class="fas fa-check-circle"></i> Settings saved successfully! Changes will take effect immediately.
+        </div>
+    </div>
+
+    <script>
+        // Settings form handling
+        document.getElementById('settingsForm').addEventListener('submit', handleSettingsSave);
+        
+        // Update range value displays
+        document.getElementById('temperature').addEventListener('input', function() {
+            document.getElementById('temperatureValue').textContent = this.value;
+        });
+        
+        document.getElementById('audioSpeed').addEventListener('input', function() {
+            document.getElementById('audioSpeedValue').textContent = this.value + 'x';
+        });
+
+        async function handleSettingsSave(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const settings = {};
+            
+            // Collect all form data
+            for (let [key, value] of formData.entries()) {
+                if (key === 'topicSuggestions') {
+                    if (!settings[key]) settings[key] = [];
+                    settings[key].push(value);
+                } else {
+                    settings[key] = value;
+                }
+            }
+            
+            // Collect topic suggestions
+            const topicInputs = document.querySelectorAll('.topic-input');
+            settings.topicSuggestions = Array.from(topicInputs).map(input => input.value).filter(v => v.trim());
+            
+            try {
+                const response = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(settings)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showSuccessMessage();
+                } else {
+                    alert('Error saving settings: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                alert('Network error. Please try again.');
+            }
+        }
+
+        function showSuccessMessage() {
+            const message = document.getElementById('successMessage');
+            message.style.display = 'block';
+            message.scrollIntoView({ behavior: 'smooth' });
+            
+            setTimeout(() => {
+                message.style.display = 'none';
+            }, 5000);
+        }
+
+        function addTopic() {
+            const topicList = document.getElementById('topicList');
+            const topicItem = document.createElement('div');
+            topicItem.className = 'topic-item';
+            topicItem.innerHTML = `
+                <input type="text" class="topic-input" placeholder="Enter topic">
+                <button type="button" class="remove-topic" onclick="removeTopic(this)">×</button>
+            `;
+            topicList.appendChild(topicItem);
+        }
+
+        function removeTopic(button) {
+            button.parentElement.remove();
+        }
+
+        function resetToDefaults() {
+            if (confirm('Are you sure you want to reset all settings to defaults?')) {
+                location.reload();
+            }
+        }
+
+        // Load current settings on page load
+        document.addEventListener('DOMContentLoaded', loadSettings);
+
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                const settings = await response.json();
+                
+                if (settings.success) {
+                    populateSettings(settings.data);
+                }
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+
+        function populateSettings(settings) {
+            // Populate form fields with saved settings
+            for (const [key, value] of Object.entries(settings)) {
+                const element = document.getElementById(key) || document.querySelector(`[name="${key}"]`);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        element.checked = value;
+                    } else if (element.type === 'radio') {
+                        if (element.value === value) {
+                            element.checked = true;
+                        }
+                    } else {
+                        element.value = value;
+                    }
+                }
+            }
+            
+            // Update range displays
+            document.getElementById('temperatureValue').textContent = settings.temperature || '0.7';
+            document.getElementById('audioSpeedValue').textContent = (settings.audioSpeed || '1.0') + 'x';
+            
+            // Populate topic suggestions
+            if (settings.topicSuggestions) {
+                const topicList = document.getElementById('topicList');
+                topicList.innerHTML = '';
+                
+                settings.topicSuggestions.forEach(topic => {
+                    const topicItem = document.createElement('div');
+                    topicItem.className = 'topic-item';
+                    topicItem.innerHTML = `
+                        <input type="text" class="topic-input" value="${topic}" placeholder="Enter topic">
+                        <button type="button" class="remove-topic" onclick="removeTopic(this)">×</button>
+                    `;
+                    topicList.appendChild(topicItem);
+                });
+            }
+        }
+    </script>
+</body>
+</html>
