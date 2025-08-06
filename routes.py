@@ -541,7 +541,8 @@ def generate_text_content(topic, expertise, duration, content_length='medium'):
             expertise=expertise,
             duration=config['duration'],
             text_model=None,
-            user_preferences=user_preferences
+            user_preferences=user_preferences,
+            content_length=content_length
         )
         
         # Enhance the content with better markdown formatting
