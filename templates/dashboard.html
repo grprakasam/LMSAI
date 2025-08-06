@@ -47,8 +47,9 @@
                         </div>
                     </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
+                    <!-- Expertise Level Section -->
+                    <div class="section-row">
+                        <div class="form-group-full">
                             <label>
                                 <i class="fas fa-user-graduate"></i> Expertise Level
                             </label>
@@ -70,15 +71,11 @@
                                 </label>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="form-group" id="durationGroup">
-                            <label for="duration">
-                                <i class="fas fa-clock"></i> Duration: <span id="durationDisplay">5</span> min
-                            </label>
-                            <input type="range" id="duration" name="duration" min="2" max="15" value="5" class="form-control slider">
-                        </div>
-
-                        <div class="form-group" id="contentLengthGroup" style="display: none;">
+                    <!-- Content Length Section -->
+                    <div class="section-row" id="contentLengthGroup">
+                        <div class="form-group-full">
                             <label>
                                 <i class="fas fa-text-width"></i> Content Length
                             </label>
@@ -102,40 +99,73 @@
                         </div>
                     </div>
 
-                </div>
-
-                <!-- Mode of Learning Section -->
-                <div class="mode-learning-section">
-                    <h3><i class="fas fa-graduation-cap"></i> Mode of Learning:</h3>
-                    <div class="radio-group">
-                        <label class="radio-option">
-                            <input type="radio" name="output_type" value="text" checked>
-                            <span class="radio-custom"></span>
-                            <div class="option-content">
-                                <i class="fas fa-file-text"></i>
-                                <h4>Text Output</h4>
-                                <p>Comprehensive written tutorial with examples</p>
-                            </div>
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="output_type" value="audio">
-                            <span class="radio-custom"></span>
-                            <div class="option-content">
-                                <i class="fas fa-volume-up"></i>
-                                <h4>Audio Output</h4>
-                                <p>Streaming narrated content with Kyutai TTS</p>
-                            </div>
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="output_type" value="animated">
-                            <span class="radio-custom"></span>
-                            <div class="option-content">
-                                <i class="fas fa-film"></i>
-                                <h4>Animated Output</h4>
-                                <p>Interactive animated presentation with audio and controls</p>
-                            </div>
-                        </label>
+                    <!-- Duration Section (hidden by default) -->
+                    <div class="section-row" id="durationGroup" style="display: none;">
+                        <div class="form-group-full">
+                            <label for="duration">
+                                <i class="fas fa-clock"></i> Duration: <span id="durationDisplay">5</span> min
+                            </label>
+                            <input type="range" id="duration" name="duration" min="2" max="15" value="5" class="form-control slider">
+                        </div>
                     </div>
+
+                    
+                    <!-- Mode of Learning Section -->
+                    <div class="section-row">
+                        <div class="form-group-full">
+                            <label>
+                                <i class="fas fa-graduation-cap"></i> Mode of Learning
+                            </label>
+                            <div class="radio-group">
+                                <label class="radio-option">
+                                    <input type="radio" name="output_type" value="text" checked>
+                                    <span class="radio-custom"></span>
+                                    <div class="option-content">
+                                        <i class="fas fa-file-text"></i>
+                                        <h4>Text Output</h4>
+                                        <p>Comprehensive written tutorial with examples</p>
+                                    </div>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="output_type" value="audio">
+                                    <span class="radio-custom"></span>
+                                    <div class="option-content">
+                                        <i class="fas fa-volume-up"></i>
+                                        <h4>Audio Output</h4>
+                                        <p>Streaming narrated content with Kyutai TTS</p>
+                                    </div>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="output_type" value="animated">
+                                    <span class="radio-custom"></span>
+                                    <div class="option-content">
+                                        <i class="fas fa-film"></i>
+                                        <h4>Animated Output</h4>
+                                        <p>Interactive animated presentation with audio and controls</p>
+                                    </div>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="output_type" value="quiz">
+                                    <span class="radio-custom"></span>
+                                    <div class="option-content">
+                                        <i class="fas fa-question-circle"></i>
+                                        <h4>Interactive Quiz</h4>
+                                        <p>Test knowledge with 3 questions and instant feedback based on your topic</p>
+                                    </div>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="output_type" value="playground">
+                                    <span class="radio-custom"></span>
+                                    <div class="option-content">
+                                        <i class="fas fa-code"></i>
+                                        <h4>Code Playground</h4>
+                                        <p>Practice coding with syntax validation and improvement suggestions</p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
                 <div style="display: flex; justify-content: center;">
@@ -144,29 +174,9 @@
                     </button>
                 </div>
 
-                <!-- Test Your Learning Section -->
-                <div class="test-learning-section">
-                    <h3><i class="fas fa-brain"></i> Test Your Learning:</h3>
-                    <div class="test-options">
-                        <label class="quiz-option">
-                            <input type="radio" name="output_type" value="quiz">
-                            <span class="radio-custom"></span>
-                            <div class="option-content">
-                                <i class="fas fa-question-circle"></i>
-                                <h4>Interactive Quiz</h4>
-                                <p>Test knowledge with 3 questions and instant feedback based on your topic</p>
-                            </div>
-                        </label>
-                        <label class="quiz-option">
-                            <input type="radio" name="output_type" value="playground">
-                            <span class="radio-custom"></span>
-                            <div class="option-content">
-                                <i class="fas fa-code"></i>
-                                <h4>Code Playground</h4>
-                                <p>Practice coding with syntax validation and improvement suggestions</p>
-                            </div>
-                        </label>
-                    </div>
+                <!-- Interactive Content Display -->
+                <div id="interactiveContent" class="interactive-content" style="display: none;">
+                    <!-- Quiz or Playground content will be dynamically inserted here -->
                 </div>
 
             </form>
@@ -179,14 +189,6 @@
 
             <!-- Results Section -->
             <div id="resultSection" class="result-section" style="display: none;">
-                <div class="result-header">
-                    <h2 id="resultTitle"><i class="fas fa-check-circle"></i> Content Ready!</h2>
-                    <div class="result-meta">
-                        <span id="outputTypeTag" class="result-tag"></span>
-                        <span id="topicTag" class="result-tag"></span>
-                    </div>
-                </div>
-                
                 <div id="contentDisplay" class="content-display">
                     <!-- Dynamic content will be inserted here -->
                 </div>
@@ -247,10 +249,14 @@
             // Form submission
             document.getElementById('contentForm').addEventListener('submit', handleFormSubmission);
 
-            // Action buttons
-            document.getElementById('copyBtn').addEventListener('click', copyContent);
-            document.getElementById('shareBtn').addEventListener('click', shareContent);
-            document.getElementById('downloadBtn').addEventListener('click', downloadContent);
+            // Action buttons - check if they exist first
+            const copyBtn = document.getElementById('copyBtn');
+            const shareBtn = document.getElementById('shareBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            
+            if (copyBtn) copyBtn.addEventListener('click', copyContent);
+            if (shareBtn) shareBtn.addEventListener('click', shareContent);
+            if (downloadBtn) downloadBtn.addEventListener('click', downloadContent);
         }
 
         function updateUIForOutputType(outputType) {
@@ -268,17 +274,136 @@
             // Show/hide appropriate controls based on output type
             const durationGroup = document.getElementById('durationGroup');
             const contentLengthGroup = document.getElementById('contentLengthGroup');
+            const interactiveContent = document.getElementById('interactiveContent');
             
             if (outputType === 'text') {
                 durationGroup.style.display = 'none';
                 contentLengthGroup.style.display = 'block';
-            } else if (outputType === 'quiz' || outputType === 'playground') {
+                interactiveContent.style.display = 'none';
+            } else if (outputType === 'quiz') {
                 durationGroup.style.display = 'none';
                 contentLengthGroup.style.display = 'none';
+                showInteractiveQuiz();
+            } else if (outputType === 'playground') {
+                durationGroup.style.display = 'none';
+                contentLengthGroup.style.display = 'none';
+                showCodePlayground();
             } else {
                 durationGroup.style.display = 'block';
                 contentLengthGroup.style.display = 'none';
+                interactiveContent.style.display = 'none';
             }
+        }
+
+        function showInteractiveQuiz() {
+            const interactiveContent = document.getElementById('interactiveContent');
+            const topic = document.getElementById('topic').value || 'R Programming';
+            
+            interactiveContent.innerHTML = `
+                <div class="quiz-interactive">
+                    <div class="quiz-header">
+                        <h3><i class="fas fa-question-circle"></i> Interactive Quiz: ${topic}</h3>
+                        <p>Test your knowledge with instant feedback</p>
+                    </div>
+                    <div id="quizContainer" class="quiz-container">
+                        <p class="quiz-instruction">Please enter a topic above and click "Generate Content" to create your personalized quiz!</p>
+                    </div>
+                </div>
+            `;
+            interactiveContent.style.display = 'block';
+        }
+
+        function showCodePlayground() {
+            const interactiveContent = document.getElementById('interactiveContent');
+            const topic = document.getElementById('topic').value || 'R Programming';
+            
+            interactiveContent.innerHTML = `
+                <div class="playground-interactive">
+                    <div class="playground-header">
+                        <h3><i class="fas fa-code"></i> Code Playground: ${topic}</h3>
+                        <p>Practice coding with syntax validation and improvement suggestions</p>
+                    </div>
+                    <div class="playground-container">
+                        <div class="code-editor-section">
+                            <div class="editor-header">
+                                <h5><i class="fas fa-code"></i> Your R Code:</h5>
+                                <div class="editor-controls">
+                                    <button class="run-btn" onclick="runRCodeWithValidation()">
+                                        <i class="fas fa-play"></i> Run Code
+                                    </button>
+                                    <button class="clear-btn" onclick="clearCode()">
+                                        <i class="fas fa-trash"></i> Clear
+                                    </button>
+                                    <button class="example-btn" onclick="insertTopicExample('${topic}')">
+                                        <i class="fas fa-lightbulb"></i> Example
+                                    </button>
+                                </div>
+                            </div>
+                            <textarea id="codeEditor" class="code-editor" placeholder="# Write your R code here for ${topic}
+# Examples:
+# - Try implementing concepts you learned
+# - Use built-in R datasets like mtcars, iris
+# - Experiment with different approaches
+
+# Your code will be validated for syntax errors
+# and you'll get suggestions for improvements!"></textarea>
+                        </div>
+                        <div class="output-section">
+                            <div class="output-tabs">
+                                <button class="output-tab-btn active" onclick="showOutputTab('result')">
+                                    <i class="fas fa-terminal"></i> Output
+                                </button>
+                                <button class="output-tab-btn" onclick="showOutputTab('suggestions')">
+                                    <i class="fas fa-lightbulb"></i> Suggestions
+                                </button>
+                                <button class="output-tab-btn" onclick="showOutputTab('help')">
+                                    <i class="fas fa-question-circle"></i> Help
+                                </button>
+                            </div>
+                            <div id="result-tab" class="output-tab-content active">
+                                <h5>Code Output:</h5>
+                                <div id="codeOutput" class="code-output">
+                                    <div class="output-placeholder">
+                                        <i class="fas fa-terminal"></i>
+                                        <p>Run your code to see results here</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="suggestions-tab" class="output-tab-content">
+                                <h5>Suggestions for Improving Your Code:</h5>
+                                <div id="codeSuggestions" class="code-suggestions">
+                                    <div class="suggestions-placeholder">
+                                        <i class="fas fa-lightbulb"></i>
+                                        <p>Run your code to get improvement suggestions</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="help-tab" class="output-tab-content">
+                                <h5>Help & Tips:</h5>
+                                <div class="help-content">
+                                    <div class="help-section">
+                                        <h6>Getting Started with ${topic}:</h6>
+                                        <ul>
+                                            <li>Use clear, descriptive variable names</li>
+                                            <li>Add comments to explain your logic</li>
+                                            <li>Test small pieces of code first</li>
+                                            <li>Use built-in datasets for practice</li>
+                                        </ul>
+                                    </div>
+                                    <div class="help-section">
+                                        <h6>Common R Functions for ${topic}:</h6>
+                                        <div class="function-examples">
+                                            <code>summary()</code> <code>head()</code> <code>str()</code>
+                                            <code>plot()</code> <code>mean()</code> <code>length()</code>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            interactiveContent.style.display = 'block';
         }
 
         // ============= FORM HANDLING =============

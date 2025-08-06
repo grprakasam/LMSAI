@@ -305,42 +305,7 @@ body::before {
     line-height: 1.5;
 }
 
-/* ==================== MODE OF LEARNING & QUIZ SECTIONS ==================== */
-.mode-learning-section,
-.quiz-section {
-    margin-top: 2.5rem;
-    padding: 2rem;
-    background: var(--surface-glass);
-    border-radius: var(--radius-lg);
-    backdrop-filter: blur(10px);
-    border: 1px solid var(--border-color);
-}
-
-.mode-learning-section h3,
-.quiz-section h3 {
-    font-size: 1.375rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.quiz-section {
-    background: linear-gradient(135deg, rgba(126, 87, 194, 0.1) 0%, rgba(255, 107, 107, 0.1) 100%);
-}
-
-.quiz-description {
-    margin-bottom: 1rem;
-}
-
-.quiz-description p {
-    color: var(--text-secondary);
-    margin-bottom: 1.5rem;
-    font-size: 0.95rem;
-    line-height: 1.6;
-}
+/* ==================== REMOVED - NO LONGER USED ==================== */
 
 .quiz-option {
     display: flex;
@@ -430,6 +395,39 @@ body::before {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
+}
+
+/* New Section Row Styles */
+.section-row {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: var(--surface-white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    border: 2px solid var(--border-color);
+    transition: all 0.3s ease;
+    opacity: 1;
+    transform: translateY(0);
+    animation: slideInUp 0.6s ease-out;
+}
+
+.section-row:hover {
+    border-color: var(--accent-blue);
+    box-shadow: var(--shadow-lg);
+}
+
+.form-group-full {
+    width: 100%;
+}
+
+.form-group-full label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
 }
 
 .slider {
@@ -2363,6 +2361,11 @@ body::before {
     to { transform: translateY(0); opacity: 1; }
 }
 
+@keyframes slideInUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
 @keyframes shake {
     0%, 100% { transform: translateX(0); }
     25% { transform: translateX(-5px); }
@@ -2662,6 +2665,54 @@ body::before {
     border: 1px solid var(--code-border);
 }
 
+/* Interactive Content Section Styles */
+.interactive-content {
+    margin: 2rem 0;
+    padding: 2rem;
+    background: var(--surface-white);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    border: 2px solid var(--border-color);
+    animation: fadeInUp 0.5s ease-out;
+}
+
+.quiz-interactive, .playground-interactive {
+    width: 100%;
+}
+
+.quiz-header, .playground-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.quiz-header h3, .playground-header h3 {
+    color: var(--accent-purple);
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.quiz-header p, .playground-header p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+.quiz-instruction {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    background: var(--surface-light);
+    border-radius: var(--radius-lg);
+    border: 2px dashed var(--border-color);
+}
+
 /* Test Learning Section Styles */
 .test-learning-section {
     background: linear-gradient(135deg, rgba(126, 87, 194, 0.15) 0%, rgba(255, 107, 107, 0.15) 100%);
@@ -2719,6 +2770,23 @@ body::before {
     .playground-container {
         grid-template-columns: 1fr;
         gap: 1rem;
+    }
+    
+    .section-row {
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+    }
+    
+    .form-group-full label {
+        font-size: 1rem;
+    }
+    
+    .radio-group {
+        flex-direction: column;
+    }
+    
+    .radio-option {
+        min-width: auto;
     }
     
     .test-options {
