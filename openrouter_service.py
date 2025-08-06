@@ -924,15 +924,8 @@ Thank you for joining me in this exploration of {topic}. Happy coding!
 
         return {
             'content': content,
-            'concepts': [
-                f'{topic} fundamentals',
-                'Data structures',
-                'Best practices',
-                'Real-world applications',
-                'Code organization',
-                'Data validation'
-            ],
-            'packages': ['tidyverse', 'here', 'base R'],
+            'concepts': topic_specifics['concepts'],
+            'packages': topic_specifics['packages'],
             'objectives': [
                 f'Understand core concepts of {topic} in R',
                 f'Implement practical {topic} solutions',

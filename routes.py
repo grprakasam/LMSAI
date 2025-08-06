@@ -492,7 +492,7 @@ def generate_content():
         if not is_valid:
             return jsonify({'success': False, 'error': error_message}), 400
         
-        if output_type not in ['text', 'audio', 'animated', 'quiz']:
+        if output_type not in ['text', 'audio', 'animated', 'quiz', 'playground']:
             return jsonify({'success': False, 'error': 'Invalid output type'}), 400
         
         # Generate content based on type
@@ -504,6 +504,8 @@ def generate_content():
             return generate_animated_content(topic, expertise, duration)
         elif output_type == 'quiz':
             return generate_quiz_content(topic, expertise)
+        elif output_type == 'playground':
+            return generate_playground_content(topic, expertise)
             
     except Exception as e:
         logger.error(f"Content generation error: {str(e)}")
@@ -2159,6 +2161,25 @@ def generate_quiz_content(topic, expertise):
         return jsonify({
             'success': False,
             'error': 'Failed to generate quiz content. Please try again.'
+        }), 500
+
+def generate_playground_content(topic, expertise):
+    """Generate code playground content"""
+    try:
+        return jsonify({
+            'success': True,
+            'output_type': 'playground',
+            'topic': topic,
+            'expertise': expertise,
+            'content': f"Interactive code playground for {topic}",
+            'tutorial_id': None
+        })
+        
+    except Exception as e:
+        logger.error(f"Playground generation error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to generate playground content. Please try again.'
         }), 500
 
 def create_topic_questions(topic, difficulty):
