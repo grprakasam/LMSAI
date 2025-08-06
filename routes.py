@@ -8,6 +8,7 @@ import json
 import re
 import os
 import uuid
+import time
 
 from models import db, User, Tutorial, UsageLog
 from sqlalchemy.orm import noload
@@ -286,6 +287,354 @@ def logout():
     return redirect(url_for('main.index'))
 
 # ==================== TUTORIAL GENERATION ROUTES ====================
+
+# ==================== NEW UNIFIED CONTENT GENERATION ====================
+
+@main_bp.route('/generate-content', methods=['POST'])
+@rate_limit(requests_per_minute=15)
+@track_usage('content_created')
+def generate_content():
+    """Generate content based on output type: text, audio, or animated"""
+    
+    try:
+        # Parse JSON request
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+        
+        # Extract and validate input
+        topic = sanitize_input(data.get('topic', ''), 200)
+        expertise = data.get('expertise', '').strip()
+        duration = data.get('duration', 5)
+        output_type = data.get('output_type', 'text').strip()
+        
+        # Validate input
+        is_valid, error_message = validate_tutorial_input(topic, expertise, duration)
+        if not is_valid:
+            return jsonify({'success': False, 'error': error_message}), 400
+        
+        if output_type not in ['text', 'audio', 'animated']:
+            return jsonify({'success': False, 'error': 'Invalid output type'}), 400
+        
+        # Generate content based on type
+        if output_type == 'text':
+            return generate_text_content(topic, expertise, duration)
+        elif output_type == 'audio':
+            return generate_audio_content(topic, expertise, duration)
+        elif output_type == 'animated':
+            return generate_animated_content(topic, expertise, duration)
+            
+    except Exception as e:
+        logger.error(f"Content generation error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Content generation failed. Please try again.'
+        }), 500
+
+def generate_text_content(topic, expertise, duration):
+    """Generate comprehensive text tutorial"""
+    try:
+        # Generate tutorial content via OpenRouter
+        tutorial_data = openrouter_service.generate_tutorial_content(
+            topic=topic,
+            expertise=expertise,
+            duration=duration,
+            text_model=None,
+            user_preferences={}
+        )
+        
+        # Save to database
+        tutorial = Tutorial(
+            user_id=1,
+            topic=topic,
+            expertise=expertise,
+            duration=duration,
+            content=tutorial_data['content'],
+            is_premium=True,
+            status='completed'
+        )
+        
+        tutorial.set_concepts(tutorial_data['concepts'])
+        tutorial.set_packages(tutorial_data['packages'])
+        tutorial.set_learning_objectives(tutorial_data['objectives'])
+        
+        db.session.add(tutorial)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'output_type': 'text',
+            'topic': topic,
+            'expertise': expertise,
+            'duration': duration,
+            'content': tutorial_data['content'],
+            'concepts': tutorial_data['concepts'],
+            'packages': tutorial_data['packages'],
+            'objectives': tutorial_data['objectives'],
+            'tutorial_id': tutorial.id
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+def generate_audio_content(topic, expertise, duration):
+    """Generate streaming audio content with Kyutai TTS"""
+    try:
+        # First generate text content
+        tutorial_data = openrouter_service.generate_tutorial_content(
+            topic=topic,
+            expertise=expertise,
+            duration=duration,
+            text_model=None,
+            user_preferences={}
+        )
+        
+        # Prepare text for TTS
+        audio_text = _prepare_text_for_audio(tutorial_data['content'])
+        
+        # Generate streaming audio URL with Kyutai TTS
+        from kyutai_tts_service import kyutai_service
+        import asyncio
+        import uuid
+        
+        # Create streaming session with Kyutai TTS (simplified for non-async context)
+        stream_id = str(uuid.uuid4())
+        
+        # Store stream configuration for later use
+        kyutai_service.active_streams[stream_id] = {
+            'text': audio_text,
+            'voice': "default",
+            'language': "en",
+            'speed': 1.0,
+            'format': "mp3",
+            'created_at': time.time(),
+            'status': 'ready'
+        }
+        
+        audio_stream_url = f"/api/kyutai-stream/{stream_id}"
+        
+        # Save to database with audio metadata
+        tutorial = Tutorial(
+            user_id=1,
+            topic=topic,
+            expertise=expertise,
+            duration=duration,
+            content=tutorial_data['content'],
+            audio_url=audio_stream_url,
+            is_premium=True,
+            status='completed'
+        )
+        
+        tutorial.set_concepts(tutorial_data['concepts'])
+        tutorial.set_packages(tutorial_data['packages'])
+        tutorial.set_learning_objectives(tutorial_data['objectives'])
+        
+        db.session.add(tutorial)
+        db.session.commit()
+        
+        # Store audio text for streaming (in production, this would be handled by Kyutai)
+        _store_streaming_audio_content(stream_id, audio_text)
+        
+        return jsonify({
+            'success': True,
+            'output_type': 'audio',
+            'topic': topic,
+            'expertise': expertise,
+            'duration': duration,
+            'content': tutorial_data['content'],
+            'audio_stream_url': audio_stream_url,
+            'streaming_tts': 'kyutai',
+            'tutorial_id': tutorial.id
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+def generate_animated_content(topic, expertise, duration):
+    """Generate interactive animated tutorial"""
+    try:
+        # Generate base content
+        tutorial_data = openrouter_service.generate_tutorial_content(
+            topic=topic,
+            expertise=expertise,
+            duration=duration,
+            text_model=None,
+            user_preferences={}
+        )
+        
+        # Create animation HTML based on topic
+        animation_html = create_animation_html(topic, expertise, tutorial_data['content'])
+        
+        # Save to database
+        tutorial = Tutorial(
+            user_id=1,
+            topic=topic,
+            expertise=expertise,
+            duration=duration,
+            content=tutorial_data['content'],
+            is_premium=True,
+            status='completed'
+        )
+        
+        tutorial.set_concepts(tutorial_data['concepts'])
+        tutorial.set_packages(tutorial_data['packages'])
+        tutorial.set_learning_objectives(tutorial_data['objectives'])
+        
+        db.session.add(tutorial)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'output_type': 'animated',
+            'topic': topic,
+            'expertise': expertise,
+            'duration': duration,
+            'content': tutorial_data['content'],
+            'animation_html': animation_html,
+            'tutorial_id': tutorial.id
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
+def create_animation_html(topic, expertise, content):
+    """Create interactive animation HTML"""
+    # Simple animated content based on topic
+    if 'ggplot' in topic.lower():
+        return f"""
+        <div class="data-viz-animation">
+            <div class="plot-area" id="plotArea">
+                <h4>📊 Creating {topic} Visualization</h4>
+                <div class="data-points"></div>
+                <div class="axes"></div>
+            </div>
+            <div class="code-area">
+                <pre class="animated-code">
+library(ggplot2)
+ggplot(data, aes(x, y)) +
+  geom_point() +
+  theme_minimal()
+                </pre>
+            </div>
+        </div>
+        """
+    elif 'data' in topic.lower():
+        return f"""
+        <div class="data-flow-animation">
+            <div class="data-box input-box">
+                <h4>📥 Input</h4>
+                <p>Raw {topic} Data</p>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="data-box process-box">
+                <h4>⚙️ Process</h4>
+                <p>R Functions</p>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="data-box output-box">
+                <h4>📤 Output</h4>
+                <p>Clean Results</p>
+            </div>
+        </div>
+        """
+    else:
+        return f"""
+        <div class="concept-animation">
+            <div class="concept-title">
+                <h3>🎯 Understanding {topic}</h3>
+            </div>
+            <div class="concept-steps">
+                <div class="step step-1">Step 1: Learn</div>
+                <div class="step step-2">Step 2: Practice</div>
+                <div class="step step-3">Step 3: Apply</div>
+            </div>
+        </div>
+        """
+
+def _store_streaming_audio_content(stream_id, text_content):
+    """Store content for streaming (placeholder for Kyutai integration)"""
+    # In production, this would interface with Kyutai TTS API
+    # For now, we'll store in a simple file-based cache
+    stream_dir = Path('static/stream_cache')
+    stream_dir.mkdir(exist_ok=True)
+    
+    with open(stream_dir / f"{stream_id}.txt", 'w') as f:
+        f.write(text_content)
+
+@main_bp.route('/api/kyutai-stream/<stream_id>')
+async def kyutai_stream_audio(stream_id):
+    """Stream audio content using Kyutai TTS"""
+    from kyutai_tts_service import kyutai_service
+    from flask import Response
+    
+    try:
+        # Get stream info
+        stream_info = kyutai_service.get_stream_info(stream_id)
+        if not stream_info:
+            return jsonify({'error': 'Stream session not found'}), 404
+        
+        # Create streaming response
+        async def generate_audio_stream():
+            async for chunk in kyutai_service.stream_tts(
+                text=stream_info['text'],
+                voice=stream_info['voice'],
+                language=stream_info['language'],
+                speed=stream_info['speed'],
+                format=stream_info['format']
+            ):
+                yield chunk
+        
+        return Response(
+            generate_audio_stream(),
+            mimetype=f"audio/{stream_info['format']}",
+            headers={
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+                'X-Accel-Buffering': 'no'  # Disable nginx buffering
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Kyutai streaming error: {str(e)}")
+        return jsonify({'error': 'Streaming failed'}), 500
+
+@main_bp.route('/stream-audio/<stream_id>')
+def stream_audio_content(stream_id):
+    """Legacy streaming endpoint - redirects to Kyutai"""
+    return redirect(url_for('main.kyutai_stream_audio', stream_id=stream_id))
+
+@main_bp.route('/api/recent-content')
+def get_recent_content():
+    """Get recent content for sidebar display"""
+    try:
+        recent_tutorials = Tutorial.query.order_by(Tutorial.created_at.desc()).limit(10).all()
+        
+        content_list = []
+        for tutorial in recent_tutorials:
+            # Determine output type based on tutorial attributes
+            if tutorial.audio_url:
+                output_type = 'audio'
+            elif 'animation' in tutorial.topic.lower():
+                output_type = 'animated'
+            else:
+                output_type = 'text'
+            
+            content_list.append({
+                'topic': tutorial.topic,
+                'output_type': output_type,
+                'expertise': tutorial.expertise,
+                'created_at': tutorial.created_at.isoformat()
+            })
+        
+        return jsonify(content_list)
+    except Exception as e:
+        logger.error(f"Error fetching recent content: {str(e)}")
+        return jsonify([])
+
+# ==================== LEGACY ROUTES (KEEP FOR COMPATIBILITY) ====================
 
 @main_bp.route('/generate-tutorial', methods=['POST'])
 @rate_limit(requests_per_minute=15)
