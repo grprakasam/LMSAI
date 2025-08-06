@@ -1,8 +1,14 @@
-# Ephicacy R Tutor - AI Powered Web Application
+# R Tutor Pro - AI-Powered R Learning SaaS
 
 A modern, interactive web application designed specifically for R developers to generate personalized audio tutorials based on their expertise level and learning preferences.
 
 ## 🌟 Features
+
+### 🎯 R Developer-Focused
+- **AI-Powered Content**: Advanced AI generates personalized tutorials based on your expertise level and learning goals
+- **Interactive R Code**: Learn with real R code examples and hands-on exercises tailored to your skill level
+- **Audio Tutorials**: Listen to your tutorials on-the-go with AI-generated audio narration (Pro feature)
+- **Progress Tracking**: Monitor your learning journey with detailed analytics and skill progression insights
 
 ### 🎨 Modern & Professional Design
 - **Gradient Background**: Beautiful purple-blue gradient with glassmorphism effects
@@ -10,88 +16,130 @@ A modern, interactive web application designed specifically for R developers to 
 - **R-Themed Colors**: Blue color scheme matching R programming aesthetics
 - **Responsive Design**: Works perfectly on desktop, tablet, and mobile devices
 
-### 🎯 R Developer-Focused
-- **Topic Suggestions**: Quick-select buttons for popular R topics (Data Structures, ggplot2, dplyr, etc.)
-- **Expertise Levels**: Beginner 🌱, Intermediate 🌿, Expert 🌳
-- **R-Specific Content**: Tailored tutorials with actual R code examples
-- **Package Recommendations**: Suggests relevant R packages for each topic
-
-### 🔧 Interactive Features
-- **Smart Topic Input**: Auto-suggestions for R programming topics
-- **Duration Slider**: Interactive slider to select tutorial length (1-10 minutes)
-- **Real-time Feedback**: Visual feedback for all user interactions
-- **Tooltips**: Helpful hints for R developers
-- **Loading Animations**: Engaging loading states with R-themed messages
-
-### 📚 Content Generation
-- **Dynamic Content**: Generates R-specific tutorials based on user input
-- **Code Examples**: Includes actual R code snippets
-- **Difficulty Adaptation**: Content complexity matches user expertise level
-- **Package Integration**: Recommends relevant R packages
+### 🔧 Advanced Features
+- **Subscription Plans**: Free, Pro, and Team plans with different feature sets
+- **Team Learning**: Collaborate with your team and track organizational R skill development
+- **Usage Analytics**: Detailed analytics dashboard for tracking progress
+- **API Access**: RESTful API for programmatic access (Team plan)
 
 ## 🚀 Technology Stack
 
-- **Backend**: Python Flask
+- **Backend**: Python Flask with SQLAlchemy
 - **Frontend**: HTML5, CSS3, JavaScript (ES6+)
-- **Styling**: Custom CSS with gradients, animations, and responsive design
-- **Icons**: Font Awesome 6.0
-- **Features**: AJAX form submission, interactive UI elements
+- **Database**: SQLite (development) / PostgreSQL (production)
+- **Authentication**: Flask-Login with session management
+- **AI Services**: DeepSeek API / OpenAI API integration
+- **Deployment**: Docker, Docker Compose, Nginx, Gunicorn
+- **Monitoring**: Health checks, logging, and performance metrics
 
 ## 📁 Project Structure
 
 ```
 LMSAI/
-├── app.py                 # Flask application with R-specific logic
+├── app.py                 # Flask application entry point
+├── run.py                 # Development server runner
+├── config.py              # Configuration settings
+├── models.py              # Database models
+├── routes.py              # Route definitions
+├── utils.py               # Utility functions
+├── content.py             # R topics content
+├── services.py            # AI and audio services
 ├── requirements.txt       # Python dependencies
-├── templates/
-│   └── index.html        # Main HTML template with interactive features
-├── static/
-│   └── style.css         # Enhanced CSS with R-themed styling
-└── README.md             # This file
+├── README.md             # This file
+├── .env.example          # Environment variables template
+├── Dockerfile            # Docker configuration
+├── docker-compose.yml    # Docker Compose configuration
+├── nginx.conf            # Nginx configuration
+├── deployment_config.txt # Deployment configurations
+├── api_tests.py          # API tests and documentation
+├── templates/            # HTML templates
+│   ├── index.html        # Landing page
+│   ├── dashboard.html    # User dashboard
+│   ├── auth.html         # Authentication page
+│   ├── pricing.html      # Pricing page
+│   ├── billing.html      # Billing page
+│   ├── contact.html      # Contact page
+│   ├── privacy.html      # Privacy policy
+│   ├── terms.html        # Terms of service
+│   ├── error.html        # Error page
+│   └── tutorial.html     # Tutorial view page
+├── static/               # Static assets
+│   ├── style.css         # Main stylesheet
+│   └── generated_audio/  # Generated audio files
+├── instance/             # SQLite database (development)
+├── logs/                 # Application logs
+└── tests/                # Test files
 ```
 
 ## 🛠️ Installation & Setup
 
-1. **Install Dependencies**:
+### Prerequisites
+- Python 3.8+
+- pip
+- Docker (optional, for containerized deployment)
+
+### Local Development Setup
+
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/grprakasam/LMSAI.git
+   cd LMSAI
+   ```
+
+2. **Create Virtual Environment**:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install Dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
 
-2. **Run the Application**:
+4. **Set Environment Variables**:
    ```bash
-   python app.py
+   cp .env.example .env
+   # Edit .env file with your configuration
    ```
 
-3. **Access the Application**:
+5. **Initialize Database**:
+   ```bash
+   python run.py --init-db
+   ```
+
+6. **Run the Application**:
+   ```bash
+   python run.py
+   ```
+
+7. **Access the Application**:
    Open your browser and navigate to `http://localhost:5000`
 
 ## 🎮 How to Use
 
-1. **Select a Topic**: 
-   - Type your R programming topic or use quick-select buttons
-   - Popular topics include: Data Structures, ggplot2, dplyr, Shiny, etc.
+### For End Users
+1. **Register/Login**: Create an account or sign in to access the dashboard
+2. **Select a Topic**: Choose from popular R topics or enter your own
+3. **Choose Expertise Level**: Beginner, Intermediate, or Expert
+4. **Set Duration**: Select tutorial length (1-15 minutes)
+5. **Generate Tutorial**: Click "Generate Tutorial" to create personalized content
+6. **View Results**: Access generated tutorials with R code examples
+7. **Upgrade**: Consider upgrading to Pro/Team plan for advanced features
 
-2. **Choose Expertise Level**:
-   - 🌱 Beginner: New to R programming
-   - 🌿 Intermediate: Some R experience
-   - 🌳 Expert: Advanced R developer
-
-3. **Set Duration**:
-   - Use the interactive slider to select tutorial length (1-10 minutes)
-   - Quick (1-3 min), Standard (4-6 min), Detailed (7-10 min)
-
-4. **Generate Tutorial**:
-   - Click "Generate R Tutorial" to create personalized content
-   - View generated content with R code examples
-   - Use audio controls to play, download, or share
+### For Developers
+1. **API Documentation**: Check `api_tests.py` for detailed API documentation
+2. **Customization**: Modify `content.py` to add new R topics
+3. **Styling**: Update `static/style.css` for design changes
+4. **Deployment**: Use Docker Compose for production deployment
 
 ## 🎨 Design Features
 
 ### Color Scheme
-- **Primary**: Blue gradient (#276DC3, #1E88E5, #42A5F5)
-- **Secondary**: Green accents (#4CAF50)
-- **Background**: Purple-blue gradient (#667eea, #764ba2)
-- **Interactive**: Orange-red gradients for buttons (#FF6B6B, #FF8E53)
+- **Primary**: Blue gradient (#667eea, #764ba2)
+- **Secondary**: Blue (#2196F3) and Green (#4CAF50)
+- **Background**: Purple-blue gradient
+- **Interactive**: Gradient buttons with hover effects
 
 ### Interactive Elements
 - **Hover Effects**: Smooth transitions and elevation changes
@@ -99,20 +147,14 @@ LMSAI/
 - **Loading States**: Animated spinners with R-themed messages
 - **Responsive Layout**: Adapts to all screen sizes
 
-### R-Specific Features
-- **Code Highlighting**: Syntax-highlighted R code blocks
-- **Package Suggestions**: Relevant R package recommendations
-- **Expertise Adaptation**: Content complexity matches user level
-- **Practical Examples**: Real R code snippets and use cases
-
 ## 🔧 Customization
 
 The application can be easily customized:
 
-- **Add New Topics**: Extend `R_TOPICS_CONTENT` in `app.py`
+- **Add New Topics**: Extend `R_TOPICS_CONTENT` in `content.py`
 - **Modify Styling**: Update `static/style.css` for design changes
-- **Add Features**: Enhance `templates/index.html` for new functionality
-- **Integrate APIs**: Connect to real audio generation services
+- **Add Features**: Enhance templates in the `templates/` directory
+- **Integrate APIs**: Connect to real audio generation services in `services.py`
 
 ## 🌐 Browser Compatibility
 
@@ -137,14 +179,54 @@ Fully responsive design with:
 - **Researchers**: Using R for academic and scientific research
 - **Developers**: Building R packages and applications
 
-## 🚀 Future Enhancements
+## 🚀 Deployment
 
-- Real audio generation integration
-- User accounts and progress tracking
-- Advanced R topics (machine learning, bioinformatics)
-- Interactive R code execution
-- Community features and sharing
-- Offline mode support
+### Docker Deployment (Recommended)
+```bash
+docker-compose up -d
+```
+
+### Manual Deployment
+```bash
+gunicorn --bind 0.0.0.0:5000 app:app
+```
+
+## 🧪 Testing
+
+### Run Unit Tests
+```bash
+python -m pytest tests/ -v
+```
+
+### Run Load Tests
+```bash
+locust -f load_test.py --host=http://localhost:5000
+```
+
+## 📊 Monitoring
+
+- Health check endpoint: `/health`
+- Usage analytics: `/api/analytics`
+- System metrics: `/api/metrics`
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🙏 Acknowledgments
+
+- R community for inspiration
+- Flask framework for the backend
+- DeepSeek/OpenAI for AI capabilities
+- All contributors and users
 
 ---
 

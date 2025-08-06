@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>R Tutor Pro - AI-Powered R Learning</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .landing-page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hero {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .hero-content {
+            max-width: 800px;
+            color: white;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            box-shadow: 0 4px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .features {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 4rem 2rem;
+        }
+
+        .features-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .features h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            background: linear-gradient(45deg, #2196F3, #4CAF50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #2196F3, #4CAF50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .pricing {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 4rem 2rem;
+        }
+
+        .pricing-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .pricing h2 {
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            color: #2c3e50;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .plan-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        .plan-card:hover {
+            transform: translateY(-10px);
+        }
+
+        .plan-card.popular {
+            transform: scale(1.05);
+            border: 3px solid #4CAF50;
+        }
+
+        .plan-card.popular::before {
+            content: '🔥 Most Popular';
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .plan-price {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+
+        .plan-price small {
+            font-size: 1rem;
+            color: #666;
+        }
+
+        .plan-features {
+            list-style: none;
+            margin: 2rem 0;
+            text-align: left;
+        }
+
+        .plan-features li {
+            padding: 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .plan-features li::before {
+            content: '✓';
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .auth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .auth-content {
+            background: white;
+            padding: 3rem;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 400px;
+            position: relative;
+        }
+
+        .auth-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 1rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 3px solid transparent;
+        }
+
+        .auth-tab.active {
+            color: #2196F3;
+            border-bottom-color: #2196F3;
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e3f2fd;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+
+        .stats {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .stat-item {
+            color: #2c3e50;
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #2196F3, #4CAF50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .demo-section {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .demo-video {
+            max-width: 600px;
+            margin: 2rem auto;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .features-grid,
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Admin CSS from admin.html */
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #2196F3, #4CAF50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-decoration: none;
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            color: white;
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #666;
+            border: 1px solid #e3f2fd;
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .page-title {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #2196F3, #4CAF50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .admin-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f8f9fa;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e3f2fd;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #2196F3;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+
+        .form-select {
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><path fill="%23666" d="M2 0L0 2h4zm0 5L0 3h4z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 12px;
+            padding-right: 3rem;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .status-connected {
+            background: rgba(76, 175, 80, 0.1);
+            color: #388e3c;
+        }
+
+        .status-disconnected {
+            background: rgba(244, 67, 54, 0.1);
+            color: #d32f2f;
+        }
+
+        .status-warning {
+            background: rgba(255, 152, 0, 0.1);
+            color: #f57c00;
+        }
+
+        .model-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 2px solid #e3f2fd;
+            border-radius: 10px;
+            padding: 1rem;
+        }
+
+        .model-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .model-item:last-child {
+            border-bottom: none;
+        }
+
+        .model-info {
+            flex: 1;
+        }
+
+        .model-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .model-description {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .model-price {
+            font-size: 0.8rem;
+            color: #2196F3;
+            font-weight: 600;
+        }
+
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .test-result {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #2196F3;
+        }
+
+        .test-success {
+            background: rgba(76, 175, 80, 0.1);
+            border-left-color: #4CAF50;
+            color: #2e7d32;
+        }
+
+        .test-error {
+            background: rgba(244, 67, 54, 0.1);
+            border-left-color: #f44336;
+            color: #c62828;
+        }
+
+        .sidebar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            height: fit-content;
+        }
+
+        .quick-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .alert-info {
+            background: rgba(33, 150, 243, 0.1);
+            color: #1976d2;
+            border: 1px solid rgba(33, 150, 243, 0.2);
+        }
+
+        .alert-warning {
+            background: rgba(255, 152, 0, 0.1);
+            color: #f57c00;
+            border: 1px solid rgba(255, 152, 0, 0.2);
+        }
+
+        .alert-success {
+            background: rgba(76, 175, 80, 0.1);
+            color: #388e3c;
+            border: 1px solid rgba(76, 175, 80, 0.2);
+        }
+
+        .loading {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #2196F3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .admin-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+            
+            .page-title {
+                font-size: 2rem;
+            }
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .input-group .form-control {
+            flex: 1;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+    </style>
+</head>
+<body>
+    <div class="landing-page">
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-content">
+                <h1><i class="fab fa-r-project"></i> R Tutor Pro</h1>
+                <p>AI-powered personalized R programming tutorials that adapt to your skill level. Master R faster with intelligent content generation and interactive learning.</p>
+                
+                <div class="cta-buttons">
+                    <a href="/dashboard" class="btn btn-primary">
+                        <i class="fas fa-rocket"></i> Start Learning
+                    </a>
+                    <a href="/admin" class="btn btn-secondary">
+                        <i class="fas fa-cog"></i> Admin
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Section -->
+        <section class="stats">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number">500+</div>
+                    <div>R Topics Covered</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">10K+</div>
+                    <div>Tutorials Generated</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">95%</div>
+                    <div>User Satisfaction</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">24/7</div>
+                    <div>AI Availability</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="features">
+            <div class="features-container">
+                <h2>Why Choose R Tutor Pro?</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-brain"></i></div>
+                        <h3>AI-Powered Content</h3>
+                        <p>Advanced AI generates personalized tutorials based on your expertise level and learning goals.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-code"></i></div>
+                        <h3>Interactive R Code</h3>
+                        <p>Learn with real R code examples and hands-on exercises tailored to your skill level.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-headphones"></i></div>
+                        <h3>Audio Tutorials</h3>
+                        <p>Listen to your tutorials on-the-go with AI-generated audio narration (Pro feature).</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+                        <h3>Progress Tracking</h3>
+                        <p>Monitor your learning journey with detailed analytics and skill progression insights.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-users"></i></div>
+                        <h3>Team Learning</h3>
+                        <p>Collaborate with your team and track organizational R skill development.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-mobile-alt"></i></div>
+                        <h3>Mobile Friendly</h3>
+                        <p>Learn anywhere with our responsive design that works on all devices.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Demo Section -->
+        <section class="demo-section">
+            <h2>See R Tutor Pro in Action</h2>
+            <p>Watch how our AI creates personalized R tutorials in seconds</p>
+            <div class="demo-video">
+                <div style="background: #1e1e1e; padding: 3rem; border-radius: 15px;">
+                    <h3 style="color: #4CAF50; margin-bottom: 1rem;">🎬 Demo Coming Soon</h3>
+                    <p>Interactive demo showing tutorial generation process</p>
+                    <button class="btn btn-primary" onclick="openAuth('login')" style="margin-top: 1rem;">
+                        Try It Now
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing Section -->
+        <section class="pricing">
+            <div class="pricing-container">
+                <h2>Choose Your Learning Plan</h2>
+                <div class="pricing-grid">
+                    <div class="plan-card">
+                        <h3>Free</h3>
+                        <div class="plan-price">$0<small>/month</small></div>
+                        <ul class="plan-features">
+                            <li>3 tutorials per month</li>
+                            <li>Basic R topics</li>
+                            <li>Standard voice quality</li>
+                            <li>Community support</li>
+                            <li>Web access only</li>
+                        </ul>
+                        <button class="btn btn-secondary" onclick="openAuth('login')">
+                            Start Free
+                        </button>
+                    </div>
+
+                    <div class="plan-card popular">
+                        <h3>Pro</h3>
+                        <div class="plan-price">$9<small>/month</small></div>
+                        <ul class="plan-features">
+                            <li>50 tutorials per month</li>
+                            <li>All R topics + advanced</li>
+                            <li>Premium AI-generated content</li>
+                            <li>Audio tutorial generation</li>
+                            <li>Code execution environment</li>
+                            <li>Export to PDF/Audio</li>
+                            <li>Priority support</li>
+                        </ul>
+                        <button class="btn btn-primary" onclick="openAuth('login')">
+                            Upgrade to Pro
+                        </button>
+                    </div>
+
+                    <div class="plan-card">
+                        <h3>Team</h3>
+                        <div class="plan-price">$29<small>/month</small></div>
+                        <ul class="plan-features">
+                            <li>200 tutorials per month</li>
+                            <li>Everything in Pro</li>
+                            <li>Team management dashboard</li>
+                            <li>Usage analytics</li>
+                            <li>Custom R topics</li>
+                            <li>API access</li>
+                            <li>Dedicated support</li>
+                        </ul>
+                        <button class="btn btn-primary" onclick="openAuth('login')">
+                            Start Team Plan
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Admin and Dashboard access buttons are now directly accessible -->
+
+    <script>
+        // Simplified navigation - no authentication required
+        // Direct access to dashboard and admin pages
+
+        // Smooth scrolling for internal links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        // Add some interactive animations
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animate feature cards on scroll
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+
+            const observer = new IntersectionObserver(function(entries) {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.animation = 'fadeInUp 0.6s ease-out forwards';
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('.feature-card, .plan-card').forEach(card => {
+                observer.observe(card);
+            });
+        });
+
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            
+            .feature-card, .plan-card {
+                opacity: 0;
+            }
+            
+            .hero-content {
+                animation: fadeInUp 1s ease-out forwards;
+            }
+            
+            .cta-buttons {
+                animation: fadeInUp 1s ease-out 0.3s forwards;
+                opacity: 0;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Admin page specific scripts (from admin.html)
+        let currentSettings = {};
+        let availableModels = { text: [], audio: [] };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCurrentSettings();
+            checkSystemStatus();
+        });
+
+        async function loadCurrentSettings() {
+            try {
+                const response = await fetch('/api/admin/settings');
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentSettings = data.settings;
+                    populateSettings(currentSettings);
+                    updateSystemStatus(data.status);
+                }
+            } catch (error) {
+                console.error('Failed to load settings:', error);
+                showAlert('Failed to load current settings', 'error');
+            }
+        }
+
+        function populateSettings(settings) {
+            if (settings.openrouter) {
+                document.getElementById('openrouterApiKey').value = settings.openrouter.api_key || '';
+                document.getElementById('openrouterSiteUrl').value = settings.openrouter.site_url || 'http://localhost:5000';
+                document.getElementById('openrouterSiteName').value = settings.openrouter.site_name || 'R Tutor Pro';
+                document.getElementById('defaultTextModel').value = settings.openrouter.default_text_model || '';
+                document.getElementById('defaultAudioModel').value = settings.openrouter.default_audio_model || '';
+            }
+
+            if (settings.commercial) {
+                document.getElementById('openaiApiKey').value = settings.commercial.openai_api_key || '';
+                document.getElementById('anthropicApiKey').value = settings.commercial.anthropic_api_key || '';
+                document.getElementById('elevenLabsApiKey').value = settings.commercial.elevenlabs_api_key || '';
+            }
+        }
+
+        function updateSystemStatus(status) {
+            const openrouterStatus = document.getElementById('openrouterStatus');
+            const openrouterBadge = document.getElementById('openrouterStatusBadge');
+            
+            if (status.openrouter_connected) {
+                openrouterStatus.className = 'status-indicator status-connected';
+                openrouterStatus.innerHTML = '<i class="fas fa-check-circle"></i> Connected';
+                openrouterBadge.className = 'status-indicator status-connected';
+                openrouterBadge.innerHTML = '<i class="fas fa-check"></i> Online';
+            } else {
+                openrouterStatus.className = 'status-indicator status-disconnected';
+                openrouterStatus.innerHTML = '<i class="fas fa-times-circle"></i> Disconnected';
+                openrouterBadge.className = 'status-indicator status-disconnected';
+                openrouterBadge.innerHTML = '<i class="fas fa-times"></i> Offline';
+            }
+
+            if (status.models) {
+                document.getElementById('textModelsStatus').innerHTML = 
+                    `<i class="fas fa-check"></i> ${status.models.text || 0} Available`;
+                document.getElementById('audioModelsStatus').innerHTML = 
+                    `<i class="fas fa-check"></i> ${status.models.audio || 0} Available`;
+            }
+        }
+
+        async function testOpenRouterConnection() {
+            const apiKey = document.getElementById('openrouterApiKey').value;
+            if (!apiKey) {
+                showAlert('Please enter an API key first', 'warning');
+                return;
+            }
+
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<span class="loading"><span class="spinner"></span> Testing...</span>';
+            button.disabled = true;
+
+            try {
+                const response = await fetch('/api/admin/test-openrouter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        api_key: apiKey,
+                        site_url: document.getElementById('openrouterSiteUrl').value,
+                        site_name: document.getElementById('openrouterSiteName').value
+                    })
+                });
+
+                const result = await response.json();
+                const resultDiv = document.getElementById('openrouterTestResult');
+
+                if (result.success) {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-success">
+                            <i class="fas fa-check-circle"></i>
+                            <strong>Connection successful!</strong><br>
+                            Found ${result.model_count} models available<br>
+                            Response time: ${result.response_time}
+                        </div>
+                    `;
+                    showAlert('OpenRouter connection successful!', 'success');
+                    loadCurrentSettings(); // Refresh status after successful test
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-error">
+                            <i class="fas fa-times-circle"></i>
+                            <strong>Connection failed:</strong><br>
+                            ${result.error || 'Unknown error'}<br>
+                            ${result.details || ''}
+                        </div>
+                    `;
+                    showAlert(`OpenRouter connection failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error testing OpenRouter connection:', error);
+                showAlert('An unexpected error occurred during connection test.', 'error');
+                const resultDiv = document.getElementById('openrouterTestResult');
+                resultDiv.innerHTML = `
+                    <div class="test-result test-error">
+                        <i class="fas fa-times-circle"></i>
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `;
+            } finally {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        async function saveOpenRouterSettings() {
+            const apiKey = document.getElementById('openrouterApiKey').value;
+            const siteUrl = document.getElementById('openrouterSiteUrl').value;
+            const siteName = document.getElementById('openrouterSiteName').value;
+
+            try {
+                const response = await fetch('/api/admin/settings/openrouter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ api_key: apiKey, site_url: siteUrl, site_name: siteName })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('OpenRouter settings saved successfully!', 'success');
+                    loadCurrentSettings();
+                } else {
+                    showAlert(`Failed to save OpenRouter settings: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error saving OpenRouter settings:', error);
+                showAlert('An unexpected error occurred while saving settings.', 'error');
+            }
+        }
+
+        async function refreshModels() {
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<span class="loading"><span class="spinner"></span> Loading...</span>';
+            button.disabled = true;
+
+            try {
+                const response = await fetch('/api/admin/models/refresh');
+                const data = await response.json();
+                if (data.success) {
+                    availableModels.text = data.text_models;
+                    availableModels.audio = data.audio_models;
+                    populateModelSelects();
+                    populateModelLists();
+                    showAlert('Models refreshed successfully!', 'success');
+                } else {
+                    showAlert(`Failed to refresh models: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error refreshing models:', error);
+                showAlert('An unexpected error occurred while refreshing models.', 'error');
+            } finally {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        function populateModelSelects() {
+            const textSelect = document.getElementById('defaultTextModel');
+            const audioSelect = document.getElementById('defaultAudioModel');
+
+            textSelect.innerHTML = '<option value="">Select a text model...</option>';
+            audioSelect.innerHTML = '<option value="">Select an audio model...</option>';
+
+            availableModels.text.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                option.textContent = model.name;
+                textSelect.appendChild(option);
+            });
+
+            availableModels.audio.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                option.textContent = model.name;
+                audioSelect.appendChild(option);
+            });
+
+            // Set selected values if they exist in currentSettings
+            if (currentSettings.openrouter) {
+                textSelect.value = currentSettings.openrouter.default_text_model || '';
+                audioSelect.value = currentSettings.openrouter.default_audio_model || '';
+            }
+        }
+
+        function populateModelLists() {
+            const textList = document.getElementById('textModelsList');
+            const audioList = document.getElementById('audioModelsList');
+
+            textList.innerHTML = '';
+            audioList.innerHTML = '';
+
+            if (availableModels.text.length === 0) {
+                textList.innerHTML = '<p style="text-align: center; color: #666;">No text models available. Connect to OpenRouter.</p>';
+            } else {
+                availableModels.text.forEach(model => {
+                    const item = document.createElement('div');
+                    item.className = 'model-item';
+                    item.innerHTML = `
+                        <div class="model-info">
+                            <div class="model-name">${model.name}</div>
+                            <div class="model-description">${model.description || ''}</div>
+                        </div>
+                        <div class="model-price">${model.pricing ? `$${model.pricing.toFixed(6)}/token` : 'N/A'}</div>
+                    `;
+                    textList.appendChild(item);
+                });
+            }
+
+            if (availableModels.audio.length === 0) {
+                audioList.innerHTML = '<p style="text-align: center; color: #666;">No audio models available. Connect to OpenRouter.</p>';
+            } else {
+                availableModels.audio.forEach(model => {
+                    const item = document.createElement('div');
+                    item.className = 'model-item';
+                    item.innerHTML = `
+                        <div class="model-info">
+                            <div class="model-name">${model.name}</div>
+                            <div class="model-description">${model.description || ''}</div>
+                        </div>
+                        <div class="model-price">${model.pricing ? `$${model.pricing.toFixed(6)}/char` : 'N/A'}</div>
+                    `;
+                    audioList.appendChild(item);
+                });
+            }
+        }
+
+        async function saveModelSettings() {
+            const defaultTextModel = document.getElementById('defaultTextModel').value;
+            const defaultAudioModel = document.getElementById('defaultAudioModel').value;
+
+            try {
+                const response = await fetch('/api/admin/settings/models', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        default_text_model: defaultTextModel, 
+                        default_audio_model: defaultAudioModel 
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('Model settings saved successfully!', 'success');
+                    loadCurrentSettings();
+                } else {
+                    showAlert(`Failed to save model settings: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error saving model settings:', error);
+                showAlert('An unexpected error occurred while saving model settings.', 'error');
+            }
+        }
+
+        async function testApiKey(provider) {
+            let apiKey;
+            if (provider === 'openai') {
+                apiKey = document.getElementById('openaiApiKey').value;
+            } else if (provider === 'anthropic') {
+                apiKey = document.getElementById('anthropicApiKey').value;
+            } else if (provider === 'elevenlabs') {
+                apiKey = document.getElementById('elevenLabsApiKey').value;
+            }
+
+            if (!apiKey) {
+                showAlert(`Please enter an API key for ${provider} first`, 'warning');
+                return;
+            }
+
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<span class="loading"><span class="spinner"></span> Testing...</span>';
+            button.disabled = true;
+
+            try {
+                const response = await fetch('/api/admin/test-commercial-api', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider: provider, api_key: apiKey })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showAlert(`${provider} API key test successful!`, 'success');
+                } else {
+                    showAlert(`${provider} API key test failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                console.error(`Error testing ${provider} API key:`, error);
+                showAlert(`An unexpected error occurred during ${provider} API key test.`, 'error');
+            } finally {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        async function saveCommercialApiKeys() {
+            const openaiApiKey = document.getElementById('openaiApiKey').value;
+            const anthropicApiKey = document.getElementById('anthropicApiKey').value;
+            const elevenLabsApiKey = document.getElementById('elevenLabsApiKey').value;
+
+            try {
+                const response = await fetch('/api/admin/settings/commercial', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        openai_api_key: openaiApiKey, 
+                        anthropic_api_key: anthropicApiKey, 
+                        elevenlabs_api_key: elevenLabsApiKey 
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('Commercial API keys saved successfully!', 'success');
+                    loadCurrentSettings();
+                } else {
+                    showAlert(`Failed to save commercial API keys: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error saving commercial API keys:', error);
+                showAlert('An unexpected error occurred while saving commercial API keys.', 'error');
+            }
+        }
+
+        async function testTextGeneration() {
+            const topic = document.getElementById('testTopic').value;
+            if (!topic) {
+                showAlert('Please enter a topic for text generation test.', 'warning');
+                return;
+            }
+
+            const button = event ? event.target : this;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<span class="loading"><span class="spinner"></span> Generating...</span>';
+            button.disabled = true;
+
+            try {
+                const response = await fetch('/api/admin/test-generation/text', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic: topic })
+                });
+                const result = await response.json();
+                const testResultsDiv = document.getElementById('testResults');
+                if (result.success) {
+                    testResultsDiv.innerHTML = `
+                        <div class="test-result test-success">
+                            <strong>Text Generation Success!</strong><br>
+                            Model: ${result.model_used}<br>
+                            Tokens: ${result.tokens_used}<br>
+                            Content (first 100 chars): ${result.content.substring(0, 100)}...
+                        </div>
+                    `;
+                    showAlert('Text generation test successful!', 'success');
+                } else {
+                    testResultsDiv.innerHTML = `
+                        <div class="test-result test-error">
+                            <strong>Text Generation Failed:</strong><br>
+                            ${result.error || 'Unknown error'}
+                        </div>
+                    `;
+                    showAlert(`Text generation test failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error testing text generation:', error);
+                showAlert('An unexpected error occurred during text generation test.', 'error');
+            } finally {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        async function testAudioGeneration() {
+            const topic = document.getElementById('testTopic').value;
+            if (!topic) {
+                showAlert('Please enter a topic for audio generation test.', 'warning');
+                return;
+            }
+
+            const button = event ? event.target : this;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<span class="loading"><span class="spinner"></span> Generating Audio...</span>';
+            button.disabled = true;
+
+            try {
+                const response = await fetch('/api/admin/test-generation/audio', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic: topic })
+                });
+                const result = await response.json();
+                const testResultsDiv = document.getElementById('testResults');
+                if (result.success) {
+                    testResultsDiv.innerHTML = `
+                        <div class="test-result test-success">
+                            <strong>Audio Generation Success!</strong><br>
+                            Model: ${result.model_used}<br>
+                            Voice: ${result.audio_voice}<br>
+                            Duration: ${result.audio_duration} seconds<br>
+                            <audio controls src="${result.audio_url}"></audio>
+                        </div>
+                    `;
+                    showAlert('Audio generation test successful!', 'success');
+                } else {
+                    testResultsDiv.innerHTML = `
+                        <div class="test-result test-error">
+                            <strong>Audio Generation Failed:</strong><br>
+                            ${result.error || 'Unknown error'}
+                        </div>
+                    `;
+                    showAlert(`Audio generation test failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error testing audio generation:', error);
+                showAlert('An unexpected error occurred during audio generation test.', 'error');
+            } finally {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        async function checkSystemStatus() {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                updateSystemStatus(data.services);
+                document.getElementById('textGenCount').textContent = data.usage.text_generations;
+                document.getElementById('audioGenCount').textContent = data.usage.audio_generations;
+                document.getElementById('tokensUsed').textContent = data.usage.total_tokens;
+            } catch (error) {
+                console.error('Failed to fetch system status:', error);
+                showAlert('Failed to fetch system status.', 'error');
+            }
+        }
+
+        function toggleApiKeyVisibility(elementId) {
+            const input = document.getElementById(elementId);
+            if (input.type === 'password') {
+                input.type = 'text';
+            } else {
+                input.type = 'password';
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertContainer = document.createElement('div');
+            alertContainer.className = `alert alert-${type}`;
+            alertContainer.innerHTML = `<i class="fas fa-info-circle"></i> ${message}`;
+            document.body.prepend(alertContainer);
+            setTimeout(() => alertContainer.remove(), 5000);
+        }
+
+        async function exportSettings() {
+            try {
+                const response = await fetch('/api/admin/settings/export');
+                const data = await response.json();
+                if (data.success) {
+                    const blob = new Blob([JSON.stringify(data.settings, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'r_tutor_pro_settings.json';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    showAlert('Settings exported successfully!', 'success');
+                } else {
+                    showAlert(`Failed to export settings: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error exporting settings:', error);
+                showAlert('An unexpected error occurred while exporting settings.', 'error');
+            }
+        }
+
+        function importSettings() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = async (event) => {
+                        try {
+                            const settings = JSON.parse(event.target.result);
+                            const response = await fetch('/api/admin/settings/import', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(settings)
+                            });
+                            const data = await response.json();
+                            if (data.success) {
+                                showAlert('Settings imported successfully! Reloading page...', 'success');
+                                setTimeout(() => location.reload(), 1500);
+                            } else {
+                                showAlert(`Failed to import settings: ${data.error}`, 'error');
+                            }
+                        } catch (error) {
+                            console.error('Error importing settings:', error);
+                            showAlert('Invalid settings file or unexpected error during import.', 'error');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+
+        async function resetSettings() {
+            if (!confirm('Are you sure you want to reset all settings to default? This cannot be undone.')) {
+                return;
+            }
+            try {
+                const response = await fetch('/api/admin/settings/reset', { method: 'POST' });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('All settings reset to default! Reloading page...', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showAlert(`Failed to reset settings: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error resetting settings:', error);
+                showAlert('An unexpected error occurred while resetting settings.', 'error');
+            }
+        }
+    </script>
+</body>
+</html>

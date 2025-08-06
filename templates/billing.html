@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Billing & Subscription - R Tutor Pro</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #2196F3, #4CAF50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-decoration: none;
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            color: white;
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #666;
+            border: 1px solid #e3f2fd;
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .page-title {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #2196F3, #4CAF50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-subtitle {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 2rem;
+        }
+
+        .billing-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f8f9fa;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .current-plan {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .plan-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .plan-free {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .plan-pro {
+            background: #e8f5e8;
+            color: #388e3c;
+        }
+
+        .plan-team {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .usage-chart {
+            margin: 1.5rem 0;
+        }
+
+        .usage-bar {
+            width: 100%;
+            height: 12px;
+            background: #e3f2fd;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .usage-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #2196F3, #4CAF50);
+            border-radius: 6px;
+            transition: width 0.3s ease;
+        }
+
+        .usage-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .feature-list {
+            list-style: none;
+            margin: 1rem 0;
+        }
+
+        .feature-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+        }
+
+        .feature-list li::before {
+            content: '✓';
+            color: #4CAF50;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .pricing-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .pricing-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .pricing-card.current {
+            border-color: #4CAF50;
+            transform: scale(1.02);
+        }
+
+        .pricing-card.popular {
+            border-color: #2196F3;
+            box-shadow: 0 15px 50px rgba(33, 150, 243, 0.2);
+        }
+
+        .pricing-card.popular::before {
+            content: '🔥 Most Popular';
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        }
+
+        .plan-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+        }
+
+        .plan-price {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #2196F3;
+            margin-bottom: 0.5rem;
+        }
+
+        .plan-price small {
+            font-size: 1rem;
+            color: #666;
+        }
+
+        .plan-description {
+            color: #666;
+            margin-bottom: 2rem;
+        }
+
+        .billing-history {
+            margin-top: 2rem;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .history-table th,
+        .history-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .history-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .payment-methods {
+            margin-top: 2rem;
+        }
+
+        .payment-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            border: 2px solid #e3f2fd;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+        }
+
+        .payment-card.primary {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.05);
+        }
+
+        .card-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .analytics-section {
+            margin-top: 2rem;
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .analytics-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .analytics-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2196F3;
+            margin-bottom: 0.5rem;
+        }
+
+        .analytics-label {
+            color: #666;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        @media (max-width: 768px) {
+            .billing-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+            
+            .page-title {
+                font-size: 2rem;
+            }
+            
+            .pricing-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <a href="/" class="logo">
+                <i class="fab fa-r-project"></i> R Tutor Pro
+            </a>
+            <div class="nav-actions">
+                <a href="/" class="btn btn-secondary">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="/auth/logout" class="btn btn-secondary">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Billing & Subscription</h1>
+            <p class="page-subtitle">Manage your R Tutor Pro subscription and billing information</p>
+        </div>
+
+        <div class="billing-grid">
+            <div class="main-content">
+                <!-- Current Plan Overview -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-credit-card"></i>
+                            Current Subscription
+                        </h2>
+                        <span class="plan-badge plan-{{ user.plan }}">{{ user.plan.title() }} Plan</span>
+                    </div>
+
+                    <div class="usage-chart">
+                        <h4>Monthly Usage</h4>
+                        <div class="usage-bar">
+                            <div class="usage-fill" style="width: {{ (analytics.total_tutorials / plans[user.plan].tutorials_per_month * 100) if analytics.total_tutorials else 0 }}%"></div>
+                        </div>
+                        <div class="usage-stats">
+                            <span>{{ analytics.total_tutorials }} / {{ plans[user.plan].tutorials_per_month }} tutorials used</span>
+                            <span>{{ ((plans[user.plan].tutorials_per_month - analytics.total_tutorials) / plans[user.plan].tutorials_per_month * 100) | round(1) if analytics.total_tutorials else 100 }}% remaining</span>
+                        </div>
+                    </div>
+
+                    <div class="feature-list">
+                        <h4>Your Plan Includes:</h4>
+                        <ul class="feature-list">
+                            {% for feature in plans[user.plan].features %}
+                            <li>{{ feature }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    {% if user.plan == 'free' %}
+                    <div style="background: #fff3cd; padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+                        <strong>🚀 Ready to upgrade?</strong><br>
+                        Get unlimited tutorials, premium content, and advanced features with Pro or Team plans.
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Usage Analytics -->
+                <div class="card analytics-section">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-chart-line"></i>
+                            Usage Analytics
+                        </h2>
+                    </div>
+
+                    <div class="analytics-grid">
+                        <div class="analytics-card">
+                            <div class="analytics-number">{{ analytics.total_tutorials }}</div>
+                            <div class="analytics-label">Total Tutorials</div>
+                        </div>
+                        <div class="analytics-card">
+                            <div class="analytics-number">{{ analytics.unique_topics }}</div>
+                            <div class="analytics-label">Unique Topics</div>
+                        </div>
+                        <div class="analytics-card">
+                            <div class="analytics-number">{{ analytics.average_duration | round(1) }}</div>
+                            <div class="analytics-label">Avg Duration (min)</div>
+                        </div>
+                        <div class="analytics-card">
+                            <div class="analytics-number">{{ analytics.most_popular_topic[:15] + '...' if analytics.most_popular_topic and analytics.most_popular_topic|length > 15 else analytics.most_popular_topic or 'N/A' }}</div>
+                            <div class="analytics-label">Top Topic</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 2rem;">
+                        <h4>Learning Progress</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                            {% for expertise, count in analytics.expertise_distribution.items() %}
+                            <div style="text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                                <div style="font-size: 1.5rem; font-weight: 700; color: #2196F3;">{{ count }}</div>
+                                <div style="font-size: 0.9rem; color: #666; text-transform: capitalize;">{{ expertise }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Billing History -->
+                <div class="card billing-history">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-receipt"></i>
+                            Billing History
+                        </h2>
+                        <button class="btn btn-secondary">
+                            <i class="fas fa-download"></i>
+                            Download Invoice
+                        </button>
+                    </div>
+
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if user.plan != 'free' %}
+                            <tr>
+                                <td>{{ user.created_at.strftime('%B %d, %Y') }}</td>
+                                <td>{{ user.plan.title() }} Plan - Monthly</td>
+                                <td>${{ plans[user.plan].price }}.00</td>
+                                <td><span style="color: #4CAF50; font-weight: 600;">Paid</span></td>
+                                <td>
+                                    <button class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">
+                                        <i class="fas fa-download"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 2rem; color: #666;">
+                                    No billing history for free plan
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Payment Methods -->
+                <div class="card payment-methods">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-credit-card"></i>
+                            Payment Methods
+                        </h2>
+                        <button class="btn btn-primary">
+                            <i class="fas fa-plus"></i>
+                            Add Payment Method
+                        </button>
+                    </div>
+
+                    {% if user.plan != 'free' %}
+                    <div class="payment-card primary">
+                        <div class="card-info">
+                            <i class="fab fa-cc-visa" style="font-size: 2rem; color: #1a1f71;"></i>
+                            <div>
+                                <div style="font-weight: 600;">•••• •••• •••• 4242</div>
+                                <div style="color: #666; font-size: 0.9rem;">Expires 12/25</div>
+                            </div>
+                            <span style="background: #4CAF50; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">PRIMARY</span>
+                        </div>
+                        <div>
+                            <button class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.5rem;">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div style="text-align: center; padding: 2rem; color: #666;">
+                        <i class="fas fa-credit-card" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                        <p>No payment methods added</p>
+                        <p style="font-size: 0.9rem;">Upgrade to a paid plan to add payment methods</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Current Plan Summary -->
+            <div class="current-plan">
+                <h3 style="margin-bottom: 1rem; color: #2c3e50;">
+                    <i class="fas fa-user-circle"></i>
+                    Account Summary
+                </h3>
+
+                <div style="margin-bottom: 2rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Account:</span>
+                        <strong>{{ user.email }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Member since:</span>
+                        <strong>{{ user.created_at.strftime('%B %Y') }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Current plan:</span>
+                        <strong>{{ user.plan.title() }}</strong>
+                    </div>
+                    {% if user.plan != 'free' %}
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Next billing:</span>
+                        <strong>{{ (user.created_at + timedelta(days=30)).strftime('%B %d, %Y') }}</strong>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if user.plan == 'free' %}
+                <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 1.5rem; border-radius: 15px; text-align: center; margin-bottom: 2rem;">
+                    <h4 style="margin-bottom: 1rem;">🚀 Upgrade Today!</h4>
+                    <p style="margin-bottom: 1rem; font-size: 0.9rem;">Unlock unlimited tutorials and premium features</p>
+                    <a href="/upgrade/pro" class="btn btn-success">
+                        Start Pro Trial
+                    </a>
+                </div>
+                {% endif %}
+
+                <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px;">
+                    <h4 style="margin-bottom: 1rem; color: #2c3e50;">Quick Actions</h4>
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        {% if user.plan != 'free' %}
+                        <button class="btn btn-secondary" onclick="manageBilling()" style="font-size: 0.9rem;">
+                            <i class="fas fa-cog"></i>
+                            Manage Subscription
+                        </button>
+                        <button class="btn btn-secondary" onclick="downloadInvoices()" style="font-size: 0.9rem;">
+                            <i class="fas fa-receipt"></i>
+                            Download Invoices
+                        </button>
+                        {% endif %}
+                        <button class="btn btn-secondary" onclick="exportData()" style="font-size: 0.9rem;">
+                            <i class="fas fa-download"></i>
+                            Export Data
+                        </button>
+                        <button class="btn btn-secondary" onclick="contactSupport()" style="font-size: 0.9rem;">
+                            <i class="fas fa-headset"></i>
+                            Contact Support
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upgrade Options -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-rocket"></i>
+                    Available Plans
+                </h2>
+            </div>
+
+            <div class="pricing-cards">
+                {% for plan_name, plan_data in plans.items() %}
+                <div class="pricing-card {% if plan_name == user.plan %}current{% endif %} {% if plan_name == 'pro' %}popular{% endif %}">
+                    <h3 class="plan-name">{{ plan_name.title() }}</h3>
+                    <div class="plan-price">
+                        {% if plan_data.price == 0 %}
+                        Free
+                        {% else %}
+                        ${{ plan_data.price }}<small>/month</small>
+                        {% endif %}
+                    </div>
+                    <p class="plan-description">
+                        {{ plan_data.tutorials_per_month }} tutorials per month
+                    </p>
+
+                    <ul class="feature-list">
+                        {% for feature in plan_data.features %}
+                        <li>{{ feature }}</li>
+                        {% endfor %}
+                    </ul>
+
+                    {% if plan_name == user.plan %}
+                    <button class="btn btn-success" disabled style="opacity: 0.6;">
+                        <i class="fas fa-check"></i>
+                        Current Plan
+                    </button>
+                    {% elif plan_name == 'free' %}
+                    <a href="/upgrade/free" class="btn btn-secondary">
+                        <i class="fas fa-arrow-down"></i>
+                        Downgrade
+                    </a>
+                    {% else %}
+                    <a href="/upgrade/{{ plan_name }}" class="btn btn-primary">
+                        <i class="fas fa-arrow-up"></i>
+                        {% if plans[plan_name].price > plans[user.plan].price %}Upgrade{% else %}Change{% endif %}
+                    </a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Quick action functions
+        function manageBilling() {
+            // In production, this would open Stripe customer portal
+            alert('Billing management portal coming soon! Contact support for billing changes.');
+        }
+
+        function downloadInvoices() {
+            // Generate and download invoice
+            alert('Invoice download feature coming soon!');
+        }
+
+        async function exportData() {
+            try {
+                const response = await fetch('/export-data');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Create and download JSON file
+                    const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `r_tutor_data_${new Date().toISOString().split('T')[0]}.json`;
+                    a.click();
+                    
+                    URL.revokeObjectURL(url);
+                } else {
+                    alert('Export failed. Please try again.');
+                }
+            } catch (error) {
+                alert('Export failed. Please try again.');
+            }
+        }
+
+        function contactSupport() {
+            window.open('mailto:support@rtutorpro.com?subject=Billing Support Request');
+        }
+
+        // Plan upgrade confirmation
+        document.querySelectorAll('a[href^="/upgrade/"]').forEach(link => {
+            link.addEventListener('click', function(e) {
+                const plan = this.href.split('/').pop();
+                const currentPlan = '{{ user.plan }}';
+                
+                if (plan !== currentPlan) {
+                    const planNames = {
+                        'free': 'Free',
+                        'pro': 'Pro ($9/month)',
+                        'team': 'Team ($29/month)'
+                    };
+                    
+                    const confirmMessage = `Are you sure you want to ${this.textContent.includes('Upgrade') ? 'upgrade' : 'change'} to the ${planNames[plan]} plan?`;
+                    
+                    if (!confirm(confirmMessage)) {
+                        e.preventDefault();
+                    }
+                }
+            });
+        });
+
+        // Update usage chart with animation
+        document.addEventListener('DOMContentLoaded', function() {
+            const usageFill = document.querySelector('.usage-fill');
+            const targetWidth = usageFill.style.width;
+            
+            usageFill.style.width = '0%';
+            
+            setTimeout(() => {
+                usageFill.style.width = targetWidth;
+            }, 500);
+        });
+
+        // Auto-refresh billing data every 5 minutes
+        setInterval(async function() {
+            try {
+                const response = await fetch('/api/billing-status');
+                const data = await response.json();
+                
+                if (data.plan_changed) {
+                    location.reload();
+                }
+            } catch (error) {
+                console.error('Failed to check billing status:', error);
+            }
+        }, 5 * 60 * 1000);
+    </script>
+</body>
+</html>

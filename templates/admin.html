@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Settings - R Tutor Pro</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #2196F3, #4CAF50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-decoration: none;
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            color: white;
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #666;
+            border: 1px solid #e3f2fd;
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .page-title {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #2196F3, #4CAF50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .admin-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f8f9fa;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e3f2fd;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #2196F3;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+
+        .form-select {
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><path fill="%23666" d="M2 0L0 2h4zm0 5L0 3h4z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 12px;
+            padding-right: 3rem;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .status-connected {
+            background: rgba(76, 175, 80, 0.1);
+            color: #388e3c;
+        }
+
+        .status-disconnected {
+            background: rgba(244, 67, 54, 0.1);
+            color: #d32f2f;
+        }
+
+        .status-warning {
+            background: rgba(255, 152, 0, 0.1);
+            color: #f57c00;
+        }
+
+        .model-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 2px solid #e3f2fd;
+            border-radius: 10px;
+            padding: 1rem;
+        }
+
+        .model-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .model-item:last-child {
+            border-bottom: none;
+        }
+
+        .model-info {
+            flex: 1;
+        }
+
+        .model-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .model-description {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .model-price {
+            font-size: 0.8rem;
+            color: #2196F3;
+            font-weight: 600;
+        }
+
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .test-result {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #2196F3;
+        }
+
+        .test-success {
+            background: rgba(76, 175, 80, 0.1);
+            border-left-color: #4CAF50;
+            color: #2e7d32;
+        }
+
+        .test-error {
+            background: rgba(244, 67, 54, 0.1);
+            border-left-color: #f44336;
+            color: #c62828;
+        }
+
+        .sidebar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            height: fit-content;
+        }
+
+        .quick-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .alert-info {
+            background: rgba(33, 150, 243, 0.1);
+            color: #1976d2;
+            border: 1px solid rgba(33, 150, 243, 0.2);
+        }
+
+        .alert-warning {
+            background: rgba(255, 152, 0, 0.1);
+            color: #f57c00;
+            border: 1px solid rgba(255, 152, 0, 0.2);
+        }
+
+        .alert-success {
+            background: rgba(76, 175, 80, 0.1);
+            color: #388e3c;
+            border: 1px solid rgba(76, 175, 80, 0.2);
+        }
+
+        .loading {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #2196F3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .admin-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+            
+            .page-title {
+                font-size: 2rem;
+            }
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .input-group .form-control {
+            flex: 1;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <a href="/" class="logo">
+                <i class="fab fa-r-project"></i> R Tutor Pro - Admin
+            </a>
+            <div class="nav-actions">
+                <a href="/" class="btn btn-secondary">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="/auth/logout" class="btn btn-secondary">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Admin Settings</h1>
+            <p style="color: rgba(255, 255, 255, 0.9); font-size: 1.2rem;">Configure AI models and API settings for R Tutor Pro</p>
+        </div>
+
+        <div class="admin-grid">
+            <div class="main-content">
+                <!-- OpenRouter Configuration -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-robot"></i>
+                            OpenRouter Configuration
+                        </h2>
+                        <div id="openrouterStatus" class="status-indicator status-disconnected">
+                            <i class="fas fa-times-circle"></i>
+                            Disconnected
+                        </div>
+                    </div>
+
+                    <form id="openrouterForm">
+                        <div class="form-group">
+                            <label for="openrouterApiKey" class="form-label">
+                                <i class="fas fa-key"></i> OpenRouter API Key
+                            </label>
+                            <div class="input-group">
+                                <input type="password" id="openrouterApiKey" name="api_key" class="form-control" 
+                                       placeholder="sk-or-v1-..." value="">
+                                <button type="button" class="btn btn-secondary" onclick="toggleApiKeyVisibility('openrouterApiKey')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <small style="color: #666;">Get your API key from <a href="https://openrouter.ai/keys" target="_blank">https://openrouter.ai/keys</a></small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="openrouterSiteUrl" class="form-label">Site URL</label>
+                            <input type="url" id="openrouterSiteUrl" name="site_url" class="form-control" 
+                                   value="http://localhost:5000" placeholder="http://localhost:5000">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="openrouterSiteName" class="form-label">Site Name</label>
+                            <input type="text" id="openrouterSiteName" name="site_name" class="form-control" 
+                                   value="R Tutor Pro" placeholder="R Tutor Pro">
+                        </div>
+
+                        <div class="test-section">
+                            <h4><i class="fas fa-flask"></i> Test Connection</h4>
+                            <button type="button" class="btn btn-primary" onclick="testOpenRouterConnection()">
+                                <i class="fas fa-plug"></i> Test Connection
+                            </button>
+                            <div id="openrouterTestResult"></div>
+                        </div>
+
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> Save OpenRouter Settings
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Model Selection -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-brain"></i>
+                            Model Selection
+                        </h2>
+                        <button type="button" class="btn btn-primary" onclick="refreshModels()">
+                            <i class="fas fa-sync"></i> Refresh Models
+                        </button>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="defaultTextModel" class="form-label">
+                            <i class="fas fa-font"></i> Default Text Generation Model
+                        </label>
+                        <select id="defaultTextModel" name="default_text_model" class="form-control form-select">
+                            <option value="">Select a text model...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="defaultAudioModel" class="form-label">
+                            <i class="fas fa-volume-up"></i> Default Audio Generation Model
+                        </label>
+                        <select id="defaultAudioModel" name="default_audio_model" class="form-control form-select">
+                            <option value="">Select an audio model...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Available Text Models</label>
+                        <div id="textModelsList" class="model-list">
+                            <p style="text-align: center; color: #666;">Connect to OpenRouter to load models</p>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Available Audio Models</label>
+                        <div id="audioModelsList" class="model-list">
+                            <p style="text-align: center; color: #666;">Connect to OpenRouter to load models</p>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-success" onclick="saveModelSettings()">
+                        <i class="fas fa-save"></i> Save Model Settings
+                    </button>
+                </div>
+
+                <!-- Commercial API Keys -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-building"></i>
+                            Commercial API Keys
+                        </h2>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        Add direct API keys for commercial providers. These will be used as fallbacks if OpenRouter is unavailable.
+                    </div>
+
+                    <form id="commercialApiForm">
+                        <div class="form-group">
+                            <label for="openaiApiKey" class="form-label">
+                                <i class="fab fa-openai"></i> OpenAI API Key
+                            </label>
+                            <div class="input-group">
+                                <input type="password" id="openaiApiKey" name="openai_api_key" class="form-control" 
+                                       placeholder="sk-..." value="">
+                                <button type="button" class="btn btn-secondary" onclick="toggleApiKeyVisibility('openaiApiKey')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button type="button" class="btn btn-primary" onclick="testApiKey('openai')">
+                                    <i class="fas fa-test-tube"></i> Test
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="anthropicApiKey" class="form-label">
+                                <i class="fas fa-robot"></i> Anthropic API Key
+                            </label>
+                            <div class="input-group">
+                                <input type="password" id="anthropicApiKey" name="anthropic_api_key" class="form-control" 
+                                       placeholder="sk-ant-..." value="">
+                                <button type="button" class="btn btn-secondary" onclick="toggleApiKeyVisibility('anthropicApiKey')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button type="button" class="btn btn-primary" onclick="testApiKey('anthropic')">
+                                    <i class="fas fa-test-tube"></i> Test
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="elevenLabsApiKey" class="form-label">
+                                <i class="fas fa-microphone"></i> ElevenLabs API Key
+                            </label>
+                            <div class="input-group">
+                                <input type="password" id="elevenLabsApiKey" name="elevenlabs_api_key" class="form-control" 
+                                       placeholder="..." value="">
+                                <button type="button" class="btn btn-secondary" onclick="toggleApiKeyVisibility('elevenLabsApiKey')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button type="button" class="btn btn-primary" onclick="testApiKey('elevenlabs')">
+                                    <i class="fas fa-test-tube"></i> Test
+                                </button>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> Save Commercial API Keys
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Test Generation -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-test-tube"></i>
+                            Test Generation
+                        </h2>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="testTopic" class="form-label">Test Topic</label>
+                        <input type="text" id="testTopic" class="form-control" value="Basic R Data Structures" placeholder="Enter a test topic">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <button type="button" class="btn btn-primary" onclick="testTextGeneration()">
+                            <i class="fas fa-font"></i> Test Text Generation
+                        </button>
+                        <button type="button" class="btn btn-warning" onclick="testAudioGeneration()">
+                            <i class="fas fa-volume-up"></i> Test Audio Generation
+                        </button>
+                    </div>
+
+                    <div id="testResults"></div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <h3 style="margin-bottom: 1rem; color: #2c3e50;">
+                    <i class="fas fa-chart-bar"></i>
+                    System Status
+                </h3>
+
+                <div id="systemStatus">
+                    <div class="status-item" style="margin-bottom: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>OpenRouter</span>
+                            <span id="openrouterStatusBadge" class="status-indicator status-disconnected">
+                                <i class="fas fa-times"></i> Offline
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="status-item" style="margin-bottom: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>Text Models</span>
+                            <span id="textModelsStatus" class="status-indicator status-warning">
+                                <i class="fas fa-exclamation"></i> 0 Available
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="status-item" style="margin-bottom: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>Audio Models</span>
+                            <span id="audioModelsStatus" class="status-indicator status-warning">
+                                <i class="fas fa-exclamation"></i> 0 Available
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <h4 style="margin: 2rem 0 1rem 0; color: #2c3e50;">
+                    <i class="fas fa-tools"></i>
+                    Quick Actions
+                </h4>
+
+                <div class="quick-actions">
+                    <button class="btn btn-secondary" onclick="loadCurrentSettings()">
+                        <i class="fas fa-sync"></i> Reload Settings
+                    </button>
+                    
+                    <button class="btn btn-secondary" onclick="exportSettings()">
+                        <i class="fas fa-download"></i> Export Settings
+                    </button>
+                    
+                    <button class="btn btn-secondary" onclick="importSettings()">
+                        <i class="fas fa-upload"></i> Import Settings
+                    </button>
+                    
+                    <button class="btn btn-danger" onclick="resetSettings()">
+                        <i class="fas fa-trash"></i> Reset to Defaults
+                    </button>
+                </div>
+
+                <div style="margin-top: 2rem; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                    <h5 style="color: #2c3e50; margin-bottom: 0.5rem;">Usage Statistics</h5>
+                    <div style="font-size: 0.9rem; color: #666;">
+                        <div>Text Generations: <strong id="textGenCount">0</strong></div>
+                        <div>Audio Generations: <strong id="audioGenCount">0</strong></div>
+                        <div>Total Tokens Used: <strong id="tokensUsed">0</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentSettings = {};
+        let availableModels = { text: [], audio: [] };
+
+        // Initialize admin page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCurrentSettings();
+            checkSystemStatus();
+        });
+
+        // Load current settings from backend
+        async function loadCurrentSettings() {
+            try {
+                const response = await fetch('/api/admin/settings');
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentSettings = data.settings;
+                    populateSettings(currentSettings);
+                    updateSystemStatus(data.status);
+                }
+            } catch (error) {
+                console.error('Failed to load settings:', error);
+                showAlert('Failed to load current settings', 'error');
+            }
+        }
+
+        // Populate form fields with current settings
+        function populateSettings(settings) {
+            if (settings.openrouter) {
+                document.getElementById('openrouterApiKey').value = settings.openrouter.api_key || '';
+                document.getElementById('openrouterSiteUrl').value = settings.openrouter.site_url || 'http://localhost:5000';
+                document.getElementById('openrouterSiteName').value = settings.openrouter.site_name || 'R Tutor Pro';
+                document.getElementById('defaultTextModel').value = settings.openrouter.default_text_model || '';
+                document.getElementById('defaultAudioModel').value = settings.openrouter.default_audio_model || '';
+            }
+
+            if (settings.commercial) {
+                document.getElementById('openaiApiKey').value = settings.commercial.openai_api_key || '';
+                document.getElementById('anthropicApiKey').value = settings.commercial.anthropic_api_key || '';
+                document.getElementById('elevenLabsApiKey').value = settings.commercial.elevenlabs_api_key || '';
+            }
+        }
+
+        // Update system status indicators
+        function updateSystemStatus(status) {
+            const openrouterStatus = document.getElementById('openrouterStatus');
+            const openrouterBadge = document.getElementById('openrouterStatusBadge');
+            
+            if (status.openrouter_connected) {
+                openrouterStatus.className = 'status-indicator status-connected';
+                openrouterStatus.innerHTML = '<i class="fas fa-check-circle"></i> Connected';
+                openrouterBadge.className = 'status-indicator status-connected';
+                openrouterBadge.innerHTML = '<i class="fas fa-check"></i> Online';
+            } else {
+                openrouterStatus.className = 'status-indicator status-disconnected';
+                openrouterStatus.innerHTML = '<i class="fas fa-times-circle"></i> Disconnected';
+                openrouterBadge.className = 'status-indicator status-disconnected';
+                openrouterBadge.innerHTML = '<i class="fas fa-times"></i> Offline';
+            }
+
+            // Update model counts
+            if (status.models) {
+                document.getElementById('textModelsStatus').innerHTML = 
+                    `<i class="fas fa-check"></i> ${status.models.text || 0} Available`;
+                document.getElementById('audioModelsStatus').innerHTML = 
+                    `<i class="fas fa-check"></i> ${status.models.audio || 0} Available`;
+            }
+        }
+
+        // Test OpenRouter connection
+        async function testOpenRouterConnection() {
+            const apiKey = document.getElementById('openrouterApiKey').value;
+            if (!apiKey) {
+                showAlert('Please enter an API key first', 'warning');
+                return;
+            }
+
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<span class="loading"><span class="spinner"></span> Testing...</span>';
+            button.disabled = true;
+
+            try {
+                const response = await fetch('/api/admin/test-openrouter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        api_key: apiKey,
+                        site_url: document.getElementById('openrouterSiteUrl').value,
+                        site_name: document.getElementById('openrouterSiteName').value
+                    })
+                });
+
+                const result = await response.json();
+                const resultDiv = document.getElementById('openrouterTestResult');
+
+                if (result.success) {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-success">
+                            <i class="fas fa-check-circle"></i>
+                            <strong>Connection successful!</strong><br>
+                            Found ${result.model_count} models available<br>
+                            Response time: ${result.response_time}
+                        </div>
+                    `;
+                    
+                    // Auto-refresh models on successful connection
+                    refreshModels();
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="test-result test-error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <strong>Connection failed!</strong><br>
+                            ${result.error}<br>
+                            ${result.details || ''}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('openrouterTestResult').innerHTML = `
+                    <div class="test-result test-error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <strong>Network error!</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            } finally {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        // Save OpenRouter settings
+        document.getElementById('openrouterForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            try {
+                const response = await fetch('/api/admin/settings/openrouter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                    loadCurrentSettings(); // Reload to verify
+                } else {
+                    showAlert(result.error || 'Failed to save settings', 'error');
+                }
+            } catch (error) {
+                showAlert('Network error: ' + error.message, 'error');
+            }
+        });
+
+        // Save commercial API keys
+        document.getElementById('commercialApiForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            try {
+                const response = await fetch('/api/admin/settings/commercial', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                } else {
+                    showAlert(result.error || 'Failed to save API keys', 'error');
+                }
+            } catch (error) {
+                showAlert('Network error: ' + error.message, 'error');
+            }
+        });
+
+        // Refresh available models
+        async function refreshModels() {
+            try {
+                const response = await fetch('/api/admin/models/refresh');
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateModelLists(data.text_models, data.audio_models);
+                    showAlert('Models refreshed successfully', 'success');
+                } else {
+                    showAlert(data.error || 'Failed to refresh models', 'error');
+                }
+            } catch (error) {
+                showAlert('Failed to refresh models: ' + error.message, 'error');
+            }
+        }
+
+        // Update model lists in UI
+        function updateModelLists(textModels, audioModels) {
+            const textSelect = document.getElementById('defaultTextModel');
+            const audioSelect = document.getElementById('defaultAudioModel');
+            const textList = document.getElementById('textModelsList');
+            const audioList = document.getElementById('audioModelsList');
+            
+            // Update dropdowns
+            textSelect.innerHTML = '<option value="">Select a text model...</option>';
+            audioSelect.innerHTML = '<option value="">Select an audio model...</option>';
+            
+            textModels.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                option.textContent = model.name;
+                textSelect.appendChild(option);
+            });
+            
+            audioModels.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                option.textContent = model.name;
+                audioSelect.appendChild(option);
+            });
+            
+            // Update model lists
+            textList.innerHTML = textModels.map(model => `
+                <div class="model-item">
+                    <div class="model-info">
+                        <div class="model-name">${model.name}</div>
+                        <div class="model-description">${model.description || 'No description available'}</div>
+                    </div>
+                    <div class="model-price">${model.pricing || 'N/A'}</div>
+                </div>
+            `).join('');
+            
+            audioList.innerHTML = audioModels.map(model => `
+                <div class="model-item">
+                    <div class="model-info">
+                        <div class="model-name">${model.name}</div>
+                        <div class="model-description">${model.description || 'No description available'}</div>
+                    </div>
+                    <div class="model-price">${model.pricing || 'N/A'}</div>
+                </div>
+            `).join('');
+            
+            // Update status indicators
+            document.getElementById('textModelsStatus').innerHTML = 
+                `<i class="fas fa-check"></i> ${textModels.length} Available`;
+            document.getElementById('audioModelsStatus').innerHTML = 
+                `<i class="fas fa-check"></i> ${audioModels.length} Available`;
+        }
+
+        // Save model settings
+        async function saveModelSettings() {
+            const data = {
+                default_text_model: document.getElementById('defaultTextModel').value,
+                default_audio_model: document.getElementById('defaultAudioModel').value
+            };
+            
+            try {
+                const response = await fetch('/api/admin/settings/models', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                } else {
+                    showAlert(result.error || 'Failed to save model settings', 'error');
+                }
+            } catch (error) {
+                showAlert('Network error: ' + error.message, 'error');
+            }
+        }
+
+        // Toggle API key visibility
+        function toggleApiKeyVisibility(inputId) {
+            const input = document.getElementById(inputId);
+            const button = input.nextElementSibling;
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                button.innerHTML = '<i class="fas fa-eye-slash"></i>';
+            } else {
+                input.type = 'password';
+                button.innerHTML = '<i class="fas fa-eye"></i>';
+            }
+        }
+
+        // Test commercial API keys
+        async function testApiKey(provider) {
+            const apiKeyMap = {
+                'openai': 'openaiApiKey',
+                'anthropic': 'anthropicApiKey',
+                'elevenlabs': 'elevenLabsApiKey'
+            };
+            
+            const inputId = apiKeyMap[provider];
+            const apiKey = document.getElementById(inputId).value;
+            
+            if (!apiKey) {
+                showAlert(`Please enter a ${provider} API key first`, 'warning');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/test-commercial-api', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider, api_key: apiKey })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                } else {
+                    showAlert(result.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Test failed: ' + error.message, 'error');
+            }
+        }
+
+        // Test text generation
+        async function testTextGeneration() {
+            const topic = document.getElementById('testTopic').value;
+            const button = event.target;
+            const originalText = button.innerHTML;
+            
+            try {
+                button.disabled = true;
+                button.innerHTML = '<span class="loading"><span class="spinner"></span> Testing...</span>';
+                
+                const response = await fetch('/api/admin/test-generation/text', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic })
+                });
+                
+                const result = await response.json();
+                const resultsDiv = document.getElementById('testResults');
+                
+                if (result.success) {
+                    resultsDiv.innerHTML = `
+                        <div class="test-result test-success">
+                            <i class="fas fa-check-circle"></i>
+                            <strong>Text generation successful!</strong><br>
+                            Model: ${result.model_used}<br>
+                            Tokens: ~${Math.round(result.tokens_used)}<br>
+                            <details style="margin-top: 1rem;">
+                                <summary>Generated Content Preview</summary>
+                                <div style="max-height: 200px; overflow-y: auto; background: #f8f9fa; padding: 1rem; border-radius: 4px; margin-top: 0.5rem;">
+                                    ${result.content.substring(0, 500)}...
+                                </div>
+                            </details>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="test-result test-error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <strong>Text generation failed!</strong><br>
+                            ${result.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('testResults').innerHTML = `
+                    <div class="test-result test-error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <strong>Network error!</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            } finally {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        // Test audio generation
+        async function testAudioGeneration() {
+            const topic = document.getElementById('testTopic').value;
+            const button = event.target;
+            const originalText = button.innerHTML;
+            
+            try {
+                button.disabled = true;
+                button.innerHTML = '<span class="loading"><span class="spinner"></span> Testing...</span>';
+                
+                const response = await fetch('/api/admin/test-generation/audio', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic })
+                });
+                
+                const result = await response.json();
+                const resultsDiv = document.getElementById('testResults');
+                
+                if (result.success) {
+                    resultsDiv.innerHTML = `
+                        <div class="test-result test-success">
+                            <i class="fas fa-check-circle"></i>
+                            <strong>Audio generation successful!</strong><br>
+                            Model: ${result.model_used}<br>
+                            Voice: ${result.audio_voice}<br>
+                            Duration: ~${result.audio_duration}s<br>
+                            <audio controls style="width: 100%; margin-top: 1rem;">
+                                <source src="${result.audio_url}" type="audio/mpeg">
+                                Your browser does not support the audio element.
+                            </audio>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="test-result test-error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <strong>Audio generation failed!</strong><br>
+                            ${result.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('testResults').innerHTML = `
+                    <div class="test-result test-error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <strong>Network error!</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            } finally {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        // Export settings
+        async function exportSettings() {
+            try {
+                const response = await fetch('/api/admin/settings/export');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const blob = new Blob([JSON.stringify(data.settings, null, 2)], 
+                        { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'r-tutor-pro-settings.json';
+                    a.click();
+                    
+                    URL.revokeObjectURL(url);
+                    showAlert('Settings exported successfully', 'success');
+                } else {
+                    showAlert('Failed to export settings', 'error');
+                }
+            } catch (error) {
+                showAlert('Export failed: ' + error.message, 'error');
+            }
+        }
+
+        // Import settings
+        function importSettings() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = async function(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                try {
+                    const text = await file.text();
+                    const settings = JSON.parse(text);
+                    
+                    const response = await fetch('/api/admin/settings/import', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(settings)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showAlert(result.message, 'success');
+                        loadCurrentSettings();
+                    } else {
+                        showAlert(result.error || 'Import failed', 'error');
+                    }
+                } catch (error) {
+                    showAlert('Import failed: ' + error.message, 'error');
+                }
+            };
+            
+            input.click();
+        }
+
+        // Reset settings
+        async function resetSettings() {
+            if (!confirm('Reset all settings to default? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/settings/reset', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                    loadCurrentSettings();
+                } else {
+                    showAlert(result.error || 'Reset failed', 'error');
+                }
+            } catch (error) {
+                showAlert('Reset failed: ' + error.message, 'error');
+            }
+        }
+
+        // Show alert messages
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                ${message}
+            `;
+            
+            document.body.insertBefore(alertDiv, document.body.firstChild);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Check system status
+        async function checkSystemStatus() {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                
+                if (data.openrouter) {
+                    updateSystemStatus({
+                        openrouter_connected: data.openrouter.status === 'connected',
+                        models: {
+                            text: data.openrouter.models_available || 0,
+                            audio: 0 // Will be updated when models are loaded
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to check system status:', error);
+            }
+        }
+    </script>
+</body>
+</html>

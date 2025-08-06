@@ -130,9 +130,18 @@
             audioSection.style.display = 'none';
             
             try {
-                const response = await fetch('/submit', {
+                const data = {
+                    topic: formData.get('topic'),
+                    expertise: formData.get('expertise'),
+                    duration: formData.get('duration'),
+                };
+
+                const response = await fetch('/api/v1/tutorial', {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
                 });
                 
                 const result = await response.json();
@@ -140,6 +149,18 @@
                 if (result.success) {
                     // Hide loading
                     loadingDiv.style.display = 'none';
+
+                    // Store audio data for playback
+                    currentAudioData = {
+                        audio_url: result.audio_url,
+                        audio_base64: result.audio_base64
+                    };
+                    
+                    // Update download button
+                    const downloadBtn = document.getElementById('downloadBtn');
+                    downloadBtn.onclick = function() {
+                        window.location.href = result.audio_url;
+                    };
                     
                     // Show audio section with enhanced content
                     document.getElementById('audioContent').innerHTML = `
@@ -162,6 +183,13 @@
                     `;
                     audioSection.style.display = 'block';
                     
+                    // Reset audio player for new content
+                    if (audioPlayer) {
+                        audioPlayer.pause();
+                        audioPlayer = null;
+                        document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i> Play Tutorial';
+                    }
+                    
                     // Scroll to results
                     audioSection.scrollIntoView({ behavior: 'smooth' });
                 }
@@ -176,21 +204,66 @@
             }
         });
         
+        // Variable to store audio data and player instance
+        let currentAudioData = null;
+        let audioPlayer = null;
+
         // Enhanced audio controls
         document.getElementById('playBtn').addEventListener('click', function() {
-            this.innerHTML = '<i class="fas fa-pause"></i> Pause Tutorial';
-            // Simulate audio playback
-            setTimeout(() => {
+            if (!currentAudioData) {
+                alert('Audio data not available. Please generate a tutorial first.');
+                return;
+            }
+
+            if (!audioPlayer) {
+                // Create audio player if it doesn't exist
+                audioPlayer = new Audio(currentAudioData.audio_url);
+                
+                // Update button when audio ends
+                audioPlayer.addEventListener('ended', () => {
+                    this.innerHTML = '<i class="fas fa-play"></i> Play Tutorial';
+                });
+
+                // Optional: Update button if audio errors
+                audioPlayer.addEventListener('error', (e) => {
+                    console.error('Audio playback error:', e);
+                    this.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
+                    // Fallback to base64 if URL fails
+                    if (currentAudioData.audio_base64) {
+                        console.log('Attempting fallback to base64 audio.');
+                        audioPlayer.src = "data:audio/mpeg;base64," + currentAudioData.audio_base64;
+                        audioPlayer.play().then(_ => {
+                            this.innerHTML = '<i class="fas fa-pause"></i> Pause Tutorial';
+                        }).catch(e => {
+                            console.error('Base64 audio playback also failed:', e);
+                            alert('Audio playback failed. The audio file might be corrupted or not supported by your browser.');
+                        });
+                    } else {
+                        alert('Audio playback failed. Please try generating the tutorial again.');
+                    }
+                });
+            }
+
+            if (audioPlayer.paused) {
+                audioPlayer.play().then(_ => {
+                    this.innerHTML = '<i class="fas fa-pause"></i> Pause Tutorial';
+                }).catch(error => {
+                    console.error('Playback failed:', error);
+                    alert('Playback failed. Please check your browser\'s audio permissions or try again.');
+                    this.innerHTML = '<i class="fas fa-play"></i> Play Tutorial';
+                });
+            } else {
+                audioPlayer.pause();
                 this.innerHTML = '<i class="fas fa-play"></i> Play Tutorial';
-            }, 3000);
+            }
         });
         
         document.getElementById('downloadBtn').addEventListener('click', function() {
-            // Simulate download
-            this.innerHTML = '<i class="fas fa-check"></i> Downloaded!';
-            setTimeout(() => {
-                this.innerHTML = '<i class="fas fa-download"></i> Download Audio';
-            }, 2000);
+            if (currentAudioData && currentAudioData.audio_url) {
+                window.location.href = currentAudioData.audio_url;
+            } else {
+                alert('No audio file to download. Please generate a tutorial first.');
+            }
         });
 
         document.getElementById('shareBtn').addEventListener('click', function() {
