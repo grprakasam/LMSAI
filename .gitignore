@@ -130,3 +130,13 @@ logs/
 uploads/
 temp/
 static/generated_audio/
+
+# Development files
+run.py
+init_db_script.py
+app_config.py
+*_dev.py
+test_*.py
+deployment_config.txt
+DEPLOYMENT_FIX.md
+DEPLOYMENT_PLAN.md

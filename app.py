@@ -211,11 +211,8 @@ def create_app(config_name=None):
 app = create_app()
 
 if __name__ == '__main__':
-    from app_config import configure_logging, print_startup_info
-    configure_logging()
-    print_startup_info()
     port = int(os.getenv('PORT', 5000))
-    debug = os.getenv('DEBUG', 'True').lower() == 'true'
+    debug = os.getenv('DEBUG', 'False').lower() == 'true'
     app.run(
         debug=debug,
         host='0.0.0.0',
