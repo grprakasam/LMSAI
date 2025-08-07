@@ -309,8 +309,18 @@ def index():
 
 @main_bp.route('/dashboard')
 def dashboard():
-    """Dashboard page - redirects to main index"""
-    return index()
+    """Dashboard page"""
+    # Get user statistics for dashboard (using default values)
+    total_tutorials = Tutorial.query.count()
+    monthly_usage = 0
+    
+    # Calculate total tokens used for display
+    total_tokens = db.session.query(db.func.sum(Tutorial.tokens_used)).scalar() or 0
+    
+    return render_template('dashboard.html', 
+                         total_tutorials=total_tutorials,
+                         monthly_usage=monthly_usage,
+                         total_tokens=total_tokens)
 
 @main_bp.route('/admin')
 def admin():

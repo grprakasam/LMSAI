@@ -14,10 +14,10 @@
         </div>
         <div class="nav-right">
             <div class="user-menu">
-                <a href="/dashboard" class="btn btn-sm">
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-sm">
                     <i class="fas fa-home"></i> Dashboard
                 </a>
-                <a href="/playground" class="btn btn-sm">
+                <a href="{{ url_for('main.playground') }}" class="btn btn-sm">
                     <i class="fas fa-code"></i> Code Playground
                 </a>
                 <a href="/settings" class="btn btn-sm">

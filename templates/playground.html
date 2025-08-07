@@ -14,10 +14,10 @@
         </div>
         <div class="nav-right">
             <div class="user-menu">
-                <a href="/dashboard" class="btn btn-sm">
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-sm">
                     <i class="fas fa-home"></i> Dashboard
                 </a>
-                <a href="/quiz" class="btn btn-sm">
+                <a href="{{ url_for('main.quiz') }}" class="btn btn-sm">
                     <i class="fas fa-question-circle"></i> Interactive Quiz
                 </a>
                 <a href="/settings" class="btn btn-sm">

@@ -15,10 +15,10 @@
         <div class="nav-right">
             <div class="user-menu">
                 <span>Welcome back!</span>
-                <a href="/quiz" class="btn btn-sm">
+                <a href="{{ url_for('main.quiz') }}" class="btn btn-sm">
                     <i class="fas fa-question-circle"></i> Quiz
                 </a>
-                <a href="/playground" class="btn btn-sm">
+                <a href="{{ url_for('main.playground') }}" class="btn btn-sm">
                     <i class="fas fa-code"></i> Playground
                 </a>
                 <a href="/settings" class="btn btn-sm">
@@ -2092,6 +2092,33 @@ head(df)`
             if (percentage >= 40) return 'You understand some concepts. Consider reviewing the tutorial again.';
             return 'This topic needs more attention. Review the tutorial and try again.';
         }
+
+        // Add debugging for navigation links
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Dashboard loaded successfully');
+            
+            // Test navigation links
+            const quizLink = document.querySelector('a[href*="quiz"]');
+            const playgroundLink = document.querySelector('a[href*="playground"]');
+            
+            if (quizLink) {
+                console.log('Quiz link found:', quizLink.href);
+                quizLink.addEventListener('click', function(e) {
+                    console.log('Quiz link clicked, navigating to:', this.href);
+                });
+            } else {
+                console.error('Quiz link not found!');
+            }
+            
+            if (playgroundLink) {
+                console.log('Playground link found:', playgroundLink.href);
+                playgroundLink.addEventListener('click', function(e) {
+                    console.log('Playground link clicked, navigating to:', this.href);
+                });
+            } else {
+                console.error('Playground link not found!');
+            }
+        });
 
     </script>
 </body>
