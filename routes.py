@@ -317,6 +317,11 @@ def admin():
     """Admin page"""
     return render_template('admin.html')
 
+@main_bp.route('/contact')
+def contact():
+    """Contact Us page"""
+    return render_template('contact.html')
+
 @main_bp.route('/settings')
 @login_required
 def settings():
@@ -1436,6 +1441,171 @@ def rate_limit_exceeded(error):
         'message': 'Too many requests. Please try again later.',
         'retry_after': 60
     }), 429
+
+# ==================== CONTACT & SETTINGS API ROUTES ====================
+
+@main_bp.route('/contact/feedback', methods=['POST'])
+def submit_feedback():
+    """Handle contact feedback form submission"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+        
+        name = data.get('name', '').strip()
+        email = data.get('email', '').strip()
+        subject = data.get('subject', '').strip()
+        message = data.get('message', '').strip()
+        
+        # Basic validation
+        if not all([name, email, subject, message]):
+            return jsonify({'success': False, 'error': 'All fields are required'}), 400
+        
+        # Email validation
+        import re
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, email):
+            return jsonify({'success': False, 'error': 'Invalid email address'}), 400
+        
+        # Log the feedback (in a real app, you'd save to database or send email)
+        logger.info(f"Feedback received from {name} ({email}): Subject: {subject}, Message: {message[:100]}...")
+        
+        # Here you would typically:
+        # 1. Save to database
+        # 2. Send email notification to admin
+        # 3. Send confirmation email to user
+        
+        return jsonify({
+            'success': True,
+            'message': 'Thank you for your feedback! We will get back to you soon.'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error handling feedback: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to submit feedback. Please try again.'
+        }), 500
+
+@api_bp.route('/settings', methods=['GET'])
+@login_required
+def get_user_settings():
+    """Get user settings"""
+    try:
+        # Get user settings from database or use defaults
+        user_id = current_user.id if current_user.is_authenticated else None
+        settings = SettingsManager.load_settings(user_id)
+        
+        # Convert to the format expected by frontend
+        frontend_settings = {
+            'short_length': settings.get('shortWordCount', 200),
+            'medium_length': settings.get('mediumWordCount', 500),
+            'lengthy_length': settings.get('lengthyWordCount', 1000),
+            'voice_tone': settings.get('audioVoice', 'alloy').lower().replace('alloy', 'male').replace('nova', 'female'),
+            'speed': settings.get('audioSpeed', 1.0)
+        }
+        
+        return jsonify({
+            'success': True,
+            'settings': frontend_settings
+        })
+    except Exception as e:
+        logger.error(f"Error getting user settings: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to load settings'
+        }), 500
+
+@api_bp.route('/settings', methods=['POST'])
+@login_required
+def save_user_settings():
+    """Save user settings"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+        
+        # Validate settings data
+        settings = {}
+        
+        # Validate content length settings
+        if 'short_length' in data:
+            short_length = int(data['short_length'])
+            if 100 <= short_length <= 500:
+                settings['short_length'] = short_length
+            else:
+                return jsonify({'success': False, 'error': 'Short content length must be between 100-500 words'}), 400
+        
+        if 'medium_length' in data:
+            medium_length = int(data['medium_length'])
+            if 400 <= medium_length <= 1000:
+                settings['medium_length'] = medium_length
+            else:
+                return jsonify({'success': False, 'error': 'Medium content length must be between 400-1000 words'}), 400
+        
+        if 'lengthy_length' in data:
+            lengthy_length = int(data['lengthy_length'])
+            if 800 <= lengthy_length <= 2000:
+                settings['lengthy_length'] = lengthy_length
+            else:
+                return jsonify({'success': False, 'error': 'Lengthy content length must be between 800-2000 words'}), 400
+        
+        # Validate voice tone
+        if 'voice_tone' in data:
+            voice_tone = data['voice_tone'].strip().lower()
+            if voice_tone in ['male', 'female']:
+                settings['voice_tone'] = voice_tone
+            else:
+                return jsonify({'success': False, 'error': 'Voice tone must be "male" or "female"'}), 400
+        
+        # Validate speed
+        if 'speed' in data:
+            speed = float(data['speed'])
+            if 0.5 <= speed <= 3.0:
+                settings['speed'] = speed
+            else:
+                return jsonify({'success': False, 'error': 'Speed must be between 0.5x and 3.0x'}), 400
+        
+        # Convert frontend settings to backend format
+        user_id = current_user.id if current_user.is_authenticated else None
+        current_settings = SettingsManager.load_settings(user_id)
+        
+        # Update with new values
+        if 'short_length' in settings:
+            current_settings['shortWordCount'] = settings['short_length']
+        if 'medium_length' in settings:
+            current_settings['mediumWordCount'] = settings['medium_length']
+        if 'lengthy_length' in settings:
+            current_settings['lengthyWordCount'] = settings['lengthy_length']
+        if 'voice_tone' in settings:
+            # Convert frontend voice_tone to backend audioVoice
+            voice_map = {'male': 'alloy', 'female': 'nova'}
+            current_settings['audioVoice'] = voice_map.get(settings['voice_tone'], 'alloy')
+        if 'speed' in settings:
+            current_settings['audioSpeed'] = settings['speed']
+        
+        # Save settings
+        success = SettingsManager.save_settings(current_settings, user_id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Settings saved successfully'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to save settings'
+            }), 500
+        
+    except ValueError as e:
+        return jsonify({'success': False, 'error': 'Invalid number format'}), 400
+    except Exception as e:
+        logger.error(f"Error saving user settings: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to save settings'
+        }), 500
 
 # ==================== ADMIN API ROUTES ====================
 
