@@ -345,6 +345,11 @@ Begin the tutorial now with a warm, engaging introduction:"""
     
     def _call_openrouter_chat(self, prompt: str, model: str):
         """Call OpenRouter chat completion API"""
+        # Check if API key is available
+        if not self.api_key:
+            logger.info("No OpenRouter API key configured, using fallback content")
+            return None
+        
         self._rate_limit()
         
         headers = self._get_headers()
@@ -389,6 +394,11 @@ Begin the tutorial now with a warm, engaging introduction:"""
     
     def _call_openrouter_audio(self, text: str, model: str, voice: str, speed: float, format: str):
         """Call OpenRouter audio generation API"""
+        # Check if API key is available
+        if not self.api_key:
+            logger.info("No OpenRouter API key configured, audio generation not available")
+            return None
+        
         self._rate_limit()
         
         headers = self._get_headers()

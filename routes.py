@@ -18,15 +18,20 @@ from utils import (
     validate_email, check_system_health
 )
 from config import PLANS, MODEL_CONFIGS, AUDIO_MODEL_CONFIGS
+from settings_manager import SettingsManager
 
 import logging
 logger = logging.getLogger(__name__)
 
 # Helper function for enhancing markdown content
-def enhance_markdown_content(content: str, topic: str, expertise: str, content_length: str) -> str:
+def enhance_markdown_content(content: str, topic: str, expertise: str, content_length: str, user_id=None) -> str:
     """Enhance content with better markdown formatting, colors, and structure"""
     if not content:
         return content
+    
+    # Get target word count from user settings
+    target_word_count = SettingsManager.get_content_word_count(content_length, user_id)
+    current_word_count = len(content.split())
     
     # Create a comprehensive, well-structured tutorial
     enhanced_sections = []
@@ -302,10 +307,111 @@ def index():
                          audio_models=AUDIO_MODEL_CONFIGS,
                          openrouter_status=openrouter_status)
 
+@main_bp.route('/dashboard')
+def dashboard():
+    """Dashboard page - redirects to main index"""
+    return index()
+
 @main_bp.route('/admin')
 def admin():
     """Admin page"""
     return render_template('admin.html')
+
+@main_bp.route('/contact')
+def contact():
+    """Contact Us page"""
+    return render_template('contact.html')
+
+@main_bp.route('/settings')
+@login_required
+def settings():
+    """User settings page"""
+    return render_template('settings.html')
+
+@main_bp.route('/api/settings', methods=['GET'])
+@login_required
+def get_settings():
+    """Get user settings"""
+    try:
+        user_settings = SettingsManager.load_settings(current_user.id)
+        return jsonify({
+            'success': True,
+            'data': user_settings
+        })
+    except Exception as e:
+        logger.error(f"Error loading settings for user {current_user.id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to load settings'
+        }), 500
+
+@main_bp.route('/api/settings', methods=['POST'])
+@login_required
+def save_settings():
+    """Save user settings"""
+    try:
+        settings_data = request.get_json()
+        
+        if not settings_data:
+            return jsonify({
+                'success': False,
+                'error': 'No settings data provided'
+            }), 400
+        
+        # Validate settings
+        validation_errors = SettingsManager.validate_settings(settings_data)
+        if validation_errors:
+            return jsonify({
+                'success': False,
+                'error': 'Validation failed',
+                'validation_errors': validation_errors
+            }), 400
+        
+        # Save settings
+        success = SettingsManager.save_settings(settings_data, current_user.id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Settings saved successfully'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to save settings'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Error saving settings for user {current_user.id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
+@main_bp.route('/api/settings/reset', methods=['POST'])
+@login_required
+def reset_settings():
+    """Reset user settings to defaults"""
+    try:
+        success = SettingsManager.reset_to_defaults(current_user.id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Settings reset to defaults successfully'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to reset settings'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Error resetting settings for user {current_user.id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
 
 @main_bp.route('/tutorial/<int:tutorial_id>')
 def view_tutorial(tutorial_id):
@@ -469,8 +575,6 @@ def logout():
 # ==================== NEW UNIFIED CONTENT GENERATION ====================
 
 @main_bp.route('/generate-content', methods=['POST'])
-@rate_limit(requests_per_minute=15)
-@track_usage('content_created')
 def generate_content():
     """Generate content based on output type: text, audio, or animated"""
     
@@ -517,11 +621,21 @@ def generate_content():
 def generate_text_content(topic, expertise, duration, content_length='medium'):
     """Generate comprehensive text tutorial with enhanced markdown formatting"""
     try:
+        # Get user settings if authenticated
+        user_id = current_user.id if current_user.is_authenticated else None
+        
+        # Get word count from user settings
+        target_words = SettingsManager.get_content_word_count(content_length, user_id)
+        
+        # Map content length to appropriate target words from settings
+        if content_length == 'lengthy':
+            target_words = SettingsManager.get_content_word_count('lengthy', user_id)
+        
         # Map content length to approximate word counts and duration
         length_config = {
-            'short': {'words': 400, 'duration': 3, 'sections': 3},
-            'medium': {'words': 800, 'duration': 6, 'sections': 5},
-            'lengthy': {'words': 1500, 'duration': 10, 'sections': 8}
+            'short': {'words': target_words, 'duration': 3, 'sections': 3},
+            'medium': {'words': target_words, 'duration': 6, 'sections': 5},
+            'lengthy': {'words': target_words, 'duration': 10, 'sections': 8}
         }
         
         config = length_config.get(content_length, length_config['medium'])
@@ -548,7 +662,7 @@ def generate_text_content(topic, expertise, duration, content_length='medium'):
         )
         
         # Enhance the content with better markdown formatting
-        enhanced_content = enhance_markdown_content(tutorial_data['content'], topic, expertise, content_length)
+        enhanced_content = enhance_markdown_content(tutorial_data['content'], topic, expertise, content_length, user_id)
         
         # Save to database
         tutorial = Tutorial(
@@ -1328,6 +1442,171 @@ def rate_limit_exceeded(error):
         'retry_after': 60
     }), 429
 
+# ==================== CONTACT & SETTINGS API ROUTES ====================
+
+@main_bp.route('/contact/feedback', methods=['POST'])
+def submit_feedback():
+    """Handle contact feedback form submission"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+        
+        name = data.get('name', '').strip()
+        email = data.get('email', '').strip()
+        subject = data.get('subject', '').strip()
+        message = data.get('message', '').strip()
+        
+        # Basic validation
+        if not all([name, email, subject, message]):
+            return jsonify({'success': False, 'error': 'All fields are required'}), 400
+        
+        # Email validation
+        import re
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, email):
+            return jsonify({'success': False, 'error': 'Invalid email address'}), 400
+        
+        # Log the feedback (in a real app, you'd save to database or send email)
+        logger.info(f"Feedback received from {name} ({email}): Subject: {subject}, Message: {message[:100]}...")
+        
+        # Here you would typically:
+        # 1. Save to database
+        # 2. Send email notification to admin
+        # 3. Send confirmation email to user
+        
+        return jsonify({
+            'success': True,
+            'message': 'Thank you for your feedback! We will get back to you soon.'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error handling feedback: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to submit feedback. Please try again.'
+        }), 500
+
+@api_bp.route('/settings', methods=['GET'])
+@login_required
+def get_user_settings():
+    """Get user settings"""
+    try:
+        # Get user settings from database or use defaults
+        user_id = current_user.id if current_user.is_authenticated else None
+        settings = SettingsManager.load_settings(user_id)
+        
+        # Convert to the format expected by frontend
+        frontend_settings = {
+            'short_length': settings.get('shortWordCount', 200),
+            'medium_length': settings.get('mediumWordCount', 500),
+            'lengthy_length': settings.get('lengthyWordCount', 1000),
+            'voice_tone': settings.get('audioVoice', 'alloy').lower().replace('alloy', 'male').replace('nova', 'female'),
+            'speed': settings.get('audioSpeed', 1.0)
+        }
+        
+        return jsonify({
+            'success': True,
+            'settings': frontend_settings
+        })
+    except Exception as e:
+        logger.error(f"Error getting user settings: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to load settings'
+        }), 500
+
+@api_bp.route('/settings', methods=['POST'])
+@login_required
+def save_user_settings():
+    """Save user settings"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+        
+        # Validate settings data
+        settings = {}
+        
+        # Validate content length settings
+        if 'short_length' in data:
+            short_length = int(data['short_length'])
+            if 100 <= short_length <= 500:
+                settings['short_length'] = short_length
+            else:
+                return jsonify({'success': False, 'error': 'Short content length must be between 100-500 words'}), 400
+        
+        if 'medium_length' in data:
+            medium_length = int(data['medium_length'])
+            if 400 <= medium_length <= 1000:
+                settings['medium_length'] = medium_length
+            else:
+                return jsonify({'success': False, 'error': 'Medium content length must be between 400-1000 words'}), 400
+        
+        if 'lengthy_length' in data:
+            lengthy_length = int(data['lengthy_length'])
+            if 800 <= lengthy_length <= 2000:
+                settings['lengthy_length'] = lengthy_length
+            else:
+                return jsonify({'success': False, 'error': 'Lengthy content length must be between 800-2000 words'}), 400
+        
+        # Validate voice tone
+        if 'voice_tone' in data:
+            voice_tone = data['voice_tone'].strip().lower()
+            if voice_tone in ['male', 'female']:
+                settings['voice_tone'] = voice_tone
+            else:
+                return jsonify({'success': False, 'error': 'Voice tone must be "male" or "female"'}), 400
+        
+        # Validate speed
+        if 'speed' in data:
+            speed = float(data['speed'])
+            if 0.5 <= speed <= 3.0:
+                settings['speed'] = speed
+            else:
+                return jsonify({'success': False, 'error': 'Speed must be between 0.5x and 3.0x'}), 400
+        
+        # Convert frontend settings to backend format
+        user_id = current_user.id if current_user.is_authenticated else None
+        current_settings = SettingsManager.load_settings(user_id)
+        
+        # Update with new values
+        if 'short_length' in settings:
+            current_settings['shortWordCount'] = settings['short_length']
+        if 'medium_length' in settings:
+            current_settings['mediumWordCount'] = settings['medium_length']
+        if 'lengthy_length' in settings:
+            current_settings['lengthyWordCount'] = settings['lengthy_length']
+        if 'voice_tone' in settings:
+            # Convert frontend voice_tone to backend audioVoice
+            voice_map = {'male': 'alloy', 'female': 'nova'}
+            current_settings['audioVoice'] = voice_map.get(settings['voice_tone'], 'alloy')
+        if 'speed' in settings:
+            current_settings['audioSpeed'] = settings['speed']
+        
+        # Save settings
+        success = SettingsManager.save_settings(current_settings, user_id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Settings saved successfully'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to save settings'
+            }), 500
+        
+    except ValueError as e:
+        return jsonify({'success': False, 'error': 'Invalid number format'}), 400
+    except Exception as e:
+        logger.error(f"Error saving user settings: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to save settings'
+        }), 500
+
 # ==================== ADMIN API ROUTES ====================
 
 @admin_api_bp.route('/settings', methods=['GET'])
@@ -1475,6 +1754,24 @@ def refresh_models():
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+@admin_api_bp.route('/models/text', methods=['GET'])
+def get_text_models():
+    """Get available text generation models"""
+    try:
+        models = openrouter_service.get_available_models('text')
+        return jsonify({'success': True, 'models': models})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e), 'models': []})
+
+@admin_api_bp.route('/models/audio', methods=['GET'])
+def get_audio_models():
+    """Get available audio generation models"""
+    try:
+        models = openrouter_service.get_available_models('audio')
+        return jsonify({'success': True, 'models': models})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e), 'models': []})
 
 @admin_api_bp.route('/settings/models', methods=['POST'])
 def save_model_settings():
@@ -2116,18 +2413,30 @@ def create_simple_narration(topic, expertise):
     By the end of this tutorial, you'll have a solid foundation in {topic} fundamentals."""
 
 def generate_quiz_content(topic, expertise):
-    """Generate quiz content with 3 questions and feedback"""
+    """Generate quiz content with configurable number of questions and difficulty"""
     try:
-        # Define quiz questions based on topic and expertise level
-        if expertise == 'beginner':
-            difficulty = "basic"
-        elif expertise == 'intermediate':
-            difficulty = "moderate"
+        # Get user settings if authenticated
+        user_id = current_user.id if current_user.is_authenticated else None
+        quiz_settings = SettingsManager.get_quiz_settings(user_id)
+        
+        # Determine difficulty based on settings or expertise
+        if quiz_settings['difficulty'] == 'adaptive':
+            if expertise == 'beginner':
+                difficulty = "basic"
+            elif expertise == 'intermediate':
+                difficulty = "moderate"
+            else:
+                difficulty = "advanced"
         else:
-            difficulty = "advanced"
+            difficulty_map = {
+                'easy': 'basic',
+                'medium': 'moderate', 
+                'hard': 'advanced'
+            }
+            difficulty = difficulty_map.get(quiz_settings['difficulty'], 'moderate')
             
-        # Generate topic-specific questions
-        questions = create_topic_questions(topic, difficulty)
+        # Generate topic-specific questions based on user's preferred count
+        questions = create_topic_questions(topic, difficulty, quiz_settings['questions'])
         
         # Save minimal record to database
         try:
@@ -2182,8 +2491,8 @@ def generate_playground_content(topic, expertise):
             'error': 'Failed to generate playground content. Please try again.'
         }), 500
 
-def create_topic_questions(topic, difficulty):
-    """Create topic-specific quiz questions"""
+def create_topic_questions(topic, difficulty, num_questions=3):
+    """Create topic-specific quiz questions with configurable count"""
     
     # Comprehensive question templates for different R topics
     question_templates = {
@@ -2406,4 +2715,4 @@ def create_topic_questions(topic, difficulty):
             }
         ]
     
-    return questions[:3]  # Return only first 3 questions
+    return questions[:num_questions]  # Return user-configured number of questions

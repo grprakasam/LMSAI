@@ -15,6 +15,12 @@
         <div class="nav-right">
             <div class="user-menu">
                 <span>Welcome back!</span>
+                <a href="/settings" class="btn btn-sm">
+                    <i class="fas fa-cog"></i> Settings
+                </a>
+                <a href="/contact" class="btn btn-sm">
+                    <i class="fas fa-envelope"></i> Contact
+                </a>
                 <a href="/admin" class="btn btn-sm">Admin</a>
                 <a href="/logout" class="btn btn-sm">Logout</a>
             </div>
@@ -24,7 +30,7 @@
     <div class="container">
         <div class="main-content">
             <div class="header-section">
-                <h1><i class="fas fa-graduation-cap"></i> R Learning Content- AI Generated</h1>
+                <h1><i class="fas fa-graduation-cap"></i> R Learning- AI powered</h1>
                 <p class="subtitle">Choose your preferred format and generate personalized R tutorials with AI power</p>
             </div>
 
@@ -33,7 +39,7 @@
                 <div class="input-section">
                     <div class="form-group">
                         <label for="topic">
-                            <i class="fas fa-book"></i> R Programming Topic
+                            <i class="fas fa-book"></i> Enter the Topic to learn Today...
                         </label>
                         <input type="text" id="topic" name="topic" class="form-control" 
                                placeholder="e.g., ggplot2 visualization, machine learning with caret, data manipulation..." required>
@@ -47,27 +53,92 @@
                         </div>
                     </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="expertise">
-                                <i class="fas fa-user-graduate"></i> Expertise Level
+                    <!-- Expertise Level Section - Prominently displayed -->
+                    <div class="expertise-section">
+                        <h3 class="section-title">
+                            <i class="fas fa-user-graduate"></i> Your Expertise Level
+                        </h3>
+                        <div class="expertise-options">
+                            <label class="expertise-card">
+                                <input type="radio" name="expertise" value="beginner" checked>
+                                <span class="expertise-card-content">
+                                    <i class="fas fa-seedling expertise-icon"></i>
+                                    <h4>🌱 Beginner</h4>
+                                    <p>New to R programming</p>
+                                </span>
                             </label>
-                            <select id="expertise" name="expertise" class="form-control" required>
-                                <option value="">Select your level</option>
-                                <option value="beginner" selected>🌱 Beginner</option>
-                                <option value="intermediate">🌿 Intermediate</option>
-                                <option value="expert">🌳 Expert</option>
-                            </select>
+                            <label class="expertise-card">
+                                <input type="radio" name="expertise" value="intermediate">
+                                <span class="expertise-card-content">
+                                    <i class="fas fa-leaf expertise-icon"></i>
+                                    <h4>🌿 Intermediate</h4>
+                                    <p>Some R experience</p>
+                                </span>
+                            </label>
+                            <label class="expertise-card">
+                                <input type="radio" name="expertise" value="expert">
+                                <span class="expertise-card-content">
+                                    <i class="fas fa-tree expertise-icon"></i>
+                                    <h4>🌳 Expert</h4>
+                                    <p>Advanced R programmer</p>
+                                </span>
+                            </label>
                         </div>
+                    </div>
 
-                        <div class="form-group" id="durationGroup">
+
+                    <!-- Duration Section (hidden by default) -->
+                    <div class="section-row" id="durationGroup" style="display: none;">
+                        <div class="form-group-full">
                             <label for="duration">
                                 <i class="fas fa-clock"></i> Duration: <span id="durationDisplay">5</span> min
                             </label>
                             <input type="range" id="duration" name="duration" min="2" max="15" value="5" class="form-control slider">
                         </div>
+                    </div>
 
-                        <div class="form-group" id="contentLengthGroup" style="display: none;">
+                    
+                    <!-- Mode of Learning Section -->
+                    <div class="section-row">
+                        <div class="form-group-full">
+                            <label>
+                                <i class="fas fa-graduation-cap"></i> Mode of Learning
+                            </label>
+                            <div class="radio-group">
+                                <label class="radio-option">
+                                    <input type="radio" name="output_type" value="text" checked>
+                                    <span class="radio-custom"></span>
+                                    <div class="option-content">
+                                        <i class="fas fa-file-text"></i>
+                                        <h4>Text Output</h4>
+                                        <p>Comprehensive written tutorial with examples</p>
+                                    </div>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="output_type" value="audio">
+                                    <span class="radio-custom"></span>
+                                    <div class="option-content">
+                                        <i class="fas fa-volume-up"></i>
+                                        <h4>Audio Output</h4>
+                                        <p>Streaming narrated content with Kyutai TTS</p>
+                                    </div>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="output_type" value="animated">
+                                    <span class="radio-custom"></span>
+                                    <div class="option-content">
+                                        <i class="fas fa-film"></i>
+                                        <h4>Animated Output</h4>
+                                        <p>Interactive animated presentation with audio and controls</p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Content Length Section -->
+                    <div class="section-row" id="contentLengthGroup">
+                        <div class="form-group-full">
                             <label>
                                 <i class="fas fa-text-width"></i> Content Length
                             </label>
@@ -93,67 +164,40 @@
 
                 </div>
 
-                <!-- Mode of Learning Section -->
-                <div class="mode-learning-section">
-                    <h3><i class="fas fa-graduation-cap"></i> Mode of Learning:</h3>
-                    <div class="radio-group">
-                        <label class="radio-option">
-                            <input type="radio" name="output_type" value="text" checked>
-                            <span class="radio-custom"></span>
-                            <div class="option-content">
-                                <i class="fas fa-file-text"></i>
-                                <h4>Text Output</h4>
-                                <p>Comprehensive written tutorial with examples</p>
+                <div style="display: flex; justify-content: center;">
+                    <button type="submit" id="generateBtn" class="btn btn-primary btn-generate">
+                        <i class="fas fa-magic"></i> Generate Content
+                    </button>
+                </div>
+
+                <!-- Interactive Features Section -->
+                <div class="interactive-features-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-rocket"></i> Interactive Learning Features
+                    </h3>
+                    
+                    <div class="feature-buttons">
+                        <button type="button" id="quizBtn" class="btn btn-feature">
+                            <i class="fas fa-question-circle"></i>
+                            <div class="feature-content">
+                                <h4>Interactive Quiz</h4>
+                                <p>Test your knowledge with 3 questions</p>
                             </div>
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="output_type" value="audio">
-                            <span class="radio-custom"></span>
-                            <div class="option-content">
-                                <i class="fas fa-volume-up"></i>
-                                <h4>Audio Output</h4>
-                                <p>Streaming narrated content with Kyutai TTS</p>
+                        </button>
+                        
+                        <button type="button" id="playgroundBtn" class="btn btn-feature">
+                            <i class="fas fa-code"></i>
+                            <div class="feature-content">
+                                <h4>Code Playground</h4>
+                                <p>Practice coding with live validation</p>
                             </div>
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="output_type" value="animated">
-                            <span class="radio-custom"></span>
-                            <div class="option-content">
-                                <i class="fas fa-film"></i>
-                                <h4>Animated Output</h4>
-                                <p>Interactive animated presentation with audio and controls</p>
-                            </div>
-                        </label>
+                        </button>
                     </div>
                 </div>
 
-                <button type="submit" id="generateBtn" class="btn btn-primary btn-generate">
-                    <i class="fas fa-magic"></i> Generate Content
-                </button>
-
-                <!-- Test Your Learning Section -->
-                <div class="test-learning-section">
-                    <h3><i class="fas fa-brain"></i> Test Your Learning:</h3>
-                    <div class="test-options">
-                        <label class="quiz-option">
-                            <input type="radio" name="output_type" value="quiz">
-                            <span class="radio-custom"></span>
-                            <div class="option-content">
-                                <i class="fas fa-question-circle"></i>
-                                <h4>Interactive Quiz</h4>
-                                <p>Test knowledge with 3 questions and instant feedback based on your topic</p>
-                            </div>
-                        </label>
-                        <label class="quiz-option">
-                            <input type="radio" name="output_type" value="playground">
-                            <span class="radio-custom"></span>
-                            <div class="option-content">
-                                <i class="fas fa-code"></i>
-                                <h4>Code Playground</h4>
-                                <p>Practice coding with syntax validation and improvement suggestions</p>
-                            </div>
-                        </label>
-                    </div>
+                <!-- Interactive Content Display -->
+                <div id="interactiveContent" class="interactive-content" style="display: none;">
+                    <!-- Quiz or Playground content will be dynamically inserted here -->
                 </div>
 
             </form>
@@ -166,14 +210,6 @@
 
             <!-- Results Section -->
             <div id="resultSection" class="result-section" style="display: none;">
-                <div class="result-header">
-                    <h2 id="resultTitle"><i class="fas fa-check-circle"></i> Content Ready!</h2>
-                    <div class="result-meta">
-                        <span id="outputTypeTag" class="result-tag"></span>
-                        <span id="topicTag" class="result-tag"></span>
-                    </div>
-                </div>
-                
                 <div id="contentDisplay" class="content-display">
                     <!-- Dynamic content will be inserted here -->
                 </div>
@@ -206,6 +242,7 @@
         // ============= INITIALIZATION =============
         document.addEventListener('DOMContentLoaded', function() {
             initializeEventListeners();
+            loadUserSettings();
             // Initialize UI for default text output
             updateUIForOutputType('text');
         });
@@ -234,10 +271,21 @@
             // Form submission
             document.getElementById('contentForm').addEventListener('submit', handleFormSubmission);
 
-            // Action buttons
-            document.getElementById('copyBtn').addEventListener('click', copyContent);
-            document.getElementById('shareBtn').addEventListener('click', shareContent);
-            document.getElementById('downloadBtn').addEventListener('click', downloadContent);
+            // Interactive feature buttons
+            const quizBtn = document.getElementById('quizBtn');
+            const playgroundBtn = document.getElementById('playgroundBtn');
+            
+            if (quizBtn) quizBtn.addEventListener('click', handleQuizRequest);
+            if (playgroundBtn) playgroundBtn.addEventListener('click', handlePlaygroundRequest);
+
+            // Action buttons - check if they exist first
+            const copyBtn = document.getElementById('copyBtn');
+            const shareBtn = document.getElementById('shareBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            
+            if (copyBtn) copyBtn.addEventListener('click', copyContent);
+            if (shareBtn) shareBtn.addEventListener('click', shareContent);
+            if (downloadBtn) downloadBtn.addEventListener('click', downloadContent);
         }
 
         function updateUIForOutputType(outputType) {
@@ -255,17 +303,158 @@
             // Show/hide appropriate controls based on output type
             const durationGroup = document.getElementById('durationGroup');
             const contentLengthGroup = document.getElementById('contentLengthGroup');
+            const interactiveContent = document.getElementById('interactiveContent');
             
             if (outputType === 'text') {
                 durationGroup.style.display = 'none';
                 contentLengthGroup.style.display = 'block';
-            } else if (outputType === 'quiz' || outputType === 'playground') {
-                durationGroup.style.display = 'none';
+                interactiveContent.style.display = 'none';
+            } else if (outputType === 'animated' || outputType === 'audio') {
+                durationGroup.style.display = 'block';
                 contentLengthGroup.style.display = 'none';
+                interactiveContent.style.display = 'none';
             } else {
                 durationGroup.style.display = 'block';
                 contentLengthGroup.style.display = 'none';
+                interactiveContent.style.display = 'none';
             }
+        }
+
+        function showInteractiveQuiz() {
+            // This function is deprecated - use the Interactive Quiz button instead
+            const interactiveContent = document.getElementById('interactiveContent');
+            interactiveContent.innerHTML = `
+                <div class="quiz-interactive">
+                    <div class="quiz-header">
+                        <h3><i class="fas fa-question-circle"></i> Interactive Quiz</h3>
+                        <p>Click the "Interactive Quiz" button above to start a quiz!</p>
+                    </div>
+                </div>
+            `;
+            interactiveContent.style.display = 'block';
+        }
+
+        function showCodePlayground() {
+            // This function is deprecated - use the Code Playground button instead
+            const interactiveContent = document.getElementById('interactiveContent');
+            interactiveContent.innerHTML = `
+                <div class="playground-interactive">
+                    <div class="playground-header">
+                        <h3><i class="fas fa-code"></i> Code Playground</h3>
+                        <p>Click the "Code Playground" button above to start coding!</p>
+                    </div>
+            `;
+            interactiveContent.style.display = 'block';
+        }
+
+        // ============= SETTINGS INTEGRATION =============
+                        </div>
+                        <div class="output-section">
+                            <div class="output-tabs">
+                                <button class="output-tab-btn active" onclick="showOutputTab('result')">
+                                    <i class="fas fa-terminal"></i> Output
+                                </button>
+                                <button class="output-tab-btn" onclick="showOutputTab('suggestions')">
+                                    <i class="fas fa-lightbulb"></i> Suggestions
+                                </button>
+                                <button class="output-tab-btn" onclick="showOutputTab('help')">
+                                    <i class="fas fa-question-circle"></i> Help
+                                </button>
+                            </div>
+                            <div id="result-tab" class="output-tab-content active">
+                                <h5>Code Output:</h5>
+                                <div id="codeOutput" class="code-output">
+                                    <div class="output-placeholder">
+                                        <i class="fas fa-terminal"></i>
+                                        <p>Run your code to see results here</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="suggestions-tab" class="output-tab-content">
+                                <h5>Suggestions for Improving Your Code:</h5>
+                                <div id="codeSuggestions" class="code-suggestions">
+                                    <div class="suggestions-placeholder">
+                                        <i class="fas fa-lightbulb"></i>
+                                        <p>Run your code to get improvement suggestions</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="help-tab" class="output-tab-content">
+                                <h5>Help & Tips:</h5>
+                                <div class="help-content">
+                                    <div class="help-section">
+                                        <h6>Getting Started with ${topic}:</h6>
+                                        <ul>
+                                            <li>Use clear, descriptive variable names</li>
+                                            <li>Add comments to explain your logic</li>
+                                            <li>Test small pieces of code first</li>
+                                            <li>Use built-in datasets for practice</li>
+                                        </ul>
+                                    </div>
+                                    <div class="help-section">
+                                        <h6>Common R Functions for ${topic}:</h6>
+                                        <div class="function-examples">
+                                            <code>summary()</code> <code>head()</code> <code>str()</code>
+                                            <code>plot()</code> <code>mean()</code> <code>length()</code>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            interactiveContent.style.display = 'block';
+        }
+
+        // ============= SETTINGS INTEGRATION =============
+        async function loadUserSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    const settings = result.data;
+                    
+                    // Update topic suggestions if available
+                    if (settings.topicSuggestions) {
+                        updateTopicSuggestions(settings.topicSuggestions);
+                    }
+                    
+                    // Update duration defaults
+                    if (settings.defaultDuration) {
+                        const durationSlider = document.getElementById('duration');
+                        const durationDisplay = document.getElementById('durationDisplay');
+                        if (durationSlider && durationDisplay) {
+                            durationSlider.value = settings.defaultDuration;
+                            durationDisplay.textContent = settings.defaultDuration;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log('Could not load user settings, using defaults');
+            }
+        }
+        
+        function updateTopicSuggestions(topics) {
+            const suggestionsContainer = document.querySelector('.topic-suggestions');
+            if (!suggestionsContainer || !topics || topics.length === 0) return;
+            
+            // Clear existing suggestions
+            suggestionsContainer.innerHTML = '';
+            
+            // Add new suggestions from user settings
+            topics.forEach(topic => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'suggestion-btn';
+                btn.dataset.topic = topic;
+                btn.textContent = topic;
+                btn.addEventListener('click', function() {
+                    document.getElementById('topic').value = this.dataset.topic;
+                });
+                suggestionsContainer.appendChild(btn);
+            });
         }
 
         // ============= FORM HANDLING =============
@@ -290,6 +479,7 @@
         }
 
         async function generateContent(data) {
+            console.log('generateContent called with:', data);
             const generateBtn = document.getElementById('generateBtn');
             const loading = document.getElementById('loading');
             const resultSection = document.getElementById('resultSection');
@@ -309,17 +499,42 @@
                     body: JSON.stringify(data)
                 });
 
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        alert('Please log in to generate content. Redirecting to login...');
+                        window.location.href = '/auth/login';
+                        return;
+                    } else if (response.status >= 500) {
+                        alert('Server error. Please try again later.');
+                        return;
+                    }
+                }
+
                 const result = await response.json();
 
                 if (result.success) {
+                    console.log('Server response successful, calling displayResults with:', result);
                     currentContent = result;
                     displayResults(result);
                 } else {
+                    console.error('Server returned error:', result.error);
                     alert(result.error || 'Failed to generate content');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Network error. Please try again.');
+                let errorMessage = 'Network error. Please try again.';
+                
+                if (error.name === 'TypeError') {
+                    if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
+                        errorMessage = 'Unable to connect to server. Please ensure the server is running and try again.';
+                    } else if (error.message.includes('JSON')) {
+                        errorMessage = 'Server returned invalid response. Please try again.';
+                    }
+                } else if (error.name === 'SyntaxError') {
+                    errorMessage = 'Server response format error. Please try again.';
+                }
+                
+                alert(errorMessage);
             } finally {
                 // Reset UI
                 loading.style.display = 'none';
@@ -334,13 +549,17 @@
             const contentDisplay = document.getElementById('contentDisplay');
             const audioPlayer = document.getElementById('audioPlayer');
             
-            // Update meta tags
-            document.getElementById('outputTypeTag').textContent = getOutputTypeLabel(result.output_type);
-            document.getElementById('topicTag').textContent = result.topic;
+            console.log('Displaying results:', result);
+            
+            // Update meta tags if they exist
+            const outputTypeTag = document.getElementById('outputTypeTag');
+            const topicTag = document.getElementById('topicTag');
+            if (outputTypeTag) outputTypeTag.textContent = getOutputTypeLabel(result.output_type);
+            if (topicTag) topicTag.textContent = result.topic;
 
             // Clear previous content
             contentDisplay.innerHTML = '';
-            audioPlayer.style.display = 'none';
+            if (audioPlayer) audioPlayer.style.display = 'none';
 
             // Display content based on output type
             switch (result.output_type) {
@@ -364,6 +583,48 @@
             // Show results
             resultSection.style.display = 'block';
             resultSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function handleQuizRequest() {
+            const topic = document.getElementById('topic').value.trim();
+            const expertise = document.querySelector('input[name="expertise"]:checked')?.value;
+            
+            if (!topic) {
+                alert('Please enter a topic first!');
+                document.getElementById('topic').focus();
+                return;
+            }
+            
+            const contentData = {
+                topic: topic,
+                expertise: expertise || 'beginner',
+                duration: 5,
+                output_type: 'quiz',
+                content_length: 'medium'
+            };
+            
+            await generateContent(contentData);
+        }
+        
+        async function handlePlaygroundRequest() {
+            const topic = document.getElementById('topic').value.trim();
+            const expertise = document.querySelector('input[name="expertise"]:checked')?.value;
+            
+            if (!topic) {
+                alert('Please enter a topic first!');
+                document.getElementById('topic').focus();
+                return;
+            }
+            
+            const contentData = {
+                topic: topic,
+                expertise: expertise || 'beginner',
+                duration: 5,
+                output_type: 'playground',
+                content_length: 'medium'
+            };
+            
+            await generateContent(contentData);
         }
 
         function displayTextContent(result) {
@@ -625,7 +886,13 @@ mean(data)
 
         // ============= UTILITY FUNCTIONS =============
         function displayQuizContent(result) {
+            console.log('displayQuizContent called with:', result);
             const contentDisplay = document.getElementById('contentDisplay');
+            
+            if (!contentDisplay) {
+                console.error('contentDisplay element not found!');
+                return;
+            }
             
             contentDisplay.innerHTML = `
                 <div class="quiz-content">
@@ -721,7 +988,13 @@ mean(data)
         }
 
         function displayPlaygroundContent(result) {
+            console.log('displayPlaygroundContent called with:', result);
             const contentDisplay = document.getElementById('contentDisplay');
+            
+            if (!contentDisplay) {
+                console.error('contentDisplay element not found!');
+                return;
+            }
             
             contentDisplay.innerHTML = `
                 <div class="playground-content">
@@ -992,7 +1265,8 @@ mean(data)
             
             // Show selected tab
             document.getElementById(tabName + '-tab').classList.add('active');
-            event.target.classList.add('active');
+            // Find and activate the corresponding button
+            document.querySelector(`[onclick="showTab('${tabName}')"]`).classList.add('active');
         }
 
         function showOutputTab(tabName) {
@@ -1006,13 +1280,23 @@ mean(data)
             
             // Show selected tab
             document.getElementById(tabName + '-tab').classList.add('active');
-            event.target.classList.add('active');
+            // Find and activate the corresponding button
+            document.querySelector(`[onclick="showOutputTab('${tabName}')"]`).classList.add('active');
         }
 
         async function runRCodeWithValidation() {
-            const codeEditor = document.getElementById('codeEditor');
-            const codeOutput = document.getElementById('codeOutput');
-            const codeSuggestions = document.getElementById('codeSuggestions');
+            const codeEditor = document.querySelector('textarea.code-editor[id*="codeEditor"]:not([style*="display: none"])') || 
+                              document.getElementById('codeEditor');
+            const codeOutput = document.querySelector('#codeOutput:not([style*="display: none"])') || 
+                              document.getElementById('codeOutput');
+            const codeSuggestions = document.querySelector('#codeSuggestions:not([style*="display: none"])') || 
+                                  document.getElementById('codeSuggestions');
+            
+            if (!codeEditor) {
+                alert('Code editor not found. Please select the Code Playground mode first.');
+                return;
+            }
+            
             const code = codeEditor.value.trim();
             
             if (!code) {
@@ -1021,8 +1305,12 @@ mean(data)
             }
             
             // Show loading state
-            codeOutput.innerHTML = '<div class="output-loading"><i class="fas fa-spinner fa-spin"></i> Validating and running code...</div>';
-            codeSuggestions.innerHTML = '<div class="output-loading"><i class="fas fa-spinner fa-spin"></i> Analyzing code for suggestions...</div>';
+            if (codeOutput) {
+                codeOutput.innerHTML = '<div class="output-loading"><i class="fas fa-spinner fa-spin"></i> Validating and running code...</div>';
+            }
+            if (codeSuggestions) {
+                codeSuggestions.innerHTML = '<div class="output-loading"><i class="fas fa-spinner fa-spin"></i> Analyzing code for suggestions...</div>';
+            }
             
             try {
                 // Validate syntax and get suggestions
@@ -1033,8 +1321,12 @@ mean(data)
                 const result = simulateRExecution(code, validation);
                 
                 // Display results
-                codeOutput.innerHTML = result;
-                codeSuggestions.innerHTML = suggestions;
+                if (codeOutput) {
+                    codeOutput.innerHTML = result;
+                }
+                if (codeSuggestions) {
+                    codeSuggestions.innerHTML = suggestions;
+                }
                 
                 // Auto-switch to suggestions tab if there are important suggestions
                 if (validation.hasIssues) {
@@ -1305,9 +1597,15 @@ mean(data)
         }
 
         function insertTopicExample(topic) {
-            const codeEditor = document.getElementById('codeEditor');
-            const topicLower = topic.toLowerCase();
+            const codeEditor = document.querySelector('textarea.code-editor[id*="codeEditor"]:not([style*="display: none"])') || 
+                              document.getElementById('codeEditor');
             
+            if (!codeEditor) {
+                alert('Code editor not found. Please select the Code Playground mode first.');
+                return;
+            }
+            
+            const topicLower = topic.toLowerCase();
             let example = '';
             
             if (topicLower.includes('ggplot') || topicLower.includes('visualization')) {
@@ -1557,13 +1855,23 @@ barplot(grouped_stats$mean_value,
         }
         
         function clearCode() {
-            document.getElementById('codeEditor').value = '';
-            document.getElementById('codeOutput').innerHTML = `
-                <div class="output-placeholder">
-                    <i class="fas fa-terminal"></i>
-                    <p>Run your code to see results here</p>
-                </div>
-            `;
+            const codeEditor = document.querySelector('textarea.code-editor[id*="codeEditor"]:not([style*="display: none"])') || 
+                              document.getElementById('codeEditor');
+            const codeOutput = document.querySelector('#codeOutput:not([style*="display: none"])') || 
+                              document.getElementById('codeOutput');
+            
+            if (codeEditor) {
+                codeEditor.value = '';
+            }
+            
+            if (codeOutput) {
+                codeOutput.innerHTML = `
+                    <div class="output-placeholder">
+                        <i class="fas fa-terminal"></i>
+                        <p>Run your code to see results here</p>
+                    </div>
+                `;
+            }
         }
         
         function insertExample(topic) {
