@@ -2413,6 +2413,8 @@ body::before {
 .editor-controls {
     display: flex;
     gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
 }
 
 .editor-controls .btn {
@@ -2445,6 +2447,39 @@ body::before {
 .example-btn {
     background: linear-gradient(135deg, var(--accent-blue), #4299e1);
     color: white;
+}
+
+.reset-btn {
+    background: linear-gradient(135deg, #fd79a8 0%, #f093fb 100%);
+    color: white;
+}
+
+.reset-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.example-selector {
+    padding: 0.4rem 0.8rem;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--surface-white);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    min-width: 200px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-left: 0.5rem;
+}
+
+.example-selector:hover {
+    border-color: var(--accent-blue);
+}
+
+.example-selector:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
 }
 
 .code-editor {
