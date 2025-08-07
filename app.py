@@ -130,7 +130,7 @@ def create_app(config_name=None):
             plan='free'
         )
         db.session.add(user)
-        db.commit()
+        db.session.commit()
         print(f"[OK] Created sample user: {email} (password: s)")
 
     @app.route('/health')
