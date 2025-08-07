@@ -2818,3 +2818,159 @@ body::before {
         max-height: 300px;
     }
 }
+
+/* ==================== NEW SECTIONS STYLES ==================== */
+
+/* Expertise Section Styles */
+.expertise-section {
+    margin-bottom: 2rem;
+    padding: 2rem;
+    background: var(--surface-glass);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(20px);
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.expertise-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.expertise-card {
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.expertise-card input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.expertise-card-content {
+    display: block;
+    padding: 1.5rem;
+    background: var(--surface-white);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    text-align: center;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.expertise-card:hover .expertise-card-content {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--accent-blue);
+}
+
+.expertise-card input[type="radio"]:checked + .expertise-card-content {
+    background: linear-gradient(135deg, var(--accent-blue), #4299e1);
+    color: white;
+    border-color: var(--accent-blue);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.expertise-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.expertise-card h4 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.expertise-card p {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+/* Interactive Features Section */
+.interactive-features-section {
+    margin-bottom: 2rem;
+    padding: 2rem;
+    background: var(--surface-glass);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(20px);
+}
+
+.feature-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.btn-feature {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: var(--surface-white);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-feature:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--accent-green);
+    background: linear-gradient(135deg, rgba(56, 161, 105, 0.1), rgba(72, 187, 120, 0.1));
+}
+
+.btn-feature i {
+    font-size: 2rem;
+    color: var(--accent-green);
+    min-width: 2rem;
+}
+
+.feature-content h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.feature-content p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .expertise-options {
+        grid-template-columns: 1fr;
+    }
+    
+    .feature-buttons {
+        grid-template-columns: 1fr;
+    }
+    
+    .expertise-section,
+    .interactive-features-section {
+        padding: 1.5rem;
+    }
+}

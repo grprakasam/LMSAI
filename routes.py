@@ -307,6 +307,11 @@ def index():
                          audio_models=AUDIO_MODEL_CONFIGS,
                          openrouter_status=openrouter_status)
 
+@main_bp.route('/dashboard')
+def dashboard():
+    """Dashboard page - redirects to main index"""
+    return index()
+
 @main_bp.route('/admin')
 def admin():
     """Admin page"""

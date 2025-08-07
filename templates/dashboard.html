@@ -50,29 +50,36 @@
                         </div>
                     </div>
 
-                    <!-- Expertise Level Section -->
-                    <div class="section-row">
-                        <div class="form-group-full">
-                            <label>
-                                <i class="fas fa-user-graduate"></i> Expertise Level
+                    <!-- Expertise Level Section - Prominently displayed -->
+                    <div class="expertise-section">
+                        <h3 class="section-title">
+                            <i class="fas fa-user-graduate"></i> Your Expertise Level
+                        </h3>
+                        <div class="expertise-options">
+                            <label class="expertise-card">
+                                <input type="radio" name="expertise" value="beginner" checked>
+                                <span class="expertise-card-content">
+                                    <i class="fas fa-seedling expertise-icon"></i>
+                                    <h4>🌱 Beginner</h4>
+                                    <p>New to R programming</p>
+                                </span>
                             </label>
-                            <div class="radio-group-inline">
-                                <label class="radio-option-inline">
-                                    <input type="radio" name="expertise" value="beginner" checked>
-                                    <span class="radio-custom-inline"></span>
-                                    <span class="option-text">🌱 Beginner</span>
-                                </label>
-                                <label class="radio-option-inline">
-                                    <input type="radio" name="expertise" value="intermediate">
-                                    <span class="radio-custom-inline"></span>
-                                    <span class="option-text">🌿 Intermediate</span>
-                                </label>
-                                <label class="radio-option-inline">
-                                    <input type="radio" name="expertise" value="expert">
-                                    <span class="radio-custom-inline"></span>
-                                    <span class="option-text">🌳 Expert</span>
-                                </label>
-                            </div>
+                            <label class="expertise-card">
+                                <input type="radio" name="expertise" value="intermediate">
+                                <span class="expertise-card-content">
+                                    <i class="fas fa-leaf expertise-icon"></i>
+                                    <h4>🌿 Intermediate</h4>
+                                    <p>Some R experience</p>
+                                </span>
+                            </label>
+                            <label class="expertise-card">
+                                <input type="radio" name="expertise" value="expert">
+                                <span class="expertise-card-content">
+                                    <i class="fas fa-tree expertise-icon"></i>
+                                    <h4>🌳 Expert</h4>
+                                    <p>Advanced R programmer</p>
+                                </span>
+                            </label>
                         </div>
                     </div>
 
@@ -122,24 +129,6 @@
                                         <p>Interactive animated presentation with audio and controls</p>
                                     </div>
                                 </label>
-                                <label class="radio-option">
-                                    <input type="radio" name="output_type" value="quiz">
-                                    <span class="radio-custom"></span>
-                                    <div class="option-content">
-                                        <i class="fas fa-question-circle"></i>
-                                        <h4>Interactive Quiz</h4>
-                                        <p>Test knowledge with 3 questions and instant feedback based on your topic</p>
-                                    </div>
-                                </label>
-                                <label class="radio-option">
-                                    <input type="radio" name="output_type" value="playground">
-                                    <span class="radio-custom"></span>
-                                    <div class="option-content">
-                                        <i class="fas fa-code"></i>
-                                        <h4>Code Playground</h4>
-                                        <p>Practice coding with syntax validation and improvement suggestions</p>
-                                    </div>
-                                </label>
                             </div>
                         </div>
                     </div>
@@ -170,6 +159,31 @@
                         </div>
                     </div>
 
+                </div>
+
+                <!-- Interactive Features Section -->
+                <div class="interactive-features-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-rocket"></i> Interactive Learning Features
+                    </h3>
+                    
+                    <div class="feature-buttons">
+                        <button type="button" id="quizBtn" class="btn btn-feature">
+                            <i class="fas fa-question-circle"></i>
+                            <div class="feature-content">
+                                <h4>Interactive Quiz</h4>
+                                <p>Test your knowledge with 3 questions</p>
+                            </div>
+                        </button>
+                        
+                        <button type="button" id="playgroundBtn" class="btn btn-feature">
+                            <i class="fas fa-code"></i>
+                            <div class="feature-content">
+                                <h4>Code Playground</h4>
+                                <p>Practice coding with live validation</p>
+                            </div>
+                        </button>
+                    </div>
                 </div>
 
                 <div style="display: flex; justify-content: center;">
@@ -254,6 +268,13 @@
             // Form submission
             document.getElementById('contentForm').addEventListener('submit', handleFormSubmission);
 
+            // Interactive feature buttons
+            const quizBtn = document.getElementById('quizBtn');
+            const playgroundBtn = document.getElementById('playgroundBtn');
+            
+            if (quizBtn) quizBtn.addEventListener('click', handleQuizRequest);
+            if (playgroundBtn) playgroundBtn.addEventListener('click', handlePlaygroundRequest);
+
             // Action buttons - check if they exist first
             const copyBtn = document.getElementById('copyBtn');
             const shareBtn = document.getElementById('shareBtn');
@@ -285,14 +306,10 @@
                 durationGroup.style.display = 'none';
                 contentLengthGroup.style.display = 'block';
                 interactiveContent.style.display = 'none';
-            } else if (outputType === 'quiz') {
-                durationGroup.style.display = 'none';
+            } else if (outputType === 'animated' || outputType === 'audio') {
+                durationGroup.style.display = 'block';
                 contentLengthGroup.style.display = 'none';
-                showInteractiveQuiz();
-            } else if (outputType === 'playground') {
-                durationGroup.style.display = 'none';
-                contentLengthGroup.style.display = 'none';
-                showCodePlayground();
+                interactiveContent.style.display = 'none';
             } else {
                 durationGroup.style.display = 'block';
                 contentLengthGroup.style.display = 'none';
@@ -301,17 +318,13 @@
         }
 
         function showInteractiveQuiz() {
+            // This function is deprecated - use the Interactive Quiz button instead
             const interactiveContent = document.getElementById('interactiveContent');
-            const topic = document.getElementById('topic').value || 'R Programming';
-            
             interactiveContent.innerHTML = `
                 <div class="quiz-interactive">
                     <div class="quiz-header">
-                        <h3><i class="fas fa-question-circle"></i> Interactive Quiz: ${topic}</h3>
-                        <p>Test your knowledge with instant feedback</p>
-                    </div>
-                    <div id="quizContainer" class="quiz-container">
-                        <p class="quiz-instruction">Please enter a topic above and click "Generate Content" to create your personalized quiz!</p>
+                        <h3><i class="fas fa-question-circle"></i> Interactive Quiz</h3>
+                        <p>Click the "Interactive Quiz" button above to start a quiz!</p>
                     </div>
                 </div>
             `;
@@ -319,39 +332,19 @@
         }
 
         function showCodePlayground() {
+            // This function is deprecated - use the Code Playground button instead
             const interactiveContent = document.getElementById('interactiveContent');
-            const topic = document.getElementById('topic').value || 'R Programming';
-            
             interactiveContent.innerHTML = `
                 <div class="playground-interactive">
                     <div class="playground-header">
-                        <h3><i class="fas fa-code"></i> Code Playground: ${topic}</h3>
-                        <p>Practice coding with syntax validation and improvement suggestions</p>
+                        <h3><i class="fas fa-code"></i> Code Playground</h3>
+                        <p>Click the "Code Playground" button above to start coding!</p>
                     </div>
-                    <div class="playground-container">
-                        <div class="code-editor-section">
-                            <div class="editor-header">
-                                <h5><i class="fas fa-code"></i> Your R Code:</h5>
-                                <div class="editor-controls">
-                                    <button class="run-btn" onclick="runRCodeWithValidation()">
-                                        <i class="fas fa-play"></i> Run Code
-                                    </button>
-                                    <button class="clear-btn" onclick="clearCode()">
-                                        <i class="fas fa-trash"></i> Clear
-                                    </button>
-                                    <button class="example-btn" onclick="insertTopicExample('${topic}')">
-                                        <i class="fas fa-lightbulb"></i> Example
-                                    </button>
-                                </div>
-                            </div>
-                            <textarea id="codeEditor" class="code-editor" placeholder="# Write your R code here for ${topic}
-# Examples:
-# - Try implementing concepts you learned
-# - Use built-in R datasets like mtcars, iris
-# - Experiment with different approaches
+            `;
+            interactiveContent.style.display = 'block';
+        }
 
-# Your code will be validated for syntax errors
-# and you'll get suggestions for improvements!"></textarea>
+        // ============= SETTINGS INTEGRATION =============
                         </div>
                         <div class="output-section">
                             <div class="output-tabs">
@@ -580,6 +573,48 @@
             // Show results
             resultSection.style.display = 'block';
             resultSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function handleQuizRequest() {
+            const topic = document.getElementById('topic').value.trim();
+            const expertise = document.querySelector('input[name="expertise"]:checked')?.value;
+            
+            if (!topic) {
+                alert('Please enter a topic first!');
+                document.getElementById('topic').focus();
+                return;
+            }
+            
+            const contentData = {
+                topic: topic,
+                expertise: expertise || 'beginner',
+                duration: 5,
+                output_type: 'quiz',
+                content_length: 'medium'
+            };
+            
+            await generateContent(contentData);
+        }
+        
+        async function handlePlaygroundRequest() {
+            const topic = document.getElementById('topic').value.trim();
+            const expertise = document.querySelector('input[name="expertise"]:checked')?.value;
+            
+            if (!topic) {
+                alert('Please enter a topic first!');
+                document.getElementById('topic').focus();
+                return;
+            }
+            
+            const contentData = {
+                topic: topic,
+                expertise: expertise || 'beginner',
+                duration: 5,
+                output_type: 'playground',
+                content_length: 'medium'
+            };
+            
+            await generateContent(contentData);
         }
 
         function displayTextContent(result) {
