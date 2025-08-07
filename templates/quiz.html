@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Quiz - R Learning AI powered</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <i class="fab fa-r-project"></i> R Learning- AI powered
+        </div>
+        <div class="nav-right">
+            <div class="user-menu">
+                <a href="/dashboard" class="btn btn-sm">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="/playground" class="btn btn-sm">
+                    <i class="fas fa-code"></i> Code Playground
+                </a>
+                <a href="/settings" class="btn btn-sm">
+                    <i class="fas fa-cog"></i> Settings
+                </a>
+                <a href="/logout" class="btn btn-sm">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="main-content">
+            <div class="header-section">
+                <h1><i class="fas fa-question-circle"></i> Interactive Quiz</h1>
+                <p class="subtitle">Test your R programming knowledge with AI-generated questions</p>
+            </div>
+
+            <!-- Quiz Setup Section -->
+            <form id="quizForm" class="content-form">
+                <div class="input-section">
+                    <div class="form-group">
+                        <label for="topic">
+                            <i class="fas fa-book"></i> Choose Your Quiz Topic
+                        </label>
+                        <input type="text" id="topic" name="topic" class="form-control" 
+                               placeholder="e.g., ggplot2, data manipulation, statistics..." required>
+                        <div class="topic-suggestions">
+                            <button type="button" class="suggestion-btn" data-topic="ggplot2">ggplot2</button>
+                            <button type="button" class="suggestion-btn" data-topic="Data Manipulation">Data Manipulation</button>
+                            <button type="button" class="suggestion-btn" data-topic="Statistics">Statistics</button>
+                            <button type="button" class="suggestion-btn" data-topic="Machine Learning">Machine Learning</button>
+                            <button type="button" class="suggestion-btn" data-topic="Data Analysis">Data Analysis</button>
+                            <button type="button" class="suggestion-btn" data-topic="Shiny Applications">Shiny Apps</button>
+                        </div>
+                    </div>
+
+                    <!-- Expertise Level Section -->
+                    <div class="expertise-section">
+                        <h3 class="section-title">
+                            <i class="fas fa-user-graduate"></i> Your Expertise Level
+                        </h3>
+                        <div class="expertise-options">
+                            <label class="expertise-card">
+                                <input type="radio" name="expertise" value="beginner" checked>
+                                <span class="expertise-card-content">
+                                    <i class="fas fa-seedling expertise-icon"></i>
+                                    <h4>🌱 Beginner</h4>
+                                    <p>New to R programming</p>
+                                </span>
+                            </label>
+                            <label class="expertise-card">
+                                <input type="radio" name="expertise" value="intermediate">
+                                <span class="expertise-card-content">
+                                    <i class="fas fa-leaf expertise-icon"></i>
+                                    <h4>🌿 Intermediate</h4>
+                                    <p>Some R experience</p>
+                                </span>
+                            </label>
+                            <label class="expertise-card">
+                                <input type="radio" name="expertise" value="expert">
+                                <span class="expertise-card-content">
+                                    <i class="fas fa-tree expertise-icon"></i>
+                                    <h4>🌳 Expert</h4>
+                                    <p>Advanced R programmer</p>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: center; margin: 2rem 0;">
+                    <button type="submit" id="generateQuizBtn" class="btn btn-primary btn-generate">
+                        <i class="fas fa-brain"></i> Generate Quiz
+                    </button>
+                </div>
+            </form>
+
+            <!-- Loading State -->
+            <div id="loading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p id="loadingText">🧠 Generating your personalized quiz...</p>
+            </div>
+
+            <!-- Quiz Content Display -->
+            <div id="quizContent" class="quiz-content" style="display: none;">
+                <!-- Quiz will be dynamically inserted here -->
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // ============= GLOBAL STATE =============
+        let currentQuizData = null;
+
+        // ============= INITIALIZATION =============
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEventListeners();
+        });
+
+        function initializeEventListeners() {
+            // Topic suggestions
+            document.querySelectorAll('.suggestion-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.getElementById('topic').value = this.dataset.topic;
+                });
+            });
+
+            // Form submission
+            document.getElementById('quizForm').addEventListener('submit', handleQuizSubmission);
+        }
+
+        async function handleQuizSubmission(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const quizData = {
+                topic: formData.get('topic'),
+                expertise: formData.get('expertise'),
+                duration: 5,
+                output_type: 'quiz',
+                content_length: 'medium'
+            };
+
+            if (!quizData.topic || !quizData.expertise) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+
+            await generateQuiz(quizData);
+        }
+
+        async function generateQuiz(data) {
+            console.log('generateQuiz called with:', data);
+            const generateBtn = document.getElementById('generateQuizBtn');
+            const loading = document.getElementById('loading');
+            const quizContent = document.getElementById('quizContent');
+
+            // Show loading state
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating Quiz...';
+            loading.style.display = 'block';
+            quizContent.style.display = 'none';
+
+            try {
+                const response = await fetch('/generate-content', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        alert('Please log in to generate quiz. Redirecting to login...');
+                        window.location.href = '/auth/login';
+                        return;
+                    } else if (response.status >= 500) {
+                        alert('Server error. Please try again later.');
+                        return;
+                    }
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    console.log('Quiz generation successful:', result);
+                    currentQuizData = result;
+                    displayQuiz(result);
+                } else {
+                    console.error('Server returned error:', result.error);
+                    alert(result.error || 'Failed to generate quiz');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Network error. Please try again.');
+            } finally {
+                // Reset UI
+                loading.style.display = 'none';
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '<i class="fas fa-brain"></i> Generate Quiz';
+            }
+        }
+
+        function displayQuiz(result) {
+            console.log('displayQuiz called with:', result);
+            const quizContent = document.getElementById('quizContent');
+            
+            if (!quizContent) {
+                console.error('quizContent element not found!');
+                return;
+            }
+            
+            const questions = result.questions || generateDefaultQuestions(result.topic);
+            
+            quizContent.innerHTML = `
+                <div class="content-header">
+                    <h3>🧠 ${result.topic} Quiz</h3>
+                    <div class="content-meta">
+                        <span class="meta-tag">${result.expertise} level</span>
+                        <span class="meta-tag">${questions.length} questions</span>
+                    </div>
+                </div>
+                <div class="quiz-container" id="quizContainer">
+                    ${generateQuizHTML(questions)}
+                </div>
+                <div class="quiz-controls">
+                    <button class="submit-quiz-btn" onclick="submitQuiz()">
+                        <i class="fas fa-check-circle"></i> Submit Quiz
+                    </button>
+                    <button class="reset-quiz-btn" onclick="resetQuiz()" style="display: none;">
+                        <i class="fas fa-redo"></i> Try Again
+                    </button>
+                    <button class="new-quiz-btn" onclick="generateNewQuiz()">
+                        <i class="fas fa-plus"></i> New Quiz
+                    </button>
+                </div>
+                <div id="quizResults" class="quiz-results" style="display: none;"></div>
+            `;
+            
+            quizContent.style.display = 'block';
+            quizContent.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function generateQuizHTML(questions) {
+            return questions.map((q, index) => `
+                <div class="quiz-question" data-question="${index}">
+                    <div class="question-header">
+                        <h4>Question ${index + 1}</h4>
+                        <div class="question-text">${q.question}</div>
+                    </div>
+                    <div class="question-options">
+                        ${q.options.map((option, optIndex) => `
+                            <label class="quiz-option">
+                                <input type="radio" name="q${index}" value="${optIndex}">
+                                <span class="option-indicator">${String.fromCharCode(65 + optIndex)}</span>
+                                <span class="option-text">${option}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function generateDefaultQuestions(topic) {
+            const questionsTemplates = {
+                'ggplot2': [
+                    {
+                        question: `What is the main function used to create plots in ggplot2?`,
+                        options: ['plot()', 'ggplot()', 'chart()', 'graph()'],
+                        correct: 1,
+                        explanation: 'ggplot() is the main function in ggplot2 for creating plots with the grammar of graphics approach.'
+                    },
+                    {
+                        question: `Which layer is used to add geometric objects like points or lines?`,
+                        options: ['geom_*()', 'aes_*()', 'scale_*()', 'theme_*()'],
+                        correct: 0,
+                        explanation: 'geom_*() functions like geom_point() and geom_line() add geometric objects to plots.'
+                    },
+                    {
+                        question: `What does aes() stand for in ggplot2?`,
+                        options: ['Aesthetic mappings', 'Axis settings', 'Automatic scaling', 'Advanced elements'],
+                        correct: 0,
+                        explanation: 'aes() defines aesthetic mappings that connect data variables to visual properties.'
+                    }
+                ],
+                'data analysis': [
+                    {
+                        question: `Which function is commonly used to read CSV files in R?`,
+                        options: ['read.csv()', 'load.csv()', 'import.csv()', 'get.csv()'],
+                        correct: 0,
+                        explanation: 'read.csv() is the standard function for reading CSV files into R as data frames.'
+                    },
+                    {
+                        question: `What function shows the first few rows of a dataset?`,
+                        options: ['top()', 'first()', 'head()', 'start()'],
+                        correct: 2,
+                        explanation: 'head() displays the first 6 rows by default, useful for quickly examining data structure.'
+                    },
+                    {
+                        question: `Which function provides a summary of data including mean, median, etc.?`,
+                        options: ['describe()', 'summary()', 'stats()', 'info()'],
+                        correct: 1,
+                        explanation: 'summary() provides descriptive statistics for each column in a dataset.'
+                    }
+                ]
+            };
+            
+            const topicLower = topic.toLowerCase();
+            return questionsTemplates[topicLower] || questionsTemplates['data analysis'];
+        }
+
+        function submitQuiz() {
+            const questions = currentQuizData.questions || generateDefaultQuestions(currentQuizData.topic);
+            const results = [];
+            let correctCount = 0;
+            
+            questions.forEach((question, qIndex) => {
+                const selectedOption = document.querySelector(`input[name="q${qIndex}"]:checked`);
+                const isCorrect = selectedOption && parseInt(selectedOption.value) === question.correct;
+                
+                if (isCorrect) correctCount++;
+                
+                results.push({
+                    question: question.question,
+                    selectedAnswer: selectedOption ? question.options[parseInt(selectedOption.value)] : 'No answer',
+                    correctAnswer: question.options[question.correct],
+                    isCorrect: isCorrect,
+                    explanation: question.explanation
+                });
+            });
+            
+            displayQuizResults(results, correctCount, questions.length);
+        }
+        
+        function displayQuizResults(results, correctCount, totalQuestions) {
+            const quizResults = document.getElementById('quizResults');
+            const percentage = Math.round((correctCount / totalQuestions) * 100);
+            
+            let resultsHTML = `
+                <div class="quiz-score">
+                    <div class="score-circle ${getScoreClass(percentage)}">
+                        <div class="score-number">${percentage}%</div>
+                        <div class="score-text">${correctCount}/${totalQuestions} correct</div>
+                    </div>
+                    <div class="score-feedback">
+                        <h4>${getScoreFeedback(percentage)}</h4>
+                        <p>${getScoreMessage(percentage)}</p>
+                    </div>
+                </div>
+                <div class="quiz-breakdown">
+            `;
+            
+            results.forEach((result, index) => {
+                resultsHTML += `
+                    <div class="result-item ${result.isCorrect ? 'correct' : 'incorrect'}">
+                        <div class="result-header">
+                            <span class="result-icon">
+                                ${result.isCorrect ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-times-circle"></i>'}
+                            </span>
+                            <span class="question-number">Question ${index + 1}</span>
+                        </div>
+                        <div class="result-details">
+                            <div class="your-answer">Your answer: ${result.selectedAnswer}</div>
+                            ${!result.isCorrect ? `<div class="correct-answer">Correct answer: ${result.correctAnswer}</div>` : ''}
+                            <div class="explanation">${result.explanation}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            resultsHTML += '</div>';
+            quizResults.innerHTML = resultsHTML;
+            quizResults.style.display = 'block';
+            
+            // Show reset button, hide submit button
+            document.querySelector('.submit-quiz-btn').style.display = 'none';
+            document.querySelector('.reset-quiz-btn').style.display = 'inline-block';
+            
+            // Disable all quiz inputs
+            document.querySelectorAll('.quiz-question input').forEach(input => {
+                input.disabled = true;
+            });
+        }
+        
+        function resetQuiz() {
+            // Enable all quiz inputs
+            document.querySelectorAll('.quiz-question input').forEach(input => {
+                input.disabled = false;
+                input.checked = false;
+            });
+            
+            // Hide results, show submit button
+            document.getElementById('quizResults').style.display = 'none';
+            document.querySelector('.submit-quiz-btn').style.display = 'inline-block';
+            document.querySelector('.reset-quiz-btn').style.display = 'none';
+        }
+
+        function generateNewQuiz() {
+            // Hide current quiz and show form
+            document.getElementById('quizContent').style.display = 'none';
+            document.getElementById('quizForm').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function getScoreClass(percentage) {
+            if (percentage >= 80) return 'excellent';
+            if (percentage >= 60) return 'good';
+            if (percentage >= 40) return 'average';
+            return 'needs-improvement';
+        }
+        
+        function getScoreFeedback(percentage) {
+            if (percentage === 100) return 'Perfect Score! 🎉';
+            if (percentage >= 80) return 'Excellent Work! 🌟';
+            if (percentage >= 60) return 'Good Job! 👍';
+            if (percentage >= 40) return 'Keep Learning! 📚';
+            return 'More Practice Needed 💪';
+        }
+        
+        function getScoreMessage(percentage) {
+            if (percentage === 100) return 'You have mastered this topic completely!';
+            if (percentage >= 80) return 'You have a strong understanding of this topic.';
+            if (percentage >= 60) return 'You have a good grasp of the basics. Review the areas you missed.';
+            if (percentage >= 40) return 'You understand some concepts. Consider reviewing the tutorial again.';
+            return 'This topic needs more attention. Review the tutorial and try again.';
+        }
+
+    </script>
+</body>
+</html>

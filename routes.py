@@ -328,6 +328,18 @@ def settings():
     """User settings page"""
     return render_template('settings.html')
 
+@main_bp.route('/quiz')
+@login_required
+def quiz():
+    """Interactive Quiz page"""
+    return render_template('quiz.html')
+
+@main_bp.route('/playground')
+@login_required
+def playground():
+    """Code Playground page"""
+    return render_template('playground.html')
+
 @main_bp.route('/api/settings', methods=['GET'])
 @login_required
 def get_settings():
