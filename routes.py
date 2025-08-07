@@ -565,8 +565,6 @@ def logout():
 # ==================== NEW UNIFIED CONTENT GENERATION ====================
 
 @main_bp.route('/generate-content', methods=['POST'])
-@rate_limit(requests_per_minute=15)
-@track_usage('content_created')
 def generate_content():
     """Generate content based on output type: text, audio, or animated"""
     

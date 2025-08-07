@@ -502,6 +502,17 @@
                     body: JSON.stringify(data)
                 });
 
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        alert('Please log in to generate content. Redirecting to login...');
+                        window.location.href = '/auth/login';
+                        return;
+                    } else if (response.status >= 500) {
+                        alert('Server error. Please try again later.');
+                        return;
+                    }
+                }
+
                 const result = await response.json();
 
                 if (result.success) {
@@ -512,7 +523,19 @@
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Network error. Please try again.');
+                let errorMessage = 'Network error. Please try again.';
+                
+                if (error.name === 'TypeError') {
+                    if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
+                        errorMessage = 'Unable to connect to server. Please ensure the server is running and try again.';
+                    } else if (error.message.includes('JSON')) {
+                        errorMessage = 'Server returned invalid response. Please try again.';
+                    }
+                } else if (error.name === 'SyntaxError') {
+                    errorMessage = 'Server response format error. Please try again.';
+                }
+                
+                alert(errorMessage);
             } finally {
                 // Reset UI
                 loading.style.display = 'none';
@@ -1185,7 +1208,8 @@ mean(data)
             
             // Show selected tab
             document.getElementById(tabName + '-tab').classList.add('active');
-            event.target.classList.add('active');
+            // Find and activate the corresponding button
+            document.querySelector(`[onclick="showTab('${tabName}')"]`).classList.add('active');
         }
 
         function showOutputTab(tabName) {
@@ -1199,13 +1223,23 @@ mean(data)
             
             // Show selected tab
             document.getElementById(tabName + '-tab').classList.add('active');
-            event.target.classList.add('active');
+            // Find and activate the corresponding button
+            document.querySelector(`[onclick="showOutputTab('${tabName}')"]`).classList.add('active');
         }
 
         async function runRCodeWithValidation() {
-            const codeEditor = document.getElementById('codeEditor');
-            const codeOutput = document.getElementById('codeOutput');
-            const codeSuggestions = document.getElementById('codeSuggestions');
+            const codeEditor = document.querySelector('textarea.code-editor[id*="codeEditor"]:not([style*="display: none"])') || 
+                              document.getElementById('codeEditor');
+            const codeOutput = document.querySelector('#codeOutput:not([style*="display: none"])') || 
+                              document.getElementById('codeOutput');
+            const codeSuggestions = document.querySelector('#codeSuggestions:not([style*="display: none"])') || 
+                                  document.getElementById('codeSuggestions');
+            
+            if (!codeEditor) {
+                alert('Code editor not found. Please select the Code Playground mode first.');
+                return;
+            }
+            
             const code = codeEditor.value.trim();
             
             if (!code) {
@@ -1214,8 +1248,12 @@ mean(data)
             }
             
             // Show loading state
-            codeOutput.innerHTML = '<div class="output-loading"><i class="fas fa-spinner fa-spin"></i> Validating and running code...</div>';
-            codeSuggestions.innerHTML = '<div class="output-loading"><i class="fas fa-spinner fa-spin"></i> Analyzing code for suggestions...</div>';
+            if (codeOutput) {
+                codeOutput.innerHTML = '<div class="output-loading"><i class="fas fa-spinner fa-spin"></i> Validating and running code...</div>';
+            }
+            if (codeSuggestions) {
+                codeSuggestions.innerHTML = '<div class="output-loading"><i class="fas fa-spinner fa-spin"></i> Analyzing code for suggestions...</div>';
+            }
             
             try {
                 // Validate syntax and get suggestions
@@ -1226,8 +1264,12 @@ mean(data)
                 const result = simulateRExecution(code, validation);
                 
                 // Display results
-                codeOutput.innerHTML = result;
-                codeSuggestions.innerHTML = suggestions;
+                if (codeOutput) {
+                    codeOutput.innerHTML = result;
+                }
+                if (codeSuggestions) {
+                    codeSuggestions.innerHTML = suggestions;
+                }
                 
                 // Auto-switch to suggestions tab if there are important suggestions
                 if (validation.hasIssues) {
@@ -1498,9 +1540,15 @@ mean(data)
         }
 
         function insertTopicExample(topic) {
-            const codeEditor = document.getElementById('codeEditor');
-            const topicLower = topic.toLowerCase();
+            const codeEditor = document.querySelector('textarea.code-editor[id*="codeEditor"]:not([style*="display: none"])') || 
+                              document.getElementById('codeEditor');
             
+            if (!codeEditor) {
+                alert('Code editor not found. Please select the Code Playground mode first.');
+                return;
+            }
+            
+            const topicLower = topic.toLowerCase();
             let example = '';
             
             if (topicLower.includes('ggplot') || topicLower.includes('visualization')) {
@@ -1750,13 +1798,23 @@ barplot(grouped_stats$mean_value,
         }
         
         function clearCode() {
-            document.getElementById('codeEditor').value = '';
-            document.getElementById('codeOutput').innerHTML = `
-                <div class="output-placeholder">
-                    <i class="fas fa-terminal"></i>
-                    <p>Run your code to see results here</p>
-                </div>
-            `;
+            const codeEditor = document.querySelector('textarea.code-editor[id*="codeEditor"]:not([style*="display: none"])') || 
+                              document.getElementById('codeEditor');
+            const codeOutput = document.querySelector('#codeOutput:not([style*="display: none"])') || 
+                              document.getElementById('codeOutput');
+            
+            if (codeEditor) {
+                codeEditor.value = '';
+            }
+            
+            if (codeOutput) {
+                codeOutput.innerHTML = `
+                    <div class="output-placeholder">
+                        <i class="fas fa-terminal"></i>
+                        <p>Run your code to see results here</p>
+                    </div>
+                `;
+            }
         }
         
         function insertExample(topic) {
