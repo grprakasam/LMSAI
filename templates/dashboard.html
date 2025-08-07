@@ -161,6 +161,12 @@
 
                 </div>
 
+                <div style="display: flex; justify-content: center;">
+                    <button type="submit" id="generateBtn" class="btn btn-primary btn-generate">
+                        <i class="fas fa-magic"></i> Generate Content
+                    </button>
+                </div>
+
                 <!-- Interactive Features Section -->
                 <div class="interactive-features-section">
                     <h3 class="section-title">
@@ -184,12 +190,6 @@
                             </div>
                         </button>
                     </div>
-                </div>
-
-                <div style="display: flex; justify-content: center;">
-                    <button type="submit" id="generateBtn" class="btn btn-primary btn-generate">
-                        <i class="fas fa-magic"></i> Generate Content
-                    </button>
                 </div>
 
                 <!-- Interactive Content Display -->
@@ -476,6 +476,7 @@
         }
 
         async function generateContent(data) {
+            console.log('generateContent called with:', data);
             const generateBtn = document.getElementById('generateBtn');
             const loading = document.getElementById('loading');
             const resultSection = document.getElementById('resultSection');
@@ -509,9 +510,11 @@
                 const result = await response.json();
 
                 if (result.success) {
+                    console.log('Server response successful, calling displayResults with:', result);
                     currentContent = result;
                     displayResults(result);
                 } else {
+                    console.error('Server returned error:', result.error);
                     alert(result.error || 'Failed to generate content');
                 }
             } catch (error) {
@@ -543,13 +546,17 @@
             const contentDisplay = document.getElementById('contentDisplay');
             const audioPlayer = document.getElementById('audioPlayer');
             
-            // Update meta tags
-            document.getElementById('outputTypeTag').textContent = getOutputTypeLabel(result.output_type);
-            document.getElementById('topicTag').textContent = result.topic;
+            console.log('Displaying results:', result);
+            
+            // Update meta tags if they exist
+            const outputTypeTag = document.getElementById('outputTypeTag');
+            const topicTag = document.getElementById('topicTag');
+            if (outputTypeTag) outputTypeTag.textContent = getOutputTypeLabel(result.output_type);
+            if (topicTag) topicTag.textContent = result.topic;
 
             // Clear previous content
             contentDisplay.innerHTML = '';
-            audioPlayer.style.display = 'none';
+            if (audioPlayer) audioPlayer.style.display = 'none';
 
             // Display content based on output type
             switch (result.output_type) {
@@ -876,7 +883,13 @@ mean(data)
 
         // ============= UTILITY FUNCTIONS =============
         function displayQuizContent(result) {
+            console.log('displayQuizContent called with:', result);
             const contentDisplay = document.getElementById('contentDisplay');
+            
+            if (!contentDisplay) {
+                console.error('contentDisplay element not found!');
+                return;
+            }
             
             contentDisplay.innerHTML = `
                 <div class="quiz-content">
@@ -972,7 +985,13 @@ mean(data)
         }
 
         function displayPlaygroundContent(result) {
+            console.log('displayPlaygroundContent called with:', result);
             const contentDisplay = document.getElementById('contentDisplay');
+            
+            if (!contentDisplay) {
+                console.error('contentDisplay element not found!');
+                return;
+            }
             
             contentDisplay.innerHTML = `
                 <div class="playground-content">
