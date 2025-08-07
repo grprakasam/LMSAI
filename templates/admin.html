@@ -393,7 +393,7 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    currentSettings = data.settings;
+                    currentSettings = data;  // Store the entire response which includes settings, status, usage
                     populateForm();
                     loadModels();
                 } else {
@@ -409,16 +409,16 @@
 
         // Populate form with current settings
         function populateForm() {
-            document.getElementById('openrouterApiKey').value = currentSettings.openrouter?.api_key || '';
-            updateConnectionStatus(currentSettings.openrouter?.connected || false);
+            document.getElementById('openrouterApiKey').value = currentSettings.settings?.openrouter?.api_key || '';
+            updateConnectionStatus(currentSettings.status?.openrouter_connected || false);
         }
 
         // Load available models
         async function loadModels() {
             try {
                 const [textResponse, audioResponse] = await Promise.all([
-                    fetch('/api/models/text'),
-                    fetch('/api/models/audio')
+                    fetch('/api/admin/models/text'),
+                    fetch('/api/admin/models/audio')
                 ]);
 
                 const textData = await textResponse.json();
@@ -436,31 +436,38 @@
             const textSelect = document.getElementById('textModelSelect');
             const audioSelect = document.getElementById('audioModelSelect');
 
-            // Clear existing options
-            textSelect.innerHTML = '<option value="">Select a text model...</option>';
-            audioSelect.innerHTML = '<option value="">Select an audio model...</option>';
+            // Clear existing options and set default
+            if (!textModels || textModels.length === 0) {
+                textSelect.innerHTML = '<option value="">No text models available - check API key</option>';
+            } else {
+                textSelect.innerHTML = '<option value="">Select a text model...</option>';
+                // Populate text models
+                textModels.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.id;
+                    option.textContent = model.name || model.id;
+                    if (model.id === currentSettings.settings?.openrouter?.default_text_model) {
+                        option.selected = true;
+                    }
+                    textSelect.appendChild(option);
+                });
+            }
 
-            // Populate text models
-            textModels.forEach(model => {
-                const option = document.createElement('option');
-                option.value = model.id;
-                option.textContent = model.name || model.id;
-                if (model.id === currentSettings.openrouter?.default_text_model) {
-                    option.selected = true;
-                }
-                textSelect.appendChild(option);
-            });
-
-            // Populate audio models
-            audioModels.forEach(model => {
-                const option = document.createElement('option');
-                option.value = model.id;
-                option.textContent = model.name || model.id;
-                if (model.id === currentSettings.openrouter?.default_audio_model) {
-                    option.selected = true;
-                }
-                audioSelect.appendChild(option);
-            });
+            if (!audioModels || audioModels.length === 0) {
+                audioSelect.innerHTML = '<option value="">No audio models available - check API key</option>';
+            } else {
+                audioSelect.innerHTML = '<option value="">Select an audio model...</option>';
+                // Populate audio models
+                audioModels.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.id;
+                    option.textContent = model.name || model.id;
+                    if (model.id === currentSettings.settings?.openrouter?.default_audio_model) {
+                        option.selected = true;
+                    }
+                    audioSelect.appendChild(option);
+                });
+            }
         }
 
         // Toggle password visibility

@@ -1580,6 +1580,24 @@ def refresh_models():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+@admin_api_bp.route('/models/text', methods=['GET'])
+def get_text_models():
+    """Get available text generation models"""
+    try:
+        models = openrouter_service.get_available_models('text')
+        return jsonify({'success': True, 'models': models})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e), 'models': []})
+
+@admin_api_bp.route('/models/audio', methods=['GET'])
+def get_audio_models():
+    """Get available audio generation models"""
+    try:
+        models = openrouter_service.get_available_models('audio')
+        return jsonify({'success': True, 'models': models})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e), 'models': []})
+
 @admin_api_bp.route('/settings/models', methods=['POST'])
 def save_model_settings():
     """Save default text and audio models"""
