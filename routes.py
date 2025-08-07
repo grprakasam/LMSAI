@@ -309,8 +309,18 @@ def index():
 
 @main_bp.route('/dashboard')
 def dashboard():
-    """Dashboard page - redirects to main index"""
-    return index()
+    """Dashboard page"""
+    # Get user statistics for dashboard (using default values)
+    total_tutorials = Tutorial.query.count()
+    monthly_usage = 0
+    
+    # Calculate total tokens used for display
+    total_tokens = db.session.query(db.func.sum(Tutorial.tokens_used)).scalar() or 0
+    
+    return render_template('dashboard.html', 
+                         total_tutorials=total_tutorials,
+                         monthly_usage=monthly_usage,
+                         total_tokens=total_tokens)
 
 @main_bp.route('/admin')
 def admin():
@@ -327,6 +337,18 @@ def contact():
 def settings():
     """User settings page"""
     return render_template('settings.html')
+
+@main_bp.route('/quiz')
+@login_required
+def quiz():
+    """Interactive Quiz page"""
+    return render_template('quiz.html')
+
+@main_bp.route('/playground')
+@login_required
+def playground():
+    """Code Playground page"""
+    return render_template('playground.html')
 
 @main_bp.route('/api/settings', methods=['GET'])
 @login_required
@@ -2473,15 +2495,38 @@ def generate_quiz_content(topic, expertise):
         }), 500
 
 def generate_playground_content(topic, expertise):
-    """Generate code playground content"""
+    """Generate code playground content with examples and guidance"""
     try:
+        # Save minimal record to database
+        try:
+            tutorial = Tutorial(
+                user_id=1,
+                topic=topic,
+                expertise=expertise,
+                duration=15,  # Playground typically takes longer
+                content=f"Code Playground: {topic}",
+                is_premium=True,
+                status='completed'
+            )
+            db.session.add(tutorial)
+            db.session.commit()
+            tutorial_id = tutorial.id
+        except:
+            tutorial_id = None
+        
+        # Generate topic-specific starter code and examples
+        starter_code = generate_starter_code(topic, expertise)
+        examples = generate_playground_examples(topic)
+        
         return jsonify({
             'success': True,
             'output_type': 'playground',
             'topic': topic,
             'expertise': expertise,
             'content': f"Interactive code playground for {topic}",
-            'tutorial_id': None
+            'starter_code': starter_code,
+            'examples': examples,
+            'tutorial_id': tutorial_id
         })
         
     except Exception as e:
@@ -2716,3 +2761,519 @@ def create_topic_questions(topic, difficulty, num_questions=3):
         ]
     
     return questions[:num_questions]  # Return user-configured number of questions
+
+def generate_starter_code(topic, expertise):
+    """Generate topic-specific starter code for the playground"""
+    topic_lower = topic.lower()
+    
+    # Define starter code templates based on topic and expertise
+    starter_codes = {
+        'ggplot2': {
+            'beginner': '''# ggplot2 Basics - Getting Started
+library(ggplot2)
+
+# Load built-in dataset
+data(mtcars)
+
+# Explore the data first
+head(mtcars)
+str(mtcars)
+
+# Create your first ggplot
+# Try modifying the x and y variables
+ggplot(mtcars, aes(x = wt, y = mpg)) +
+  geom_point() +
+  labs(title = "Car Weight vs Fuel Efficiency",
+       x = "Weight (1000 lbs)",
+       y = "Miles per gallon")''',
+            'intermediate': '''# ggplot2 Intermediate - Customizing Plots
+library(ggplot2)
+library(dplyr)
+
+# Load and prepare data
+data(mtcars)
+mtcars$cyl <- factor(mtcars$cyl)
+
+# Create a customized scatter plot
+# Experiment with different geoms and aesthetics
+ggplot(mtcars, aes(x = wt, y = mpg, color = cyl, size = hp)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_color_manual(values = c("red", "blue", "green")) +
+  theme_minimal() +
+  labs(title = "Multi-dimensional Car Data Visualization",
+       subtitle = "Weight vs MPG, colored by cylinders, sized by horsepower")''',
+            'expert': '''# ggplot2 Advanced - Complex Visualizations
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+
+# Advanced multi-panel visualization
+data(mtcars)
+
+# Create multiple related plots
+p1 <- ggplot(mtcars, aes(x = factor(cyl), y = mpg, fill = factor(cyl))) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "MPG by Cylinders")
+
+p2 <- ggplot(mtcars, aes(x = hp, y = mpg)) +
+  geom_point(aes(color = factor(cyl))) +
+  geom_smooth(method = "loess") +
+  theme_minimal() +
+  labs(title = "Horsepower vs MPG")
+
+# Combine plots (uncomment to run)
+# grid.arrange(p1, p2, ncol = 2)'''
+        },
+        'data manipulation': {
+            'beginner': '''# Data Manipulation Basics with dplyr
+library(dplyr)
+
+# Load built-in dataset
+data(mtcars)
+
+# View the data
+head(mtcars)
+
+# Basic operations
+# 1. Select specific columns
+result1 <- mtcars %>%
+  select(mpg, hp, wt)
+
+# 2. Filter rows
+result2 <- mtcars %>%
+  filter(mpg > 20)
+
+# 3. Create new columns
+result3 <- mtcars %>%
+  mutate(power_to_weight = hp / wt)
+
+# Display results
+print(result3)''',
+            'intermediate': '''# Data Manipulation - Intermediate Techniques
+library(dplyr)
+library(tidyr)
+
+# Load data and add row names as a column
+data(mtcars)
+cars_data <- mtcars %>%
+  rownames_to_column("car_name")
+
+# Complex data transformation
+processed_data <- cars_data %>%
+  # Filter and group
+  filter(mpg > 15) %>%
+  mutate(
+    efficiency = case_when(
+      mpg > 25 ~ "High",
+      mpg > 20 ~ "Medium",
+      TRUE ~ "Low"
+    ),
+    power_to_weight = round(hp / wt, 2)
+  ) %>%
+  # Group and summarize
+  group_by(cyl, efficiency) %>%
+  summarise(
+    avg_mpg = round(mean(mpg), 2),
+    avg_hp = round(mean(hp), 1),
+    car_count = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(avg_mpg))
+
+print(processed_data)''',
+            'expert': '''# Advanced Data Manipulation - Complex Workflows
+library(dplyr)
+library(tidyr)
+library(lubridate)
+
+# Create a more complex dataset scenario
+set.seed(123)
+sales_data <- data.frame(
+  date = seq(as.Date("2024-01-01"), as.Date("2024-12-31"), by = "day"),
+  product = sample(c("A", "B", "C"), 365, replace = TRUE),
+  sales = round(runif(365, 100, 1000), 2),
+  region = sample(c("North", "South", "East", "West"), 365, replace = TRUE)
+)
+
+# Complex transformation pipeline
+analysis <- sales_data %>%
+  mutate(
+    month = month(date, label = TRUE),
+    quarter = paste0("Q", quarter(date)),
+    week_day = wday(date, label = TRUE)
+  ) %>%
+  # Calculate rolling averages and growth
+  arrange(date) %>%
+  group_by(product) %>%
+  mutate(
+    rolling_avg = rollmean(sales, k = 7, fill = NA, align = "right"),
+    growth_rate = (sales / lag(sales) - 1) * 100
+  ) %>%
+  ungroup() %>%
+  # Advanced aggregation
+  group_by(product, quarter, region) %>%
+  summarise(
+    total_sales = sum(sales),
+    avg_daily_sales = mean(sales),
+    sales_volatility = sd(sales),
+    max_daily = max(sales),
+    growth_rate = mean(growth_rate, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  # Pivot for analysis
+  pivot_wider(
+    names_from = quarter,
+    values_from = total_sales,
+    names_prefix = "sales_"
+  )
+
+print(analysis)'''
+        },
+        'statistics': {
+            'beginner': '''# Basic Statistics in R
+# Load built-in dataset
+data(mtcars)
+
+# Descriptive statistics
+print("Dataset Overview:")
+str(mtcars)
+
+print("Summary Statistics:")
+summary(mtcars)
+
+# Basic statistical measures
+print(paste("Mean MPG:", round(mean(mtcars$mpg), 2)))
+print(paste("Median HP:", median(mtcars$hp)))
+print(paste("Standard deviation of weight:", round(sd(mtcars$wt), 2)))
+
+# Correlation
+print("Correlation between MPG and Weight:")
+cor(mtcars$mpg, mtcars$wt)''',
+            'intermediate': '''# Intermediate Statistical Analysis
+data(mtcars)
+
+# Correlation matrix
+print("Correlation Matrix:")
+cor_matrix <- cor(mtcars[, c("mpg", "hp", "wt", "qsec")])
+print(round(cor_matrix, 3))
+
+# Linear regression
+print("Linear Regression: MPG ~ HP + Weight")
+model <- lm(mpg ~ hp + wt, data = mtcars)
+summary(model)
+
+# Predictions
+new_data <- data.frame(hp = c(150, 200), wt = c(3.0, 3.5))
+predictions <- predict(model, new_data)
+print("Predictions:")
+print(data.frame(new_data, predicted_mpg = predictions))''',
+            'expert': '''# Advanced Statistical Analysis
+library(broom)
+library(car)
+
+data(mtcars)
+
+# Multiple regression with interaction terms
+full_model <- lm(mpg ~ hp * wt + factor(cyl) + qsec, data = mtcars)
+
+# Model diagnostics
+print("Model Summary:")
+summary(full_model)
+
+print("ANOVA:")
+anova(full_model)
+
+# Advanced diagnostics
+print("Variance Inflation Factors:")
+vif(full_model)
+
+# Model comparison
+simple_model <- lm(mpg ~ hp + wt, data = mtcars)
+comparison <- anova(simple_model, full_model)
+print("Model Comparison:")
+print(comparison)
+
+# Tidy model output
+tidy_results <- tidy(full_model)
+print("Tidy Coefficients:")
+print(tidy_results)'''
+        },
+        'machine learning': {
+            'beginner': '''# Machine Learning Basics
+library(caret)
+
+# Load and explore data
+data(iris)
+print("Dataset structure:")
+str(iris)
+print("Class distribution:")
+table(iris$Species)
+
+# Simple train/test split
+set.seed(123)
+train_index <- createDataPartition(iris$Species, p = 0.7, list = FALSE)
+train_data <- iris[train_index, ]
+test_data <- iris[-train_index, ]
+
+print(paste("Training set size:", nrow(train_data)))
+print(paste("Test set size:", nrow(test_data)))
+
+# Basic model training (you can uncomment and run)
+# model <- train(Species ~ ., data = train_data, method = "rf")
+# predictions <- predict(model, test_data)
+# confusionMatrix(predictions, test_data$Species)''',
+            'intermediate': '''# Intermediate Machine Learning
+library(caret)
+library(randomForest)
+
+# Load data
+data(iris)
+set.seed(123)
+
+# Advanced data splitting with stratification
+train_index <- createDataPartition(iris$Species, p = 0.8, list = FALSE)
+train_data <- iris[train_index, ]
+test_data <- iris[-train_index, ]
+
+# Cross-validation setup
+ctrl <- trainControl(
+  method = "cv",
+  number = 5,
+  summaryFunction = multiClassSummary,
+  classProbs = TRUE
+)
+
+# Train Random Forest with parameter tuning
+rf_model <- train(
+  Species ~ .,
+  data = train_data,
+  method = "rf",
+  trControl = ctrl,
+  tuneLength = 3,
+  metric = "Accuracy"
+)
+
+print("Model Results:")
+print(rf_model)
+
+# Make predictions
+predictions <- predict(rf_model, test_data)
+conf_matrix <- confusionMatrix(predictions, test_data$Species)
+print("Confusion Matrix:")
+print(conf_matrix)''',
+            'expert': '''# Advanced Machine Learning Pipeline
+library(caret)
+library(randomForest)
+library(e1071)
+library(glmnet)
+
+# Load and prepare data
+data(iris)
+set.seed(42)
+
+# Feature engineering
+iris_enhanced <- iris %>%
+  mutate(
+    Petal_Ratio = Petal.Length / Petal.Width,
+    Sepal_Ratio = Sepal.Length / Sepal.Width,
+    Total_Petal = Petal.Length + Petal.Width,
+    Total_Sepal = Sepal.Length + Sepal.Width
+  )
+
+# Advanced train/validation/test split
+spec <- c(train = .6, validate = .2, test = .2)
+indices <- sample(cut(1:nrow(iris_enhanced), 
+                     nrow(iris_enhanced) * cumsum(c(0, spec)),
+                     labels = names(spec)))
+
+train_data <- iris_enhanced[indices == "train", ]
+val_data <- iris_enhanced[indices == "validate", ]
+test_data <- iris_enhanced[indices == "test", ]
+
+# Model ensemble setup
+models <- c("rf", "svmRadial", "glmnet", "knn")
+
+# Advanced cross-validation
+ctrl <- trainControl(
+  method = "repeatedcv",
+  number = 10,
+  repeats = 3,
+  summaryFunction = multiClassSummary,
+  classProbs = TRUE,
+  savePredictions = "final"
+)
+
+# Train multiple models
+model_list <- list()
+for(model in models) {
+  print(paste("Training:", model))
+  model_list[[model]] <- train(
+    Species ~ .,
+    data = train_data,
+    method = model,
+    trControl = ctrl,
+    metric = "Accuracy"
+  )
+}
+
+# Compare models
+results <- resamples(model_list)
+print("Model Comparison:")
+print(summary(results))'''
+        }
+    }
+    
+    # Match topic to starter code
+    for key, codes in starter_codes.items():
+        if key in topic_lower or any(alias in topic_lower for alias in [key]):
+            return codes.get(expertise, codes.get('beginner', ''))
+    
+    # Default starter code
+    return f'''# {topic} - Let's Get Started!
+# Load any required packages
+library(base)
+
+# Create some sample data
+data <- data.frame(
+  x = 1:10,
+  y = (1:10)^2 + rnorm(10)
+)
+
+# Explore your data
+head(data)
+summary(data)
+
+# Try some basic operations
+mean(data$y)
+plot(data$x, data$y)
+
+# Your code here...
+print("Welcome to R programming with {topic}!")'''
+
+def generate_playground_examples(topic):
+    """Generate topic-specific examples for the playground"""
+    topic_lower = topic.lower()
+    
+    examples = {
+        'ggplot2': [
+            {
+                'name': 'Scatter Plot',
+                'description': 'Basic scatter plot with ggplot2',
+                'code': '''library(ggplot2)
+ggplot(mtcars, aes(x = wt, y = mpg)) +
+  geom_point(color = "blue", size = 3) +
+  labs(title = "Weight vs MPG", x = "Weight", y = "Miles per Gallon")'''
+            },
+            {
+                'name': 'Box Plot',
+                'description': 'Box plot showing distribution by groups',
+                'code': '''library(ggplot2)
+ggplot(mtcars, aes(x = factor(cyl), y = mpg, fill = factor(cyl))) +
+  geom_boxplot() +
+  labs(title = "MPG Distribution by Cylinder Count", 
+       x = "Cylinders", y = "Miles per Gallon")'''
+            },
+            {
+                'name': 'Histogram',
+                'description': 'Histogram with density overlay',
+                'code': '''library(ggplot2)
+ggplot(mtcars, aes(x = mpg)) +
+  geom_histogram(aes(y = ..density..), bins = 10, fill = "skyblue", alpha = 0.7) +
+  geom_density(color = "red", size = 1) +
+  labs(title = "Distribution of Miles per Gallon")'''
+            }
+        ],
+        'data manipulation': [
+            {
+                'name': 'Filter and Select',
+                'description': 'Basic filtering and column selection',
+                'code': '''library(dplyr)
+mtcars %>%
+  filter(mpg > 20) %>%
+  select(mpg, hp, wt) %>%
+  head()'''
+            },
+            {
+                'name': 'Group and Summarize',
+                'description': 'Grouping data and calculating summaries',
+                'code': '''library(dplyr)
+mtcars %>%
+  group_by(cyl) %>%
+  summarise(
+    avg_mpg = mean(mpg),
+    avg_hp = mean(hp),
+    count = n()
+  )'''
+            },
+            {
+                'name': 'Create New Columns',
+                'description': 'Adding calculated columns',
+                'code': '''library(dplyr)
+mtcars %>%
+  mutate(
+    power_to_weight = hp / wt,
+    efficiency = ifelse(mpg > 20, "High", "Low")
+  ) %>%
+  select(mpg, hp, wt, power_to_weight, efficiency) %>%
+  head()'''
+            }
+        ],
+        'statistics': [
+            {
+                'name': 'Descriptive Stats',
+                'description': 'Basic descriptive statistics',
+                'code': '''# Basic statistics
+data(mtcars)
+summary(mtcars$mpg)
+mean(mtcars$mpg)
+median(mtcars$mpg)
+sd(mtcars$mpg)
+var(mtcars$mpg)'''
+            },
+            {
+                'name': 'Correlation',
+                'description': 'Correlation analysis',
+                'code': '''# Correlation analysis
+cor(mtcars$mpg, mtcars$wt)
+cor.test(mtcars$mpg, mtcars$wt)
+
+# Correlation matrix
+cor(mtcars[, c("mpg", "hp", "wt")])'''
+            },
+            {
+                'name': 'T-Test',
+                'description': 'Comparing groups with t-test',
+                'code': '''# T-test comparing automatic vs manual cars
+auto <- mtcars[mtcars$am == 0, "mpg"]
+manual <- mtcars[mtcars$am == 1, "mpg"]
+t.test(auto, manual)'''
+            }
+        ]
+    }
+    
+    # Match topic to examples
+    for key, example_list in examples.items():
+        if key in topic_lower or any(alias in topic_lower for alias in [key]):
+            return example_list
+    
+    # Default examples
+    return [
+        {
+            'name': 'Data Overview',
+            'description': 'Explore a dataset',
+            'code': '''data(mtcars)
+head(mtcars)
+str(mtcars)
+summary(mtcars)'''
+        },
+        {
+            'name': 'Basic Plot',
+            'description': 'Create a simple plot',
+            'code': '''plot(mtcars$wt, mtcars$mpg, 
+     main = "Weight vs MPG",
+     xlab = "Weight", 
+     ylab = "Miles per Gallon")'''
+        }
+    ]

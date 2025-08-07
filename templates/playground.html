@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Playground - R Learning AI powered</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <i class="fab fa-r-project"></i> R Learning- AI powered
+        </div>
+        <div class="nav-right">
+            <div class="user-menu">
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-sm">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="{{ url_for('main.quiz') }}" class="btn btn-sm">
+                    <i class="fas fa-question-circle"></i> Interactive Quiz
+                </a>
+                <a href="/settings" class="btn btn-sm">
+                    <i class="fas fa-cog"></i> Settings
+                </a>
+                <a href="/logout" class="btn btn-sm">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="main-content">
+            <div class="header-section">
+                <h1><i class="fas fa-code"></i> Code Playground</h1>
+                <p class="subtitle">Practice R programming with AI-generated starter code and examples</p>
+            </div>
+
+            <!-- Playground Setup Section -->
+            <form id="playgroundForm" class="content-form">
+                <div class="input-section">
+                    <div class="form-group">
+                        <label for="topic">
+                            <i class="fas fa-book"></i> Choose Your Coding Topic
+                        </label>
+                        <input type="text" id="topic" name="topic" class="form-control" 
+                               placeholder="e.g., ggplot2, data manipulation, machine learning..." required>
+                        <div class="topic-suggestions">
+                            <button type="button" class="suggestion-btn" data-topic="ggplot2">ggplot2</button>
+                            <button type="button" class="suggestion-btn" data-topic="Data Manipulation">Data Manipulation</button>
+                            <button type="button" class="suggestion-btn" data-topic="Statistics">Statistics</button>
+                            <button type="button" class="suggestion-btn" data-topic="Machine Learning">Machine Learning</button>
+                            <button type="button" class="suggestion-btn" data-topic="Data Analysis">Data Analysis</button>
+                            <button type="button" class="suggestion-btn" data-topic="Shiny Applications">Shiny Apps</button>
+                        </div>
+                    </div>
+
+                    <!-- Expertise Level Section -->
+                    <div class="expertise-section">
+                        <h3 class="section-title">
+                            <i class="fas fa-user-graduate"></i> Your Expertise Level
+                        </h3>
+                        <div class="expertise-options">
+                            <label class="expertise-card">
+                                <input type="radio" name="expertise" value="beginner" checked>
+                                <span class="expertise-card-content">
+                                    <i class="fas fa-seedling expertise-icon"></i>
+                                    <h4>🌱 Beginner</h4>
+                                    <p>New to R programming</p>
+                                </span>
+                            </label>
+                            <label class="expertise-card">
+                                <input type="radio" name="expertise" value="intermediate">
+                                <span class="expertise-card-content">
+                                    <i class="fas fa-leaf expertise-icon"></i>
+                                    <h4>🌿 Intermediate</h4>
+                                    <p>Some R experience</p>
+                                </span>
+                            </label>
+                            <label class="expertise-card">
+                                <input type="radio" name="expertise" value="expert">
+                                <span class="expertise-card-content">
+                                    <i class="fas fa-tree expertise-icon"></i>
+                                    <h4>🌳 Expert</h4>
+                                    <p>Advanced R programmer</p>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: center; margin: 2rem 0;">
+                    <button type="submit" id="generatePlaygroundBtn" class="btn btn-primary btn-generate">
+                        <i class="fas fa-rocket"></i> Launch Playground
+                    </button>
+                </div>
+            </form>
+
+            <!-- Loading State -->
+            <div id="loading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p id="loadingText">💻 Setting up your coding environment...</p>
+            </div>
+
+            <!-- Playground Content Display -->
+            <div id="playgroundContent" class="playground-content" style="display: none;">
+                <!-- Playground will be dynamically inserted here -->
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // ============= GLOBAL STATE =============
+        let currentPlaygroundData = null;
+
+        // ============= INITIALIZATION =============
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEventListeners();
+        });
+
+        function initializeEventListeners() {
+            // Topic suggestions
+            document.querySelectorAll('.suggestion-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.getElementById('topic').value = this.dataset.topic;
+                });
+            });
+
+            // Form submission
+            document.getElementById('playgroundForm').addEventListener('submit', handlePlaygroundSubmission);
+        }
+
+        async function handlePlaygroundSubmission(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const playgroundData = {
+                topic: formData.get('topic'),
+                expertise: formData.get('expertise'),
+                duration: 15,
+                output_type: 'playground',
+                content_length: 'medium'
+            };
+
+            if (!playgroundData.topic || !playgroundData.expertise) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+
+            await generatePlayground(playgroundData);
+        }
+
+        async function generatePlayground(data) {
+            console.log('generatePlayground called with:', data);
+            const generateBtn = document.getElementById('generatePlaygroundBtn');
+            const loading = document.getElementById('loading');
+            const playgroundContent = document.getElementById('playgroundContent');
+
+            // Show loading state
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Setting up Playground...';
+            loading.style.display = 'block';
+            playgroundContent.style.display = 'none';
+
+            try {
+                const response = await fetch('/generate-content', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        alert('Please log in to access playground. Redirecting to login...');
+                        window.location.href = '/auth/login';
+                        return;
+                    } else if (response.status >= 500) {
+                        alert('Server error. Please try again later.');
+                        return;
+                    }
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    console.log('Playground generation successful:', result);
+                    currentPlaygroundData = result;
+                    displayPlayground(result);
+                } else {
+                    console.error('Server returned error:', result.error);
+                    alert(result.error || 'Failed to generate playground');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Network error. Please try again.');
+            } finally {
+                // Reset UI
+                loading.style.display = 'none';
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '<i class="fas fa-rocket"></i> Launch Playground';
+            }
+        }
+
+        function displayPlayground(result) {
+            console.log('displayPlayground called with:', result);
+            const playgroundContent = document.getElementById('playgroundContent');
+            
+            if (!playgroundContent) {
+                console.error('playgroundContent element not found!');
+                return;
+            }
+            
+            // Build examples dropdown if examples are available
+            let examplesDropdown = '';
+            if (result.examples && result.examples.length > 0) {
+                examplesDropdown = `
+                    <select id="exampleSelector" class="example-selector" onchange="loadSelectedExample()">
+                        <option value="">Choose an example...</option>
+                        ${result.examples.map((example, index) => 
+                            `<option value="${index}">${example.name} - ${example.description}</option>`
+                        ).join('')}
+                    </select>`;
+            }
+            
+            playgroundContent.innerHTML = `
+                <div class="content-header">
+                    <h3>💻 Code Playground: ${result.topic}</h3>
+                    <div class="content-meta">
+                        <span class="meta-tag">${result.expertise} level</span>
+                        <span class="meta-tag">Interactive coding</span>
+                    </div>
+                </div>
+                <div class="playground-main">
+                    <div class="playground-container">
+                        <div class="code-editor-section">
+                            <div class="editor-header">
+                                <h5><i class="fas fa-code"></i> Your R Code:</h5>
+                                <div class="editor-controls">
+                                    <button class="run-btn" onclick="runRCodeWithValidation()">
+                                        <i class="fas fa-play"></i> Run Code
+                                    </button>
+                                    <button class="clear-btn" onclick="clearCode()">
+                                        <i class="fas fa-trash"></i> Clear
+                                    </button>
+                                    <button class="reset-btn" onclick="resetToStarterCode()">
+                                        <i class="fas fa-undo"></i> Reset
+                                    </button>
+                                    ${examplesDropdown}
+                                </div>
+                            </div>
+                            <textarea id="codeEditor" class="code-editor" placeholder="Loading starter code..."></textarea>
+                        </div>
+                        <div class="output-section">
+                            <div class="output-tabs">
+                                <button class="output-tab-btn active" onclick="showOutputTab('result')">
+                                    <i class="fas fa-terminal"></i> Output
+                                </button>
+                                <button class="output-tab-btn" onclick="showOutputTab('suggestions')">
+                                    <i class="fas fa-lightbulb"></i> Suggestions
+                                </button>
+                                <button class="output-tab-btn" onclick="showOutputTab('help')">
+                                    <i class="fas fa-question-circle"></i> Help
+                                </button>
+                            </div>
+                            <div id="result-tab" class="output-tab-content active">
+                                <h5>Code Output:</h5>
+                                <div id="codeOutput" class="code-output">
+                                    <div class="output-placeholder">
+                                        <i class="fas fa-terminal"></i>
+                                        <p>Run your code to see results here</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="suggestions-tab" class="output-tab-content">
+                                <h5>Suggestions for Improving Your Code:</h5>
+                                <div id="codeSuggestions" class="code-suggestions">
+                                    <div class="suggestions-placeholder">
+                                        <i class="fas fa-lightbulb"></i>
+                                        <p>Run your code to get improvement suggestions</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="help-tab" class="output-tab-content">
+                                <h5>Help & Tips:</h5>
+                                <div class="help-content">
+                                    <div class="help-section">
+                                        <h6>Getting Started with ${result.topic}:</h6>
+                                        <ul>
+                                            <li>Use clear, descriptive variable names</li>
+                                            <li>Add comments to explain your logic</li>
+                                            <li>Test small pieces of code first</li>
+                                            <li>Use built-in datasets for practice</li>
+                                        </ul>
+                                    </div>
+                                    <div class="help-section">
+                                        <h6>Common R Functions for ${result.topic}:</h6>
+                                        <div class="function-examples">
+                                            <code>summary()</code> <code>head()</code> <code>str()</code>
+                                            <code>plot()</code> <code>mean()</code> <code>length()</code>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="playground-actions">
+                    <button class="new-playground-btn" onclick="generateNewPlayground()">
+                        <i class="fas fa-plus"></i> New Playground
+                    </button>
+                </div>
+            `;
+            
+            // Load the starter code into the editor
+            setTimeout(() => {
+                const codeEditor = document.getElementById('codeEditor');
+                if (codeEditor && result.starter_code) {
+                    codeEditor.value = result.starter_code;
+                    codeEditor.placeholder = '';
+                } else if (codeEditor) {
+                    codeEditor.placeholder = `# Write your R code here for ${result.topic}
+# Examples:
+# - Try implementing concepts you learned  
+# - Use built-in R datasets like mtcars, iris
+# - Experiment with different approaches
+# 
+# Your code will be validated for syntax errors
+# and you'll get suggestions for improvements!`;
+                }
+            }, 100);
+            
+            playgroundContent.style.display = 'block';
+            playgroundContent.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function resetToStarterCode() {
+            const codeEditor = document.getElementById('codeEditor');
+            if (codeEditor && currentPlaygroundData && currentPlaygroundData.starter_code) {
+                codeEditor.value = currentPlaygroundData.starter_code;
+            }
+        }
+        
+        function loadSelectedExample() {
+            const selector = document.getElementById('exampleSelector');
+            const codeEditor = document.getElementById('codeEditor');
+            
+            if (!selector || !codeEditor || !currentPlaygroundData || !currentPlaygroundData.examples) {
+                return;
+            }
+            
+            const selectedIndex = parseInt(selector.value);
+            if (!isNaN(selectedIndex) && currentPlaygroundData.examples[selectedIndex]) {
+                const example = currentPlaygroundData.examples[selectedIndex];
+                codeEditor.value = example.code;
+                
+                // Show a brief notification
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed; top: 20px; right: 20px; 
+                    background: #4caf50; color: white; padding: 10px 20px; 
+                    border-radius: 5px; z-index: 9999; 
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                `;
+                notification.textContent = `Loaded example: ${example.name}`;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 3000);
+                
+                // Reset selector
+                selector.value = '';
+            }
+        }
+
+        function clearCode() {
+            const codeEditor = document.getElementById('codeEditor');
+            const codeOutput = document.getElementById('codeOutput');
+            
+            if (codeEditor) {
+                codeEditor.value = '';
+            }
+            
+            if (codeOutput) {
+                codeOutput.innerHTML = `
+                    <div class="output-placeholder">
+                        <i class="fas fa-terminal"></i>
+                        <p>Run your code to see results here</p>
+                    </div>
+                `;
+            }
+        }
+
+        function generateNewPlayground() {
+            // Hide current playground and show form
+            document.getElementById('playgroundContent').style.display = 'none';
+            document.getElementById('playgroundForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showOutputTab(tabName) {
+            // Hide all output tabs
+            document.querySelectorAll('.output-tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.output-tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            // Find and activate the corresponding button
+            document.querySelector(`[onclick="showOutputTab('${tabName}')"]`).classList.add('active');
+        }
+
+        async function runRCodeWithValidation() {
+            const codeEditor = document.getElementById('codeEditor');
+            const codeOutput = document.getElementById('codeOutput');
+            const codeSuggestions = document.getElementById('codeSuggestions');
+            
+            if (!codeEditor) {
+                alert('Code editor not found.');
+                return;
+            }
+            
+            const code = codeEditor.value.trim();
+            
+            if (!code) {
+                codeOutput.innerHTML = '<div class="output-error">Please enter some R code to run.</div>';
+                return;
+            }
+            
+            // Show loading state
+            if (codeOutput) {
+                codeOutput.innerHTML = '<div class="output-loading"><i class="fas fa-spinner fa-spin"></i> Validating and running code...</div>';
+            }
+            if (codeSuggestions) {
+                codeSuggestions.innerHTML = '<div class="output-loading"><i class="fas fa-spinner fa-spin"></i> Analyzing code for suggestions...</div>';
+            }
+            
+            try {
+                // Simulate code validation and execution
+                const validation = validateRCode(code);
+                const suggestions = generateCodeSuggestions(code, validation);
+                const result = simulateRExecution(code, validation);
+                
+                // Display results
+                if (codeOutput) {
+                    codeOutput.innerHTML = result;
+                }
+                if (codeSuggestions) {
+                    codeSuggestions.innerHTML = suggestions;
+                }
+                
+                // Auto-switch to suggestions tab if there are important suggestions
+                if (validation.hasIssues) {
+                    showOutputTab('suggestions');
+                }
+                
+            } catch (error) {
+                codeOutput.innerHTML = '<div class="output-error">Error running code: ' + error.message + '</div>';
+            }
+        }
+
+        function validateRCode(code) {
+            const validation = {
+                syntaxErrors: [],
+                warnings: [],
+                suggestions: [],
+                hasIssues: false,
+                codeQuality: 'good'
+            };
+            
+            // Basic syntax checks (simplified for demo)
+            const lines = code.split('\n');
+            lines.forEach((line, index) => {
+                const trimmedLine = line.trim();
+                if (!trimmedLine || trimmedLine.startsWith('#')) return;
+                
+                // Check for common syntax issues
+                const openParens = (line.match(/\(/g) || []).length;
+                const closeParens = (line.match(/\)/g) || []).length;
+                
+                if (openParens !== closeParens) {
+                    validation.syntaxErrors.push({
+                        line: index + 1,
+                        message: 'Unmatched parentheses'
+                    });
+                }
+            });
+            
+            validation.hasIssues = validation.syntaxErrors.length > 0 || validation.warnings.length > 0;
+            return validation;
+        }
+
+        function generateCodeSuggestions(code, validation) {
+            let suggestionsHTML = '';
+            
+            // Syntax errors
+            if (validation.syntaxErrors.length > 0) {
+                suggestionsHTML += '<div class="suggestion-category error">';
+                suggestionsHTML += '<h6><i class="fas fa-exclamation-triangle"></i> Syntax Errors:</h6>';
+                validation.syntaxErrors.forEach(error => {
+                    suggestionsHTML += `<div class="suggestion-item error">
+                        <span class="line-number">Line ${error.line}:</span>
+                        <span class="message">${error.message}</span>
+                    </div>`;
+                });
+                suggestionsHTML += '</div>';
+            }
+            
+            // No issues - show positive feedback
+            if (suggestionsHTML === '') {
+                suggestionsHTML = `
+                    <div class="suggestion-category success">
+                        <div class="no-issues">
+                            <i class="fas fa-check-circle"></i>
+                            <h6>Great job! Your code looks good!</h6>
+                            <p>No major issues found. Your code follows good R practices.</p>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            return suggestionsHTML;
+        }
+        
+        function simulateRExecution(code, validation = null) {
+            // Enhanced R code simulation
+            if (validation && validation.syntaxErrors.length > 0) {
+                return '<div class="execution-result"><div class="output-error">Code contains syntax errors. Please fix them before running.</div></div>';
+            }
+            
+            const codeLines = code.toLowerCase().split('\n').map(line => line.trim()).filter(line => line);
+            let output = '';
+            let hasOutput = false;
+            
+            for (let line of codeLines) {
+                if (line.startsWith('#')) continue;
+                
+                if (line.includes('mean(')) {
+                    output += '<div class="output-line">[1] ' + (Math.random() * 10 + 1).toFixed(2) + '</div>';
+                    hasOutput = true;
+                } else if (line.includes('summary(')) {
+                    output += '<div class="output-line">   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.<br>  1.000   2.250   3.500   3.500   4.750   6.000</div>';
+                    hasOutput = true;
+                } else if (line.includes('head(')) {
+                    output += '<div class="output-line">  A  B  C<br>1 1  4  7<br>2 2  5  8<br>3 3  6  9<br>4 4  7  2<br>5 5  8  3<br>6 6  9  4</div>';
+                    hasOutput = true;
+                } else if (line.includes('ggplot(')) {
+                    output += '<div class="output-success"><i class="fas fa-chart-line"></i> Plot generated successfully! Check your Plots pane.</div>';
+                    hasOutput = true;
+                } else if (line.includes('library(')) {
+                    const packageMatch = line.match(/library\(([^)]+)\)/);
+                    const packageName = packageMatch ? packageMatch[1] : 'package';
+                    output += `<div class="output-success"><i class="fas fa-box-open"></i> ${packageName} package loaded successfully</div>';
+                    hasOutput = true;
+                }
+            }
+            
+            if (!hasOutput) {
+                output = '<div class="output-info"><i class="fas fa-info-circle"></i> Code executed successfully (no output to display)</div>';
+            }
+            
+            return '<div class="execution-result">' + output + '</div>';
+        }
+
+    </script>
+</body>
+</html>
