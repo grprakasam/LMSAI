@@ -97,15 +97,15 @@ def create_app(config_name=None):
             'status': 429
         }), 429
 
-    # Custom CLI commands
-    @app.command()
+    # Custom CLI commands - using click commands properly
+    @app.cli.command()
     def init_db_cmd():
         """Initialize the database."""
         from models import db
         db.create_all()
         print("[OK] Database initialized successfully!")
 
-    @app.command()
+    @app.cli.command()
     def test_openrouter():
         """Test OpenRouter connection."""
         status = openrouter_service.get_model_status()
@@ -115,7 +115,7 @@ def create_app(config_name=None):
         else:
             print(f"[ERROR] Connection failed: {status.get('error', 'Unknown')}")
 
-    @app.command()
+    @app.cli.command()
     def create_sample_user():
         """Create a sample user for testing."""
         from models import db
@@ -130,7 +130,7 @@ def create_app(config_name=None):
             plan='free'
         )
         db.session.add(user)
-        db.commit()
+        db.session.commit()
         print(f"[OK] Created sample user: {email} (password: s)")
 
     @app.route('/health')
